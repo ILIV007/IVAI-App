@@ -6,7 +6,6 @@ import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTextInput
-import androidx.test.ext.junit.runners.AndroidJUnit4
 import dev.iliv007.ivai.ui.screens.MainChatScreen
 import dev.iliv007.ivai.ui.theme.IvaiTheme
 import dev.iliv007.ivai.ui.viewmodel.MainChatViewModel
@@ -15,10 +14,11 @@ import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
+import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 
-@RunWith(AndroidJUnit4::class)
-@Config(sdk = [34])
+@RunWith(RobolectricTestRunner::class)
+@Config(sdk = [36])
 class MainChatViewModelTest {
 
     @get:Rule

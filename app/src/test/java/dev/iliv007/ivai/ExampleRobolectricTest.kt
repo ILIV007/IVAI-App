@@ -43,7 +43,7 @@ class ExampleRobolectricTest {
             }
         }
 
-        composeTestRule.onNodeWithTag("nav_item_chats").assertExists()
+        composeTestRule.onNodeWithTag("sidebar_button_new_chat").assertExists()
         composeTestRule.onNodeWithTag("nav_item_agents").assertExists()
         composeTestRule.onNodeWithTag("nav_item_projects").assertExists()
         composeTestRule.onNodeWithTag("nav_item_router").assertExists()
@@ -99,7 +99,7 @@ class ExampleRobolectricTest {
         // Open sidebar and return to Chats
         composeTestRule.onNodeWithTag("button_sidebar_toggle").performClick()
         composeTestRule.waitForIdle()
-        composeTestRule.onNodeWithTag("nav_item_chats").performClick()
+        composeTestRule.onNodeWithTag("sidebar_button_new_chat").performClick()
         composeTestRule.waitForIdle()
         composeTestRule.onNodeWithTag("input_message_text").assertExists()
     }

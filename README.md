@@ -22,19 +22,36 @@ IVAI Task 01 is a mock-only UI skeleton demonstrating the core user interface, n
 
 ## Local Build & Test Commands
 
-Build debug APK:
+### Prerequisites
+
+Install Android Studio with a **full JDK 17 or later** and the Android SDK platform required by this project (`compileSdk 36.1`), including the corresponding SDK Build Tools. The project uses Android Gradle Plugin 9.1.1 and Gradle 9.3.1.
+
+For command-line builds, configure `ANDROID_HOME` (or `ANDROID_SDK_ROOT`) to your Android SDK directory. Alternatively, let Android Studio generate an untracked `local.properties` file, for example:
+
+```properties
+sdk.dir=/absolute/path/to/Android/Sdk
+```
+
+`local.properties` is machine-specific and must not be committed.
+
+Build a debug APK:
 ```bash
 ./gradlew assembleDebug
 ```
 
-Run unit tests:
+Run all unit tests:
 ```bash
 ./gradlew test
 ```
 
-Or run unit tests specifically:
+Run the debug unit-test task specifically:
 ```bash
-gradle :app:testDebugUnitTest
+./gradlew :app:testDebugUnitTest
 ```
 
-Note: No `.env` file or `GEMINI_API_KEY` configuration is required.
+Verify the installed Gradle Wrapper before troubleshooting a build:
+```bash
+./gradlew --version
+```
+
+Note: No `.env` file or `GEMINI_API_KEY` configuration is required because Task 01 contains no real provider integration.
