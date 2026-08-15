@@ -2,6 +2,7 @@ package dev.iliv007.ivai
 
 import android.content.Context
 import androidx.datastore.preferences.core.PreferenceDataStoreFactory
+import dev.iliv007.ivai.chat.LocalGeminiChatSession
 import dev.iliv007.ivai.data.local.IvaiDatabase
 import dev.iliv007.ivai.data.local.LocalWorkspaceRepository
 import dev.iliv007.ivai.provider.gemini.GeminiChatProvider
@@ -33,4 +34,5 @@ class IvaiRuntime(context: Context) {
     )
 
     val geminiProvider = GeminiChatProvider(GeminiNetworkGate(secretVault))
+    val geminiChatSession = LocalGeminiChatSession(geminiProvider, workspaceRepository)
 }

@@ -108,6 +108,9 @@ fun ChatsScreen(
     onAssignThreadToProject: (String, String?) -> Unit = { _, _ -> },
     onCreateNewProject: (String, String) -> WorkspaceProject = { _, _ -> MockDataRepository.mockProjects.first() },
     onUpdateThreadMessages: (String, List<ChatMessage>) -> Unit = { _, _ -> },
+    onSendMessage: (String, String) -> Unit = { _, _ -> },
+    isStreaming: Boolean = false,
+    onStopStreaming: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     val currentThread = threads.find { it.id == selectedThreadId } ?: threads.firstOrNull() ?: ChatThread(
@@ -613,7 +616,14 @@ fun ChatsScreen(
                     .padding(horizontal = 12.dp, vertical = 8.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                val isSendEnabled = inputText.isNotBlank()
+                val isSendEnabled = inputText.isNotBlank() && !isStreaming
+                fun submit() {
+                    if (!isSendEnabled) return
+                    onSendMessage(currentThread.id, inputText.trim())
+                    inputText = ""
+                    keyboardController?.hide()
+                    focusManager.clearFocus()
+                }
 
                 OutlinedTextField(
                     value = inputText,
@@ -630,25 +640,7 @@ fun ChatsScreen(
                         capitalization = KeyboardCapitalization.Sentences
                     ),
                     keyboardActions = KeyboardActions(
-                        onSend = {
-                            if (inputText.isNotBlank()) {
-                                val newMessage = ChatMessage(
-                                    id = "msg-${System.currentTimeMillis()}",
-                                    sender = MessageSender.USER,
-                                    text = inputText.trim(),
-                                    timestamp = "Now"
-                                )
-                                val updated = messages + newMessage
-                                messages = updated
-                                onUpdateThreadMessages(currentThread.id, updated)
-                                inputText = ""
-                                keyboardController?.hide()
-                                focusManager.clearFocus()
-                                scope.launch {
-                                    listState.animateScrollToItem(updated.size - 1)
-                                }
-                            }
-                        }
+                        onSend = { submit() }
                     ),
                     colors = OutlinedTextFieldDefaults.colors(
                         focusedBorderColor = MaterialTheme.colorScheme.primary,
@@ -696,31 +688,15 @@ fun ChatsScreen(
                                 MaterialTheme.colorScheme.outlineVariant,
                             shape = CircleShape
                         )
-                        .clickable(enabled = isSendEnabled) {
-                            if (inputText.isNotBlank()) {
-                                val newMessage = ChatMessage(
-                                    id = "msg-${System.currentTimeMillis()}",
-                                    sender = MessageSender.USER,
-                                    text = inputText.trim(),
-                                    timestamp = "Now"
-                                )
-                                val updated = messages + newMessage
-                                messages = updated
-                                onUpdateThreadMessages(currentThread.id, updated)
-                                inputText = ""
-                                keyboardController?.hide()
-                                focusManager.clearFocus()
-                                scope.launch {
-                                    listState.animateScrollToItem(updated.size - 1)
-                                }
-                            }
+                        .clickable(enabled = isStreaming || isSendEnabled) {
+                            if (isStreaming) onStopStreaming() else submit()
                         }
                         .testTag("button_send_message"),
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(
                         imageVector = Icons.AutoMirrored.Filled.Send,
-                        contentDescription = "Send message",
+                        contentDescription = if (isStreaming) "Stop streaming" else "Send message",
                         tint = if (isSendEnabled)
                             Color.White
                         else
