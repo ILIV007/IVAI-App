@@ -6,7 +6,11 @@ IVAI is local-first and BYOK. Secrets and personal content are treated as high-s
 
 ## Credential policy
 
-Provider credentials are introduced only in the data/security phase. They must use Android Keystore-backed encryption. The app stores a label and masked identifier for display, never re-displays the full key, and never places credentials in source, `BuildConfig`, plaintext preferences, Room plaintext, logs, screenshots, traces, exports, or backups.
+Provider credentials are introduced only in the data/security phase. The foundation uses a per-reference Android Keystore AES/GCM key and stores only a versioned ciphertext envelope (version, base64 IV, base64 ciphertext) in Preferences DataStore. Invalid or corrupted envelopes fail closed and are never silently replaced. Clearing an entry removes its DataStore record and deletes its matching Keystore key. The app stores a label and masked identifier for display, never re-displays the full key, and never places credentials in source, `BuildConfig`, plaintext preferences, Room plaintext, logs, screenshots, traces, exports, or backups.
+
+## Persistence policy
+
+Room persists projects, threads, and messages only in the app-private database. Provider credentials never enter Room. Database schemas are versioned and committed; a future migration or backup/restore change requires dedicated migration tests and a security review. The current repository boundary remains local-only and has no provider traffic.
 
 ## Network policy
 

@@ -2,7 +2,7 @@
 
 ## Current state
 
-The repository currently contains a single Android application module built with Kotlin, Jetpack Compose, Material 3, Coroutines, and ViewModel state. It is a mock-only UI Skeleton; it has no production Provider adapter, network client, database, credential vault, or Agent runtime.
+The repository currently contains a single Android application module built with Kotlin, Jetpack Compose, Material 3, Coroutines, and ViewModel state. Phase 2 adds a versioned Room v1 foundation for local workspace projects, threads, and messages, plus a DataStore/Android Keystore vault boundary for future credentials. The UI remains mock-only: it has no production Provider adapter, network client, credential-entry UI, or Agent runtime.
 
 ## Target direction
 
@@ -15,6 +15,12 @@ Compose UI
   -> Repository interfaces
   -> Local data | Security vault | Files | Provider adapters
 ```
+
+## Local data foundation
+
+The local database is `IvaiDatabase` version `1`, with `workspace_projects`, `chat_threads`, and `chat_messages` tables. A project deletion unassigns related threads; a thread deletion cascades to its messages. Room schemas are exported under `app/schemas/` and must be committed with every version change. `LocalWorkspaceRepository` is the persistence boundary; UI integration is intentionally deferred until the reviewed UI/RTL state branch is merged.
+
+The credential vault persists only a versioned AES-GCM ciphertext envelope in Preferences DataStore. `AndroidKeystoreSecretCipher` owns a per-reference non-exportable Android Keystore key. The source includes no provider, secret-entry UI, network traffic, or secret logging.
 
 ## Phase constraints
 
