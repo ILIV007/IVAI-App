@@ -16,10 +16,12 @@ import androidx.compose.material3.rememberDrawerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -33,6 +35,7 @@ import dev.iliv007.ivai.ui.screens.RouterScreen
 import dev.iliv007.ivai.ui.screens.SettingsScreen
 import dev.iliv007.ivai.ui.theme.IvaiTheme
 import dev.iliv007.ivai.ui.viewmodel.WorkspaceViewModel
+import dev.iliv007.ivai.ui.viewmodel.WorkspaceViewModelFactory
 import kotlinx.coroutines.launch
 
 class MainActivity : ComponentActivity() {
@@ -62,9 +65,14 @@ class MainActivity : ComponentActivity() {
 fun IvaiMainApp(
     isDarkTheme: Boolean = false,
     onToggleTheme: () -> Unit = {},
-    workspaceViewModel: WorkspaceViewModel = viewModel()
+    workspaceViewModel: WorkspaceViewModel? = null
 ) {
-    val uiState by workspaceViewModel.uiState.collectAsStateWithLifecycle()
+    val context = LocalContext.current
+    val runtime = remember(context) { IvaiRuntime(context) }
+    val resolvedViewModel = workspaceViewModel ?: viewModel(
+        factory = remember(runtime) { WorkspaceViewModelFactory(runtime) }
+    )
+    val uiState by resolvedViewModel.uiState.collectAsStateWithLifecycle()
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
     val scope = rememberCoroutineScope()
 
@@ -82,23 +90,23 @@ fun IvaiMainApp(
                 IvaiSidebarContent(
                     currentDestination = uiState.destination,
                     onDestinationSelected = { destination ->
-                        workspaceViewModel.selectDestination(destination)
+                        resolvedViewModel.selectDestination(destination)
                         closeDrawer()
                     },
                     threads = uiState.threads,
                     selectedThreadId = uiState.selectedThreadId,
                     onSelectThread = { threadId ->
-                        workspaceViewModel.selectThread(threadId)
+                        resolvedViewModel.selectThread(threadId)
                         closeDrawer()
                     },
                     projects = uiState.projects,
                     selectedProjectId = uiState.selectedProjectId,
-                    onSelectProject = workspaceViewModel::selectProject,
+                    onSelectProject = resolvedViewModel::selectProject,
                     onNewChatClick = {
-                        workspaceViewModel.createNewChat()
+                        resolvedViewModel.createNewChat()
                         closeDrawer()
                     },
-                    onDeleteThread = workspaceViewModel::deleteThread,
+                    onDeleteThread = resolvedViewModel::deleteThread,
                     isDarkTheme = isDarkTheme,
                     onToggleTheme = onToggleTheme
                 )
@@ -113,7 +121,7 @@ fun IvaiMainApp(
                         title = "IVAI",
                         subtitle = uiState.destination.title,
                         currentState = uiState.previewState,
-                        onStateSelected = workspaceViewModel::selectPreviewState,
+                        onStateSelected = resolvedViewModel::selectPreviewState,
                         onOpenSidebar = {
                             scope.launch {
                                 if (drawerState.isClosed) drawerState.open() else drawerState.close()
@@ -133,17 +141,20 @@ fun IvaiMainApp(
                     when (uiState.destination) {
                         dev.iliv007.ivai.ui.navigation.NavDestination.CHATS -> ChatsScreen(
                             previewState = uiState.previewState,
-                            onResetState = workspaceViewModel::resetPreviewState,
+                            onResetState = resolvedViewModel::resetPreviewState,
                             threads = uiState.threads,
                             selectedThreadId = uiState.selectedThreadId,
-                            onSelectThread = workspaceViewModel::selectThread,
+                            onSelectThread = resolvedViewModel::selectThread,
                             projects = uiState.projects,
                             selectedProjectId = uiState.selectedProjectId,
-                            onSelectProject = workspaceViewModel::selectProject,
-                            onNewChatInProject = workspaceViewModel::createNewChat,
-                            onAssignThreadToProject = workspaceViewModel::assignThreadToProject,
-                            onCreateNewProject = workspaceViewModel::createNewProject,
-                            onUpdateThreadMessages = workspaceViewModel::updateThreadMessages
+                            onSelectProject = resolvedViewModel::selectProject,
+                            onNewChatInProject = resolvedViewModel::createNewChat,
+                            onAssignThreadToProject = resolvedViewModel::assignThreadToProject,
+                            onCreateNewProject = resolvedViewModel::createNewProject,
+                            onUpdateThreadMessages = resolvedViewModel::updateThreadMessages,
+                            onSendMessage = resolvedViewModel::sendMessage,
+                            isStreaming = uiState.isStreaming,
+                            onStopStreaming = resolvedViewModel::stopStreaming
                         )
                         dev.iliv007.ivai.ui.navigation.NavDestination.AGENTS -> AgentsScreen()
                         dev.iliv007.ivai.ui.navigation.NavDestination.PROJECTS -> ProjectsScreen()
