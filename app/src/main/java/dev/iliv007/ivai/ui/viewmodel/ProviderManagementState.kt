@@ -21,6 +21,7 @@ data class ProviderAccountCard(
 )
 
 data class ProviderModelCard(
+    val registryModelId: String,
     val modelId: String,
     val displayName: String,
     val capabilities: List<String>,

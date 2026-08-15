@@ -74,6 +74,7 @@ fun IvaiMainApp(
     )
     val uiState by resolvedViewModel.uiState.collectAsStateWithLifecycle()
     val providerManagementState by resolvedViewModel.providerManagementState.collectAsStateWithLifecycle()
+    val routerManagementState by resolvedViewModel.routerManagementState.collectAsStateWithLifecycle()
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
     val scope = rememberCoroutineScope()
 
@@ -155,11 +156,20 @@ fun IvaiMainApp(
                             onUpdateThreadMessages = resolvedViewModel::updateThreadMessages,
                             onSendMessage = resolvedViewModel::sendMessage,
                             isStreaming = uiState.isStreaming,
-                            onStopStreaming = resolvedViewModel::stopStreaming
+                            onStopStreaming = resolvedViewModel::stopStreaming,
+                            routerManagementState = routerManagementState,
+                            providerManagementState = providerManagementState,
+                            onSelectComboTarget = resolvedViewModel::selectComboTarget,
+                            onSelectDirectTarget = resolvedViewModel::selectDirectTarget
                         )
                         dev.iliv007.ivai.ui.navigation.NavDestination.AGENTS -> AgentsScreen()
                         dev.iliv007.ivai.ui.navigation.NavDestination.PROJECTS -> ProjectsScreen()
-                        dev.iliv007.ivai.ui.navigation.NavDestination.ROUTER -> RouterScreen()
+                        dev.iliv007.ivai.ui.navigation.NavDestination.ROUTER -> RouterScreen(
+                            state = routerManagementState,
+                            providers = providerManagementState,
+                            onCreateCombo = resolvedViewModel::createRouterCombo,
+                            onDismissError = resolvedViewModel::clearRouterOperationError
+                        )
                         dev.iliv007.ivai.ui.navigation.NavDestination.SETTINGS -> SettingsScreen(
                             isDarkTheme = isDarkTheme,
                             onToggleTheme = onToggleTheme,

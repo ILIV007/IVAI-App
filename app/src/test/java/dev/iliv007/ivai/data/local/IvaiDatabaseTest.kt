@@ -4,6 +4,7 @@ import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
 import dev.iliv007.ivai.ui.model.ChatMessage
 import dev.iliv007.ivai.ui.model.MessageContentType
+import dev.iliv007.ivai.router.ExecutionTarget
 import dev.iliv007.ivai.ui.model.MessageSender
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
@@ -146,6 +147,31 @@ class IvaiDatabaseTest {
         repository.deleteProviderConnection("custom-primary")
         assertTrue(database.providerAccountDao().listAll().isEmpty())
         assertTrue(database.providerModelDao().listAll().isEmpty())
+    }
+
+    @Test
+    fun `router combo and explicit direct target use only user managed provider references`() = runBlocking {
+        val repository = LocalWorkspaceRepository(database)
+        val thread = ChatThreadEntity("router-thread", "Router", "", 1L, "Unset", null)
+        repository.saveThread(thread)
+        repository.saveProviderConnection(ProviderConnectionEntity("connection", "OPENROUTER", "OpenRouter", null, true, 1L, 1L))
+        repository.saveProviderAccount(ProviderAccountEntity("account", "connection", "BYOK", "provider.openrouter.test", true, 1L, 1L))
+        repository.saveProviderModel(ProviderModelEntity("model", "connection", "openai/gpt-test", "GPT Test", "TEXT,STREAMING", true, true, 1L))
+
+        repository.saveRouterCombo(
+            RouterComboEntity("combo", "My BYOK Combo", "First candidate", true, 2L, 2L),
+            listOf(RouterComboEntryEntity("entry", "combo", 0, "connection", "account", "model", true))
+        )
+        repository.selectThreadExecutionTarget(
+            thread.id,
+            ExecutionTarget.DirectModel(connectionId = "connection", accountId = "account", modelId = "model")
+        )
+
+        assertEquals(listOf("combo"), repository.observeRouter().first().combos.map { it.id })
+        assertEquals(listOf("model"), repository.observeComboEntries("combo").first().map { it.modelId })
+        val target = repository.observeThreadExecutionTarget(thread.id).first()
+        assertEquals("DIRECT_MODEL", target?.targetKind)
+        assertEquals("account", target?.accountId)
     }
 
     @Test

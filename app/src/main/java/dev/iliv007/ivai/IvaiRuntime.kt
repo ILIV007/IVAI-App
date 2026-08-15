@@ -16,6 +16,8 @@ import dev.iliv007.ivai.provider.openai.CustomOpenAiChatProvider
 import dev.iliv007.ivai.provider.openai.OpenRouterChatProvider
 import dev.iliv007.ivai.provider.gemini.GeminiNetworkGate
 import dev.iliv007.ivai.security.AndroidKeystoreSecretCipher
+import dev.iliv007.ivai.router.RouterChatSession
+import dev.iliv007.ivai.router.SequentialRouter
 import dev.iliv007.ivai.security.EncryptedSecretVault
 import java.io.File
 
@@ -50,6 +52,11 @@ class IvaiRuntime(context: Context) {
     /** Registry contains installed adapters only; user-managed records decide whether any is used. */
     val providerAdapters = ProviderAdapterRegistry(setOf(geminiProvider, openRouterProvider))
     val providerChatSession = LocalProviderChatSession(workspaceRepository)
+    val routerChatSession = RouterChatSession(
+        workspace = workspaceRepository,
+        router = SequentialRouter(),
+        providerResolver = ::resolveProvider
+    )
 
     /** Resolves a foreground adapter from user-owned connection metadata without exposing secrets. */
     fun resolveProvider(kind: ProviderKind, baseUrl: String?): ChatProvider = when (kind) {
