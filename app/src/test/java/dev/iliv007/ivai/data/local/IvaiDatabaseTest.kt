@@ -101,6 +101,54 @@ class IvaiDatabaseTest {
     }
 
     @Test
+    fun `provider connection cascade deletes accounts and models while retaining only credential reference`() = runBlocking {
+        val repository = LocalWorkspaceRepository(database)
+        repository.saveProviderConnection(
+            ProviderConnectionEntity(
+                id = "custom-primary",
+                providerKind = "CUSTOM_OPENAI_COMPATIBLE",
+                displayName = "Private endpoint",
+                baseUrl = "https://api.example.test/v1",
+                isEnabled = true,
+                createdAtEpochMs = 10L,
+                updatedAtEpochMs = 20L
+            )
+        )
+        repository.saveProviderAccount(
+            ProviderAccountEntity(
+                id = "custom-account",
+                connectionId = "custom-primary",
+                displayName = "Primary key",
+                credentialReference = "provider.custom-primary.primary",
+                isEnabled = true,
+                createdAtEpochMs = 10L,
+                updatedAtEpochMs = 20L
+            )
+        )
+        repository.saveProviderModel(
+            ProviderModelEntity(
+                id = "custom-model",
+                connectionId = "custom-primary",
+                providerModelId = "gpt-example",
+                displayName = "Example model",
+                capabilitiesCsv = "TEXT,STREAMING",
+                isManual = true,
+                isSelectable = true,
+                updatedAtEpochMs = 20L
+            )
+        )
+
+        val snapshot = repository.observeProviderRegistry().first()
+        assertEquals(listOf("custom-primary"), snapshot.connections.map { it.id })
+        assertEquals(listOf("provider.custom-primary.primary"), snapshot.accounts.map { it.credentialReference })
+        assertEquals(listOf("gpt-example"), snapshot.models.map { it.providerModelId })
+
+        repository.deleteProviderConnection("custom-primary")
+        assertTrue(database.providerAccountDao().listAll().isEmpty())
+        assertTrue(database.providerModelDao().listAll().isEmpty())
+    }
+
+    @Test
     fun `message mapping preserves BiDi code and model metadata`() {
         val source = ChatMessage(
             id = "message-rtl",

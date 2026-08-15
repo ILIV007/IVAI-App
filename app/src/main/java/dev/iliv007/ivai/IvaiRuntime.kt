@@ -3,8 +3,10 @@ package dev.iliv007.ivai
 import android.content.Context
 import androidx.datastore.preferences.core.PreferenceDataStoreFactory
 import dev.iliv007.ivai.chat.LocalGeminiChatSession
+import dev.iliv007.ivai.chat.LocalProviderChatSession
 import dev.iliv007.ivai.data.local.IvaiDatabase
 import dev.iliv007.ivai.data.local.LocalWorkspaceRepository
+import dev.iliv007.ivai.provider.ProviderAdapterRegistry
 import dev.iliv007.ivai.provider.gemini.GeminiChatProvider
 import dev.iliv007.ivai.provider.gemini.GeminiNetworkGate
 import dev.iliv007.ivai.security.AndroidKeystoreSecretCipher
@@ -33,6 +35,17 @@ class IvaiRuntime(context: Context) {
         }
     )
 
-    val geminiProvider = GeminiChatProvider(GeminiNetworkGate(secretVault))
+    private val geminiProvider = GeminiChatProvider(GeminiNetworkGate(secretVault))
+
+    /** Registry contains all installed adapters; user-managed records decide which one is used. */
+    val providerAdapters = ProviderAdapterRegistry(setOf(geminiProvider))
+    val providerChatSession = LocalProviderChatSession(workspaceRepository)
+
+    /**
+     * Compatibility bridge for the pre-registry chat UI. It is removed when Provider Management
+     * replaces the fixed Gemini selection; new code must use [providerAdapters] and
+     * [providerChatSession].
+     */
+    @Deprecated("Use providerAdapters with providerChatSession")
     val geminiChatSession = LocalGeminiChatSession(geminiProvider, workspaceRepository)
 }

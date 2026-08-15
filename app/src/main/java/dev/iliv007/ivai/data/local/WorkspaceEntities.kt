@@ -91,3 +91,62 @@ fun ChatMessageEntity.toDomainMessage(timestamp: String): ChatMessage =
         modelBadge = modelBadge,
         latencyMs = latencyMs
     )
+
+@Entity(
+    tableName = "provider_connections",
+    indices = [Index(value = ["provider_kind"]), Index(value = ["updated_at_epoch_ms"])]
+)
+data class ProviderConnectionEntity(
+    @PrimaryKey val id: String,
+    @ColumnInfo(name = "provider_kind") val providerKind: String,
+    @ColumnInfo(name = "display_name") val displayName: String,
+    @ColumnInfo(name = "base_url") val baseUrl: String?,
+    @ColumnInfo(name = "is_enabled") val isEnabled: Boolean,
+    @ColumnInfo(name = "created_at_epoch_ms") val createdAtEpochMs: Long,
+    @ColumnInfo(name = "updated_at_epoch_ms") val updatedAtEpochMs: Long
+)
+
+@Entity(
+    tableName = "provider_accounts",
+    foreignKeys = [
+        ForeignKey(
+            entity = ProviderConnectionEntity::class,
+            parentColumns = ["id"],
+            childColumns = ["connection_id"],
+            onDelete = ForeignKey.CASCADE
+        )
+    ],
+    indices = [Index(value = ["connection_id"]), Index(value = ["credential_reference"], unique = true)]
+)
+data class ProviderAccountEntity(
+    @PrimaryKey val id: String,
+    @ColumnInfo(name = "connection_id") val connectionId: String,
+    @ColumnInfo(name = "display_name") val displayName: String,
+    @ColumnInfo(name = "credential_reference") val credentialReference: String,
+    @ColumnInfo(name = "is_enabled") val isEnabled: Boolean,
+    @ColumnInfo(name = "created_at_epoch_ms") val createdAtEpochMs: Long,
+    @ColumnInfo(name = "updated_at_epoch_ms") val updatedAtEpochMs: Long
+)
+
+@Entity(
+    tableName = "provider_models",
+    foreignKeys = [
+        ForeignKey(
+            entity = ProviderConnectionEntity::class,
+            parentColumns = ["id"],
+            childColumns = ["connection_id"],
+            onDelete = ForeignKey.CASCADE
+        )
+    ],
+    indices = [Index(value = ["connection_id"]), Index(value = ["connection_id", "provider_model_id"], unique = true)]
+)
+data class ProviderModelEntity(
+    @PrimaryKey val id: String,
+    @ColumnInfo(name = "connection_id") val connectionId: String,
+    @ColumnInfo(name = "provider_model_id") val providerModelId: String,
+    @ColumnInfo(name = "display_name") val displayName: String,
+    @ColumnInfo(name = "capabilities_csv") val capabilitiesCsv: String,
+    @ColumnInfo(name = "is_manual") val isManual: Boolean,
+    @ColumnInfo(name = "is_selectable") val isSelectable: Boolean,
+    @ColumnInfo(name = "updated_at_epoch_ms") val updatedAtEpochMs: Long
+)
