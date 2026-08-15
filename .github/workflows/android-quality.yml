@@ -18,6 +18,8 @@ jobs:
         uses: actions/checkout@v4
       - name: Scan tracked history and files
         uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   android-quality:
     name: Build, unit test, and lint
@@ -25,11 +27,11 @@ jobs:
     steps:
       - name: Check out source
         uses: actions/checkout@v4
-      - name: Set up JDK 17
+      - name: Set up JDK 21
         uses: actions/setup-java@v4
         with:
           distribution: temurin
-          java-version: "17"
+          java-version: "21"
           cache: gradle
       - name: Set up Android SDK command-line tools
         uses: android-actions/setup-android@v3
