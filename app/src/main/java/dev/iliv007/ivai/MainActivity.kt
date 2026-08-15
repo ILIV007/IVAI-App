@@ -73,6 +73,7 @@ fun IvaiMainApp(
         factory = remember(runtime) { WorkspaceViewModelFactory(runtime) }
     )
     val uiState by resolvedViewModel.uiState.collectAsStateWithLifecycle()
+    val providerManagementState by resolvedViewModel.providerManagementState.collectAsStateWithLifecycle()
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
     val scope = rememberCoroutineScope()
 
@@ -161,7 +162,13 @@ fun IvaiMainApp(
                         dev.iliv007.ivai.ui.navigation.NavDestination.ROUTER -> RouterScreen()
                         dev.iliv007.ivai.ui.navigation.NavDestination.SETTINGS -> SettingsScreen(
                             isDarkTheme = isDarkTheme,
-                            onToggleTheme = onToggleTheme
+                            onToggleTheme = onToggleTheme,
+                            providerManagementState = providerManagementState,
+                            onAddProvider = resolvedViewModel::addProviderConnection,
+                            onDeleteProvider = resolvedViewModel::deleteProviderConnection,
+                            onSetProviderEnabled = resolvedViewModel::setProviderConnectionEnabled,
+                            onDismissProviderError = resolvedViewModel::clearProviderOperationError,
+                            onDeleteAllLocalData = resolvedViewModel::deleteAllLocalData
                         )
                     }
                 }

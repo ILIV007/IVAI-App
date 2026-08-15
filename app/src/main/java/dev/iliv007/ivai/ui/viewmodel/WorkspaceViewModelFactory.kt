@@ -10,6 +10,12 @@ class WorkspaceViewModelFactory(
     @Suppress("UNCHECKED_CAST")
     override fun <T : ViewModel> create(modelClass: Class<T>): T {
         require(modelClass.isAssignableFrom(WorkspaceViewModel::class.java))
-        return WorkspaceViewModel(chatSession = runtime.geminiChatSession) as T
+        return WorkspaceViewModel(
+            providerChatSession = runtime.providerChatSession,
+            providerResolver = runtime::resolveProvider,
+            workspaceRepository = runtime.workspaceRepository,
+            secretVault = runtime.secretVault,
+            localDataResetter = runtime.localDataResetter
+        ) as T
     }
 }

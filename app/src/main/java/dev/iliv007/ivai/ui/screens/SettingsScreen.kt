@@ -47,13 +47,21 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import dev.iliv007.ivai.provider.ProviderKind
 import dev.iliv007.ivai.ui.theme.IvaiError
 import dev.iliv007.ivai.ui.theme.IvaiWarning
+import dev.iliv007.ivai.ui.viewmodel.ProviderManagementState
 
 @Composable
 fun SettingsScreen(
     isDarkTheme: Boolean = false,
     onToggleTheme: () -> Unit = {},
+    providerManagementState: ProviderManagementState = ProviderManagementState(),
+    onAddProvider: (ProviderKind, String, String?, String, String, String) -> Unit = { _, _, _, _, _, _ -> },
+    onDeleteProvider: (String) -> Unit = {},
+    onSetProviderEnabled: (String, Boolean) -> Unit = { _, _ -> },
+    onDismissProviderError: () -> Unit = {},
+    onDeleteAllLocalData: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     LazyColumn(
@@ -149,135 +157,14 @@ fun SettingsScreen(
             }
         }
 
-        // Section: BYOK Providers (Mock Preview)
         item {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier.padding(top = 4.dp)
-            ) {
-                Box(
-                    modifier = Modifier
-                        .size(4.dp, 16.dp)
-                        .clip(RoundedCornerShape(2.dp))
-                        .background(MaterialTheme.colorScheme.secondary)
-                )
-                Spacer(modifier = Modifier.width(8.dp))
-                Text(
-                    text = "Model Provider Credentials (BYOK - Mock Preview)",
-                    style = MaterialTheme.typography.titleMedium.copy(
-                        fontWeight = FontWeight.Bold
-                    ),
-                    color = MaterialTheme.colorScheme.onSurface
-                )
-            }
-        }
-
-        item {
-            Surface(
-                color = MaterialTheme.colorScheme.surface,
-                shape = RoundedCornerShape(14.dp),
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(14.dp))
-                    .testTag("settings_byok_card")
-            ) {
-                Column(modifier = Modifier.padding(16.dp)) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Box(
-                                modifier = Modifier
-                                    .size(36.dp)
-                                    .clip(RoundedCornerShape(8.dp))
-                                    .background(MaterialTheme.colorScheme.secondaryContainer),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Default.VpnKey,
-                                    contentDescription = null,
-                                    tint = MaterialTheme.colorScheme.secondary,
-                                    modifier = Modifier.size(18.dp)
-                                )
-                            }
-                            Spacer(modifier = Modifier.width(10.dp))
-                            Text(
-                                text = "Provider Vault Status",
-                                style = MaterialTheme.typography.bodyLarge.copy(
-                                    fontWeight = FontWeight.Bold
-                                ),
-                                color = MaterialTheme.colorScheme.onSurface
-                            )
-                        }
-
-                        Box(
-                            modifier = Modifier
-                                .clip(RoundedCornerShape(6.dp))
-                                .background(MaterialTheme.colorScheme.primaryContainer)
-                                .border(0.5.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.6f), RoundedCornerShape(6.dp))
-                                .padding(horizontal = 8.dp, vertical = 3.dp)
-                        ) {
-                            Text(
-                                text = "MOCK PREVIEW",
-                                style = MaterialTheme.typography.labelSmall.copy(
-                                    fontSize = 9.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    letterSpacing = 0.5.sp
-                                ),
-                                color = MaterialTheme.colorScheme.primary
-                            )
-                        }
-                    }
-
-                    Spacer(modifier = Modifier.height(10.dp))
-
-                    Text(
-                        text = "Planned for Phase 2: Provider credentials will use Android Keystore-backed encryption, with hardware-backed protection when available.",
-                        style = MaterialTheme.typography.bodySmall.copy(
-                            lineHeight = 18.sp
-                        ),
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-
-                    Spacer(modifier = Modifier.height(14.dp))
-
-                    listOf(
-                        "Google Gemini" to "Planned (Phase 2)",
-                        "OpenRouter" to "Planned (Phase 2)",
-                        "Custom OpenAI-Compatible" to "Planned (Phase 2)"
-                    ).forEach { (provider, status) ->
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(vertical = 3.dp)
-                                .clip(RoundedCornerShape(8.dp))
-                                .background(MaterialTheme.colorScheme.surfaceVariant)
-                                .border(0.5.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(8.dp))
-                                .padding(horizontal = 12.dp, vertical = 8.dp),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Text(
-                                text = provider,
-                                style = MaterialTheme.typography.bodySmall.copy(
-                                    fontWeight = FontWeight.SemiBold
-                                ),
-                                color = MaterialTheme.colorScheme.onSurface
-                            )
-                            Text(
-                                text = status,
-                                style = MaterialTheme.typography.labelSmall.copy(
-                                    fontFamily = FontFamily.Monospace,
-                                    fontSize = 11.sp
-                                ),
-                                color = MaterialTheme.colorScheme.tertiary
-                            )
-                        }
-                    }
-                }
-            }
+            ProviderManagementSection(
+                state = providerManagementState,
+                onAddProvider = onAddProvider,
+                onDeleteProvider = onDeleteProvider,
+                onSetProviderEnabled = onSetProviderEnabled,
+                onDismissError = onDismissProviderError
+            )
         }
 
         // Section: Security & Privacy Invariants
@@ -408,14 +295,14 @@ fun SettingsScreen(
                             )
                             Spacer(modifier = Modifier.height(2.dp))
                             Text(
-                                text = "Wipes local mock cache and in-memory session states (Mock Preview).",
+                                text = "Permanently removes IVAI's local database, workspace files, and encrypted provider credentials from this device.",
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         }
 
                         OutlinedButton(
-                            onClick = { /* Mock action */ },
+                            onClick = onDeleteAllLocalData,
                             colors = ButtonDefaults.outlinedButtonColors(
                                 contentColor = MaterialTheme.colorScheme.error
                             ),
