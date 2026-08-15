@@ -8,6 +8,7 @@ import dev.iliv007.ivai.data.local.IvaiDatabase
 import dev.iliv007.ivai.data.local.LocalWorkspaceRepository
 import dev.iliv007.ivai.provider.ProviderAdapterRegistry
 import dev.iliv007.ivai.provider.gemini.GeminiChatProvider
+import dev.iliv007.ivai.provider.openai.OpenRouterChatProvider
 import dev.iliv007.ivai.provider.gemini.GeminiNetworkGate
 import dev.iliv007.ivai.security.AndroidKeystoreSecretCipher
 import dev.iliv007.ivai.security.EncryptedSecretVault
@@ -36,9 +37,10 @@ class IvaiRuntime(context: Context) {
     )
 
     private val geminiProvider = GeminiChatProvider(GeminiNetworkGate(secretVault))
+    private val openRouterProvider = OpenRouterChatProvider(secretVault)
 
-    /** Registry contains all installed adapters; user-managed records decide which one is used. */
-    val providerAdapters = ProviderAdapterRegistry(setOf(geminiProvider))
+    /** Registry contains installed adapters only; user-managed records decide whether any is used. */
+    val providerAdapters = ProviderAdapterRegistry(setOf(geminiProvider, openRouterProvider))
     val providerChatSession = LocalProviderChatSession(workspaceRepository)
 
     /**
