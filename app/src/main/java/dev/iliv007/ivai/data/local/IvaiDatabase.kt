@@ -14,9 +14,14 @@ import androidx.sqlite.db.SupportSQLiteDatabase
         ChatMessageEntity::class,
         ProviderConnectionEntity::class,
         ProviderAccountEntity::class,
-        ProviderModelEntity::class
+        ProviderModelEntity::class,
+        RouterComboEntity::class,
+        RouterComboEntryEntity::class,
+        ThreadExecutionTargetEntity::class,
+        RouterAttemptEntity::class,
+        RouterAttemptEntryEntity::class
     ],
-    version = 2,
+    version = 3,
     exportSchema = true
 )
 abstract class IvaiDatabase : RoomDatabase() {
@@ -26,6 +31,11 @@ abstract class IvaiDatabase : RoomDatabase() {
     abstract fun providerConnectionDao(): ProviderConnectionDao
     abstract fun providerAccountDao(): ProviderAccountDao
     abstract fun providerModelDao(): ProviderModelDao
+    abstract fun routerComboDao(): RouterComboDao
+    abstract fun routerComboEntryDao(): RouterComboEntryDao
+    abstract fun threadExecutionTargetDao(): ThreadExecutionTargetDao
+    abstract fun routerAttemptDao(): RouterAttemptDao
+    abstract fun routerAttemptEntryDao(): RouterAttemptEntryDao
 
     companion object {
         const val DATABASE_NAME = "ivai-workspace.db"
@@ -35,7 +45,26 @@ abstract class IvaiDatabase : RoomDatabase() {
                 context.applicationContext,
                 IvaiDatabase::class.java,
                 DATABASE_NAME
-            ).addMigrations(MIGRATION_1_2).build()
+            ).addMigrations(MIGRATION_1_2, MIGRATION_2_3).build()
+
+        val MIGRATION_2_3 = object : Migration(2, 3) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("CREATE TABLE IF NOT EXISTS `router_combos` (`id` TEXT NOT NULL, `display_name` TEXT NOT NULL, `description` TEXT NOT NULL, `is_enabled` INTEGER NOT NULL, `created_at_epoch_ms` INTEGER NOT NULL, `updated_at_epoch_ms` INTEGER NOT NULL, PRIMARY KEY(`id`))")
+                db.execSQL("CREATE INDEX IF NOT EXISTS `index_router_combos_updated_at_epoch_ms` ON `router_combos` (`updated_at_epoch_ms`)")
+                db.execSQL("CREATE TABLE IF NOT EXISTS `router_combo_entries` (`id` TEXT NOT NULL, `combo_id` TEXT NOT NULL, `position` INTEGER NOT NULL, `connection_id` TEXT NOT NULL, `account_id` TEXT NOT NULL, `model_id` TEXT NOT NULL, `is_enabled` INTEGER NOT NULL, PRIMARY KEY(`id`), FOREIGN KEY(`combo_id`) REFERENCES `router_combos`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE, FOREIGN KEY(`connection_id`) REFERENCES `provider_connections`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE, FOREIGN KEY(`account_id`) REFERENCES `provider_accounts`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE, FOREIGN KEY(`model_id`) REFERENCES `provider_models`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE)")
+                db.execSQL("CREATE UNIQUE INDEX IF NOT EXISTS `index_router_combo_entries_combo_id_position` ON `router_combo_entries` (`combo_id`, `position`)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS `index_router_combo_entries_connection_id` ON `router_combo_entries` (`connection_id`)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS `index_router_combo_entries_account_id` ON `router_combo_entries` (`account_id`)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS `index_router_combo_entries_model_id` ON `router_combo_entries` (`model_id`)")
+                db.execSQL("CREATE TABLE IF NOT EXISTS `thread_execution_targets` (`thread_id` TEXT NOT NULL, `target_kind` TEXT NOT NULL, `target_id` TEXT NOT NULL, `account_id` TEXT, `updated_at_epoch_ms` INTEGER NOT NULL, PRIMARY KEY(`thread_id`), FOREIGN KEY(`thread_id`) REFERENCES `chat_threads`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS `index_thread_execution_targets_target_kind_target_id` ON `thread_execution_targets` (`target_kind`, `target_id`)")
+                db.execSQL("CREATE TABLE IF NOT EXISTS `router_attempts` (`id` TEXT NOT NULL, `thread_id` TEXT, `target_kind` TEXT NOT NULL, `target_id` TEXT NOT NULL, `outcome` TEXT NOT NULL, `started_at_epoch_ms` INTEGER NOT NULL, `completed_at_epoch_ms` INTEGER, `safe_error_kind` TEXT, `safe_error_message` TEXT, PRIMARY KEY(`id`), FOREIGN KEY(`thread_id`) REFERENCES `chat_threads`(`id`) ON UPDATE NO ACTION ON DELETE SET NULL)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS `index_router_attempts_thread_id_started_at_epoch_ms` ON `router_attempts` (`thread_id`, `started_at_epoch_ms`)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS `index_router_attempts_target_kind_target_id` ON `router_attempts` (`target_kind`, `target_id`)")
+                db.execSQL("CREATE TABLE IF NOT EXISTS `router_attempt_entries` (`id` TEXT NOT NULL, `attempt_id` TEXT NOT NULL, `position` INTEGER NOT NULL, `connection_id` TEXT NOT NULL, `account_id` TEXT NOT NULL, `model_id` TEXT NOT NULL, `outcome` TEXT NOT NULL, `started_at_epoch_ms` INTEGER NOT NULL, `completed_at_epoch_ms` INTEGER, `safe_error_kind` TEXT, `safe_error_message` TEXT, PRIMARY KEY(`id`), FOREIGN KEY(`attempt_id`) REFERENCES `router_attempts`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE)")
+                db.execSQL("CREATE UNIQUE INDEX IF NOT EXISTS `index_router_attempt_entries_attempt_id_position` ON `router_attempt_entries` (`attempt_id`, `position`)")
+            }
+        }
 
         val MIGRATION_1_2 = object : Migration(1, 2) {
             override fun migrate(db: SupportSQLiteDatabase) {

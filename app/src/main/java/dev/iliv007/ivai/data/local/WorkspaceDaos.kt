@@ -103,6 +103,9 @@ interface ProviderAccountDao {
     @Query("SELECT * FROM provider_accounts ORDER BY updated_at_epoch_ms DESC, id ASC")
     suspend fun listAll(): List<ProviderAccountEntity>
 
+    @Query("SELECT * FROM provider_accounts WHERE id = :id LIMIT 1")
+    suspend fun findById(id: String): ProviderAccountEntity?
+
     @Upsert
     suspend fun upsert(account: ProviderAccountEntity)
 
@@ -124,6 +127,9 @@ interface ProviderModelDao {
     @Query("SELECT * FROM provider_models ORDER BY connection_id ASC, display_name COLLATE NOCASE ASC, id ASC")
     suspend fun listAll(): List<ProviderModelEntity>
 
+    @Query("SELECT * FROM provider_models WHERE id = :id LIMIT 1")
+    suspend fun findById(id: String): ProviderModelEntity?
+
     @Upsert
     suspend fun upsert(model: ProviderModelEntity)
 
@@ -131,5 +137,92 @@ interface ProviderModelDao {
     suspend fun delete(model: ProviderModelEntity)
 
     @Query("DELETE FROM provider_models")
+    suspend fun deleteAll()
+}
+
+@Dao
+interface RouterComboDao {
+    @Query("SELECT * FROM router_combos ORDER BY updated_at_epoch_ms DESC, id ASC")
+    fun observeAll(): Flow<List<RouterComboEntity>>
+
+    @Query("SELECT * FROM router_combos WHERE id = :id LIMIT 1")
+    suspend fun findById(id: String): RouterComboEntity?
+
+    @Upsert
+    suspend fun upsert(combo: RouterComboEntity)
+
+    @Delete
+    suspend fun delete(combo: RouterComboEntity)
+
+    @Query("DELETE FROM router_combos")
+    suspend fun deleteAll()
+}
+
+@Dao
+interface RouterComboEntryDao {
+    @Query("SELECT * FROM router_combo_entries WHERE combo_id = :comboId ORDER BY position ASC, id ASC")
+    fun observeForCombo(comboId: String): Flow<List<RouterComboEntryEntity>>
+
+    @Query("SELECT * FROM router_combo_entries ORDER BY combo_id ASC, position ASC, id ASC")
+    fun observeAll(): Flow<List<RouterComboEntryEntity>>
+
+    @Query("SELECT * FROM router_combo_entries WHERE combo_id = :comboId ORDER BY position ASC, id ASC")
+    suspend fun listForCombo(comboId: String): List<RouterComboEntryEntity>
+
+    @Upsert
+    suspend fun upsert(entry: RouterComboEntryEntity)
+
+    @Query("DELETE FROM router_combo_entries WHERE combo_id = :comboId")
+    suspend fun deleteForCombo(comboId: String)
+
+    @Query("DELETE FROM router_combo_entries")
+    suspend fun deleteAll()
+}
+
+@Dao
+interface ThreadExecutionTargetDao {
+    @Query("SELECT * FROM thread_execution_targets WHERE thread_id = :threadId LIMIT 1")
+    fun observeForThread(threadId: String): Flow<ThreadExecutionTargetEntity?>
+
+    @Query("SELECT * FROM thread_execution_targets WHERE thread_id = :threadId LIMIT 1")
+    suspend fun findForThread(threadId: String): ThreadExecutionTargetEntity?
+
+    @Upsert
+    suspend fun upsert(target: ThreadExecutionTargetEntity)
+
+    @Query("DELETE FROM thread_execution_targets")
+    suspend fun deleteAll()
+}
+
+@Dao
+interface RouterAttemptDao {
+    @Query("SELECT * FROM router_attempts WHERE thread_id = :threadId ORDER BY started_at_epoch_ms DESC, id DESC")
+    fun observeForThread(threadId: String): Flow<List<RouterAttemptEntity>>
+
+    @Query("SELECT * FROM router_attempts ORDER BY started_at_epoch_ms DESC, id DESC")
+    fun observeAll(): Flow<List<RouterAttemptEntity>>
+
+    @Insert(onConflict = OnConflictStrategy.ABORT)
+    suspend fun insert(attempt: RouterAttemptEntity)
+
+    @Upsert
+    suspend fun upsert(attempt: RouterAttemptEntity)
+
+    @Query("DELETE FROM router_attempts")
+    suspend fun deleteAll()
+}
+
+@Dao
+interface RouterAttemptEntryDao {
+    @Query("SELECT * FROM router_attempt_entries WHERE attempt_id = :attemptId ORDER BY position ASC, id ASC")
+    fun observeForAttempt(attemptId: String): Flow<List<RouterAttemptEntryEntity>>
+
+    @Insert(onConflict = OnConflictStrategy.ABORT)
+    suspend fun insert(entry: RouterAttemptEntryEntity)
+
+    @Upsert
+    suspend fun upsert(entry: RouterAttemptEntryEntity)
+
+    @Query("DELETE FROM router_attempt_entries")
     suspend fun deleteAll()
 }

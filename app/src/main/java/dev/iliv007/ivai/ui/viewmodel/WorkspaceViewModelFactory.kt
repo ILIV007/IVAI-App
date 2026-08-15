@@ -12,6 +12,7 @@ class WorkspaceViewModelFactory(
         require(modelClass.isAssignableFrom(WorkspaceViewModel::class.java))
         return WorkspaceViewModel(
             providerChatSession = runtime.providerChatSession,
+            routerChatSession = runtime.routerChatSession,
             providerResolver = runtime::resolveProvider,
             workspaceRepository = runtime.workspaceRepository,
             secretVault = runtime.secretVault,

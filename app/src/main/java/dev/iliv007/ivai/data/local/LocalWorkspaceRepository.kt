@@ -7,6 +7,9 @@ import dev.iliv007.ivai.provider.ProviderAccountDescriptor
 import dev.iliv007.ivai.provider.ProviderCapability
 import dev.iliv007.ivai.provider.ProviderConnectionDescriptor
 import dev.iliv007.ivai.provider.ProviderKind
+import dev.iliv007.ivai.router.ExecutionTarget
+import dev.iliv007.ivai.router.ExecutionTargetKind
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
 
@@ -31,6 +34,11 @@ data class PersistedProviderRegistrySnapshot(
     val models: List<ProviderModelEntity>
 )
 
+data class PersistedRouterSnapshot(
+    val combos: List<RouterComboEntity>,
+    val entries: List<RouterComboEntryEntity>
+)
+
 class LocalWorkspaceRepository(
     private val database: IvaiDatabase,
     private val projectDao: WorkspaceProjectDao = database.projectDao(),
@@ -38,7 +46,12 @@ class LocalWorkspaceRepository(
     private val messageDao: ChatMessageDao = database.messageDao(),
     private val providerConnectionDao: ProviderConnectionDao = database.providerConnectionDao(),
     private val providerAccountDao: ProviderAccountDao = database.providerAccountDao(),
-    private val providerModelDao: ProviderModelDao = database.providerModelDao()
+    private val providerModelDao: ProviderModelDao = database.providerModelDao(),
+    private val routerComboDao: RouterComboDao = database.routerComboDao(),
+    private val routerComboEntryDao: RouterComboEntryDao = database.routerComboEntryDao(),
+    private val threadExecutionTargetDao: ThreadExecutionTargetDao = database.threadExecutionTargetDao(),
+    private val routerAttemptDao: RouterAttemptDao = database.routerAttemptDao(),
+    private val routerAttemptEntryDao: RouterAttemptEntryDao = database.routerAttemptEntryDao()
 ) {
     fun observeWorkspace(): Flow<PersistedWorkspaceSnapshot> = combine(
         projectDao.observeAll(),
@@ -50,12 +63,102 @@ class LocalWorkspaceRepository(
     fun observeMessages(threadId: String): Flow<List<ChatMessageEntity>> =
         messageDao.observeForThread(threadId)
 
+    fun observeRouter(): Flow<PersistedRouterSnapshot> = combine(
+        routerComboDao.observeAll(),
+        routerComboEntryDao.observeAll()
+    ) { combos, entries -> PersistedRouterSnapshot(combos, entries) }
+
+    fun observeComboEntries(comboId: String): Flow<List<RouterComboEntryEntity>> =
+        routerComboEntryDao.observeForCombo(comboId)
+
+    suspend fun resolveThreadExecutionTarget(threadId: String): ExecutionTarget? {
+        val stored = threadExecutionTargetDao.findForThread(threadId) ?: return null
+        return when (ExecutionTargetKind.valueOf(stored.targetKind)) {
+            ExecutionTargetKind.DIRECT_MODEL -> {
+                val model = providerModelDao.findById(stored.targetId) ?: return null
+                val accountId = stored.accountId ?: return null
+                ExecutionTarget.DirectModel(model.connectionId, accountId, model.id)
+            }
+            ExecutionTargetKind.COMBO -> ExecutionTarget.Combo(stored.targetId)
+        }
+    }
+
+    suspend fun listRouterComboEntries(comboId: String): List<RouterComboEntryEntity> =
+        routerComboEntryDao.listForCombo(comboId)
+
+    suspend fun currentProviderRegistry(): PersistedProviderRegistrySnapshot =
+        observeProviderRegistry().first()
+
+    fun observeThreadExecutionTarget(threadId: String): Flow<ThreadExecutionTargetEntity?> =
+        threadExecutionTargetDao.observeForThread(threadId)
+
+    fun observeRouterAttempts(threadId: String): Flow<List<RouterAttemptEntity>> =
+        routerAttemptDao.observeForThread(threadId)
+
+    fun observeAllRouterAttempts(): Flow<List<RouterAttemptEntity>> =
+        routerAttemptDao.observeAll()
+
+    fun observeRouterAttemptEntries(attemptId: String): Flow<List<RouterAttemptEntryEntity>> =
+        routerAttemptEntryDao.observeForAttempt(attemptId)
+
     fun observeProviderRegistry(): Flow<PersistedProviderRegistrySnapshot> = combine(
         providerConnectionDao.observeAll(),
         providerAccountDao.observeAll(),
         providerModelDao.observeAll()
     ) { connections, accounts, models ->
         PersistedProviderRegistrySnapshot(connections, accounts, models)
+    }
+
+    suspend fun saveRouterCombo(combo: RouterComboEntity, entries: List<RouterComboEntryEntity>) {
+        require(combo.displayName.isNotBlank()) { "Combo name must not be blank" }
+        require(entries.isNotEmpty()) { "A combo needs at least one entry" }
+        require(entries.map { it.position }.sorted() == entries.indices.toList()) {
+            "Combo entry positions must be consecutive from zero"
+        }
+        database.withTransaction {
+            entries.forEach { entry -> validateRouterCandidate(entry.connectionId, entry.accountId, entry.modelId) }
+            routerComboDao.upsert(combo)
+            routerComboEntryDao.deleteForCombo(combo.id)
+            entries.forEach { entry ->
+                require(entry.comboId == combo.id) { "Combo entry belongs to another combo" }
+                routerComboEntryDao.upsert(entry)
+            }
+        }
+    }
+
+    suspend fun selectThreadExecutionTarget(threadId: String, target: ExecutionTarget) {
+        require(threadDao.findById(threadId) != null) { "Unknown chat thread" }
+        val entity = when (target) {
+            is ExecutionTarget.DirectModel -> {
+                validateRouterCandidate(target.connectionId, target.accountId, target.modelId)
+                ThreadExecutionTargetEntity(threadId, ExecutionTargetKind.DIRECT_MODEL.name, target.modelId, target.accountId, System.currentTimeMillis())
+            }
+            is ExecutionTarget.Combo -> {
+                require(routerComboDao.findById(target.comboId)?.isEnabled == true) { "Unknown or disabled combo" }
+                ThreadExecutionTargetEntity(threadId, ExecutionTargetKind.COMBO.name, target.comboId, null, System.currentTimeMillis())
+            }
+        }
+        threadExecutionTargetDao.upsert(entity)
+    }
+
+    suspend fun saveRouterAttempt(attempt: RouterAttemptEntity) {
+        routerAttemptDao.upsert(attempt)
+    }
+
+    suspend fun saveRouterAttemptEntry(entry: RouterAttemptEntryEntity) {
+        routerAttemptEntryDao.upsert(entry)
+    }
+
+    private suspend fun validateRouterCandidate(connectionId: String, accountId: String, modelId: String) {
+        val connection = providerConnectionDao.findById(connectionId)
+            ?: throw IllegalArgumentException("Unknown provider connection")
+        val account = providerAccountDao.findById(accountId)
+            ?: throw IllegalArgumentException("Unknown provider account")
+        val model = providerModelDao.findById(modelId)
+            ?: throw IllegalArgumentException("Unknown provider model")
+        require(account.connectionId == connection.id && model.connectionId == connection.id) {
+            "Router candidate references must belong to one provider connection"
+        }
     }
 
     suspend fun saveProject(project: WorkspaceProjectEntity) {
@@ -163,6 +266,11 @@ class LocalWorkspaceRepository(
 
     suspend fun deleteAllWorkspaceData() {
         database.withTransaction {
+            routerAttemptEntryDao.deleteAll()
+            routerAttemptDao.deleteAll()
+            threadExecutionTargetDao.deleteAll()
+            routerComboEntryDao.deleteAll()
+            routerComboDao.deleteAll()
             providerModelDao.deleteAll()
             providerAccountDao.deleteAll()
             providerConnectionDao.deleteAll()

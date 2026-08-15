@@ -150,3 +150,88 @@ data class ProviderModelEntity(
     @ColumnInfo(name = "is_selectable") val isSelectable: Boolean,
     @ColumnInfo(name = "updated_at_epoch_ms") val updatedAtEpochMs: Long
 )
+
+@Entity(
+    tableName = "router_combos",
+    indices = [Index(value = ["updated_at_epoch_ms"])]
+)
+data class RouterComboEntity(
+    @PrimaryKey val id: String,
+    @ColumnInfo(name = "display_name") val displayName: String,
+    val description: String,
+    @ColumnInfo(name = "is_enabled") val isEnabled: Boolean,
+    @ColumnInfo(name = "created_at_epoch_ms") val createdAtEpochMs: Long,
+    @ColumnInfo(name = "updated_at_epoch_ms") val updatedAtEpochMs: Long
+)
+
+@Entity(
+    tableName = "router_combo_entries",
+    foreignKeys = [
+        ForeignKey(entity = RouterComboEntity::class, parentColumns = ["id"], childColumns = ["combo_id"], onDelete = ForeignKey.CASCADE),
+        ForeignKey(entity = ProviderConnectionEntity::class, parentColumns = ["id"], childColumns = ["connection_id"], onDelete = ForeignKey.CASCADE),
+        ForeignKey(entity = ProviderAccountEntity::class, parentColumns = ["id"], childColumns = ["account_id"], onDelete = ForeignKey.CASCADE),
+        ForeignKey(entity = ProviderModelEntity::class, parentColumns = ["id"], childColumns = ["model_id"], onDelete = ForeignKey.CASCADE)
+    ],
+    indices = [
+        Index(value = ["combo_id", "position"], unique = true),
+        Index(value = ["connection_id"]), Index(value = ["account_id"]), Index(value = ["model_id"])
+    ]
+)
+data class RouterComboEntryEntity(
+    @PrimaryKey val id: String,
+    @ColumnInfo(name = "combo_id") val comboId: String,
+    val position: Int,
+    @ColumnInfo(name = "connection_id") val connectionId: String,
+    @ColumnInfo(name = "account_id") val accountId: String,
+    @ColumnInfo(name = "model_id") val modelId: String,
+    @ColumnInfo(name = "is_enabled") val isEnabled: Boolean
+)
+
+@Entity(
+    tableName = "thread_execution_targets",
+    foreignKeys = [ForeignKey(entity = ChatThreadEntity::class, parentColumns = ["id"], childColumns = ["thread_id"], onDelete = ForeignKey.CASCADE)],
+    indices = [Index(value = ["target_kind", "target_id"])]
+)
+data class ThreadExecutionTargetEntity(
+    @PrimaryKey @ColumnInfo(name = "thread_id") val threadId: String,
+    @ColumnInfo(name = "target_kind") val targetKind: String,
+    @ColumnInfo(name = "target_id") val targetId: String,
+    @ColumnInfo(name = "account_id") val accountId: String?,
+    @ColumnInfo(name = "updated_at_epoch_ms") val updatedAtEpochMs: Long
+)
+
+@Entity(
+    tableName = "router_attempts",
+    foreignKeys = [ForeignKey(entity = ChatThreadEntity::class, parentColumns = ["id"], childColumns = ["thread_id"], onDelete = ForeignKey.SET_NULL)],
+    indices = [Index(value = ["thread_id", "started_at_epoch_ms"]), Index(value = ["target_kind", "target_id"])]
+)
+data class RouterAttemptEntity(
+    @PrimaryKey val id: String,
+    @ColumnInfo(name = "thread_id") val threadId: String?,
+    @ColumnInfo(name = "target_kind") val targetKind: String,
+    @ColumnInfo(name = "target_id") val targetId: String,
+    val outcome: String,
+    @ColumnInfo(name = "started_at_epoch_ms") val startedAtEpochMs: Long,
+    @ColumnInfo(name = "completed_at_epoch_ms") val completedAtEpochMs: Long?,
+    @ColumnInfo(name = "safe_error_kind") val safeErrorKind: String?,
+    @ColumnInfo(name = "safe_error_message") val safeErrorMessage: String?
+)
+
+@Entity(
+    tableName = "router_attempt_entries",
+    foreignKeys = [ForeignKey(entity = RouterAttemptEntity::class, parentColumns = ["id"], childColumns = ["attempt_id"], onDelete = ForeignKey.CASCADE)],
+    indices = [Index(value = ["attempt_id", "position"], unique = true)]
+)
+data class RouterAttemptEntryEntity(
+    @PrimaryKey val id: String,
+    @ColumnInfo(name = "attempt_id") val attemptId: String,
+    val position: Int,
+    @ColumnInfo(name = "connection_id") val connectionId: String,
+    @ColumnInfo(name = "account_id") val accountId: String,
+    @ColumnInfo(name = "model_id") val modelId: String,
+    val outcome: String,
+    @ColumnInfo(name = "started_at_epoch_ms") val startedAtEpochMs: Long,
+    @ColumnInfo(name = "completed_at_epoch_ms") val completedAtEpochMs: Long?,
+    @ColumnInfo(name = "safe_error_kind") val safeErrorKind: String?,
+    @ColumnInfo(name = "safe_error_message") val safeErrorMessage: String?
+)

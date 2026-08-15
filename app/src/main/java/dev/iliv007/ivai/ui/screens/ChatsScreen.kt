@@ -89,6 +89,8 @@ import dev.iliv007.ivai.ui.model.MessageSender
 import dev.iliv007.ivai.ui.model.MockDataRepository
 import dev.iliv007.ivai.ui.model.UiPreviewState
 import dev.iliv007.ivai.ui.model.WorkspaceProject
+import dev.iliv007.ivai.ui.viewmodel.ProviderManagementState
+import dev.iliv007.ivai.ui.viewmodel.RouterManagementState
 import dev.iliv007.ivai.ui.theme.CyanPrimary
 import dev.iliv007.ivai.ui.theme.JadePrimary
 import kotlinx.coroutines.launch
@@ -111,6 +113,10 @@ fun ChatsScreen(
     onSendMessage: (String, String) -> Unit = { _, _ -> },
     isStreaming: Boolean = false,
     onStopStreaming: () -> Unit = {},
+    routerManagementState: RouterManagementState = RouterManagementState(),
+    providerManagementState: ProviderManagementState = ProviderManagementState(),
+    onSelectComboTarget: (String, String, String) -> Unit = { _, _, _ -> },
+    onSelectDirectTarget: (String, String, String, String, String) -> Unit = { _, _, _, _, _ -> },
     modifier: Modifier = Modifier
 ) {
     val currentThread = threads.find { it.id == selectedThreadId } ?: threads.firstOrNull() ?: ChatThread(
@@ -118,7 +124,7 @@ fun ChatsScreen(
         title = "New Conversation",
         snippet = "No messages yet",
         timestamp = "Just now",
-        modelOrCombo = "Gemini Flash Combo",
+        modelOrCombo = "No execution target selected",
         messages = emptyList(),
         projectId = null,
         projectName = null
@@ -940,74 +946,60 @@ fun ChatsScreen(
                 )
                 Spacer(modifier = Modifier.height(16.dp))
 
-                MockDataRepository.mockCombos.forEach { combo ->
-                    val isSelected = combo.name == selectedComboName
+                Text("Your local Combos", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.SemiBold)
+                routerManagementState.combos.filter { it.enabled }.forEach { combo ->
+                    val isSelected = combo.displayName == selectedComboName
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
                             .padding(vertical = 6.dp)
                             .clip(RoundedCornerShape(14.dp))
                             .background(if (isSelected) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceVariant)
-                            .border(
-                                1.dp,
-                                if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline,
-                                RoundedCornerShape(14.dp)
-                            )
+                            .border(1.dp, if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline, RoundedCornerShape(14.dp))
                             .clickable {
-                                selectedComboName = combo.name
-                                scope.launch { modelSheetState.hide() }.invokeOnCompletion {
-                                    if (!modelSheetState.isVisible) {
-                                        showModelSheet = false
-                                    }
-                                }
+                                selectedComboName = combo.displayName
+                                onSelectComboTarget(currentThread.id, combo.comboId, combo.displayName)
+                                scope.launch { modelSheetState.hide() }.invokeOnCompletion { if (!modelSheetState.isVisible) showModelSheet = false }
                             }
                             .padding(16.dp)
-                            .testTag("combo_option_${combo.id}")
+                            .testTag("combo_option_${combo.comboId}")
                     ) {
                         Column {
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Row(verticalAlignment = Alignment.CenterVertically) {
-                                    Text(
-                                        text = combo.name,
-                                        style = MaterialTheme.typography.bodyLarge.copy(
-                                            fontWeight = FontWeight.SemiBold
-                                        ),
-                                        color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
-                                    )
-                                    if (isSelected) {
-                                        Spacer(modifier = Modifier.width(8.dp))
-                                        Icon(
-                                            imageVector = Icons.Default.Check,
-                                            contentDescription = null,
-                                            tint = MaterialTheme.colorScheme.primary,
-                                            modifier = Modifier.size(16.dp)
-                                        )
+                            Text(combo.displayName, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.SemiBold, color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface)
+                            Text("${combo.entries.size} ordered candidates", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.secondary)
+                            if (combo.description.isNotBlank()) Text(combo.description, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        }
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(12.dp))
+                Text("Your direct Provider models", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.SemiBold)
+                providerManagementState.connections.filter { it.enabled }.forEach { connection ->
+                    connection.accounts.filter { it.enabled && it.credentialStored }.forEach { account ->
+                        connection.manualModels.filter { it.selectable }.forEach { model ->
+                            val label = "${connection.displayName} · ${model.displayName}"
+                            val isSelected = label == selectedComboName
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(vertical = 6.dp)
+                                    .clip(RoundedCornerShape(14.dp))
+                                    .background(if (isSelected) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceVariant)
+                                    .border(1.dp, if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline, RoundedCornerShape(14.dp))
+                                    .clickable {
+                                        selectedComboName = label
+                                        onSelectDirectTarget(currentThread.id, connection.connectionId, account.accountId, model.registryModelId, label)
+                                        scope.launch { modelSheetState.hide() }.invokeOnCompletion { if (!modelSheetState.isVisible) showModelSheet = false }
                                     }
-                                }
-                                Box(
-                                    modifier = Modifier
-                                        .clip(RoundedCornerShape(6.dp))
-                                        .background(MaterialTheme.colorScheme.surface)
-                                        .border(0.5.dp, MaterialTheme.colorScheme.secondary.copy(alpha = 0.3f), RoundedCornerShape(6.dp))
-                                        .padding(horizontal = 8.dp, vertical = 3.dp)
-                                ) {
-                                    Text(
-                                        text = "${combo.members.size} members",
-                                        style = MaterialTheme.typography.labelSmall,
-                                        color = MaterialTheme.colorScheme.secondary
-                                    )
+                                    .padding(16.dp)
+                                    .testTag("direct_model_option_${model.registryModelId}")
+                            ) {
+                                Column {
+                                    Text(label, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.SemiBold, color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface)
+                                    Text(account.displayName, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                    Text(model.capabilities.joinToString(" · "), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.secondary)
                                 }
                             }
-                            Spacer(modifier = Modifier.height(6.dp))
-                            Text(
-                                text = combo.description,
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
                         }
                     }
                 }

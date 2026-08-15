@@ -5,11 +5,18 @@ import androidx.lifecycle.viewModelScope
 import dev.iliv007.ivai.chat.LocalProviderChatSession
 import dev.iliv007.ivai.data.local.LocalDataResetter
 import dev.iliv007.ivai.data.local.LocalWorkspaceRepository
+import dev.iliv007.ivai.data.local.ChatThreadEntity
 import dev.iliv007.ivai.data.local.ProviderAccountEntity
 import dev.iliv007.ivai.data.local.ProviderConnectionEntity
 import dev.iliv007.ivai.data.local.ProviderModelEntity
+import dev.iliv007.ivai.data.local.RouterComboEntity
+import dev.iliv007.ivai.data.local.RouterComboEntryEntity
 import dev.iliv007.ivai.provider.ChatProvider
 import dev.iliv007.ivai.provider.ProviderKind
+import dev.iliv007.ivai.router.RouterAttemptOutcome
+import dev.iliv007.ivai.router.RouterChatSession
+import dev.iliv007.ivai.router.RouterCatalog
+import dev.iliv007.ivai.router.ExecutionTarget
 import dev.iliv007.ivai.security.EncryptedSecretVault
 import dev.iliv007.ivai.provider.CredentialReference
 import dev.iliv007.ivai.provider.ProviderStreamEvent
@@ -26,6 +33,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
@@ -51,6 +59,7 @@ data class WorkspaceUiState(
 class WorkspaceViewModel(
     initialState: WorkspaceUiState = WorkspaceUiState(),
     private val providerChatSession: LocalProviderChatSession? = null,
+    private val routerChatSession: RouterChatSession? = null,
     private val providerResolver: ((ProviderKind, String?) -> ChatProvider)? = null,
     private val workspaceRepository: LocalWorkspaceRepository? = null,
     private val secretVault: EncryptedSecretVault? = null,
@@ -65,8 +74,12 @@ class WorkspaceViewModel(
     private val _providerManagementState = MutableStateFlow(ProviderManagementState())
     val providerManagementState: StateFlow<ProviderManagementState> = _providerManagementState.asStateFlow()
 
+    private val _routerManagementState = MutableStateFlow(RouterManagementState())
+    val routerManagementState: StateFlow<RouterManagementState> = _routerManagementState.asStateFlow()
+
     init {
         observeProviderRegistry()
+        observeRouterManagement()
     }
 
     fun selectDestination(destination: NavDestination) {
@@ -113,7 +126,7 @@ class WorkspaceViewModel(
                 title = assignedProject?.let { "New ${it.name} Chat" } ?: "New Conversation",
                 snippet = "No messages yet",
                 timestamp = "Just now",
-                modelOrCombo = "Gemini Flash Combo",
+                modelOrCombo = "No execution target selected",
                 messages = emptyList(),
                 projectId = assignedProject?.id,
                 projectName = assignedProject?.name
@@ -186,39 +199,88 @@ class WorkspaceViewModel(
         }
     }
 
+    fun selectComboTarget(threadId: String, comboId: String, displayLabel: String) {
+        val repository = workspaceRepository ?: return
+        val thread = _uiState.value.threads.firstOrNull { it.id == threadId } ?: return
+        viewModelScope.launch {
+            runCatching {
+                persistThreadForRouter(repository, thread)
+                repository.selectThreadExecutionTarget(threadId, ExecutionTarget.Combo(comboId))
+                _uiState.update { state -> state.copy(threads = state.threads.map { if (it.id == threadId) it.copy(modelOrCombo = displayLabel) else it }) }
+            }.onFailure { failure -> _uiState.update { it.copy(streamError = failure.message ?: "Combo could not be selected.") } }
+        }
+    }
+
+    fun selectDirectTarget(threadId: String, connectionId: String, accountId: String, modelId: String, displayLabel: String) {
+        val repository = workspaceRepository ?: return
+        val thread = _uiState.value.threads.firstOrNull { it.id == threadId } ?: return
+        viewModelScope.launch {
+            runCatching {
+                persistThreadForRouter(repository, thread)
+                repository.selectThreadExecutionTarget(threadId, ExecutionTarget.DirectModel(connectionId, accountId, modelId))
+                _uiState.update { state -> state.copy(threads = state.threads.map { if (it.id == threadId) it.copy(modelOrCombo = displayLabel) else it }) }
+            }.onFailure { failure -> _uiState.update { it.copy(streamError = failure.message ?: "Model could not be selected.") } }
+        }
+    }
+
+    private suspend fun persistThreadForRouter(repository: LocalWorkspaceRepository, thread: ChatThread) {
+        repository.saveThread(
+            ChatThreadEntity(
+                id = thread.id,
+                title = thread.title,
+                snippet = thread.snippet,
+                updatedAtEpochMs = System.currentTimeMillis(),
+                modelOrCombo = thread.modelOrCombo,
+                projectId = thread.projectId
+            )
+        )
+    }
+
     fun sendMessage(threadId: String, rawText: String) {
         val text = rawText.trim()
         if (text.isBlank() || _uiState.value.isStreaming) return
         val thread = _uiState.value.threads.find { it.id == threadId } ?: return
-        val session = providerChatSession
-        val resolver = providerResolver
-        val connection = _providerManagementState.value.connections.firstOrNull { it.enabled }
-        val account = connection?.accounts?.firstOrNull { it.enabled && it.credentialStored }
-        val selectedModel = connection?.manualModels?.firstOrNull { it.selectable }
-        if (session == null || resolver == null || connection == null || account == null || selectedModel == null) {
+        val session = routerChatSession
+        val repository = workspaceRepository
+        val vault = secretVault
+        if (session == null || repository == null || vault == null) {
             appendUserMessage(threadId, text)
-            _uiState.update {
-                it.copy(streamError = "Select an enabled provider, stored credential, and manual model before sending.")
-            }
+            _uiState.update { it.copy(streamError = "Router is unavailable in this local workspace.") }
             return
         }
-        val provider = runCatching { resolver.invoke(connection.kind, connection.baseUrlLabel) }
-            .getOrElse { failure ->
-                appendUserMessage(threadId, text)
-                _uiState.update { it.copy(streamError = failure.message ?: "Selected provider is unavailable.") }
-                return
-            }
-        val attemptId = "provider-${System.currentTimeMillis()}"
+        val attemptId = "router-${System.currentTimeMillis()}"
         streamingJob = viewModelScope.launch {
+            val target = repository.resolveThreadExecutionTarget(threadId)
+            if (target == null) {
+                appendUserMessage(threadId, text)
+                _uiState.update { it.copy(streamError = "Select a user-managed model or Combo for this chat before sending.") }
+                return@launch
+            }
+            val registry = repository.currentProviderRegistry()
+            val credentialPresent = registry.accounts.filter { account ->
+                vault.observeStatus(account.credentialReference).first().exists
+            }.map { it.credentialReference }.toSet()
+            val entries = when (target) {
+                is dev.iliv007.ivai.router.ExecutionTarget.Combo -> repository.listRouterComboEntries(target.comboId)
+                is dev.iliv007.ivai.router.ExecutionTarget.DirectModel -> emptyList()
+            }
             var assistantText = ""
             _uiState.update { it.copy(isStreaming = true, streamError = null) }
-            session.send(provider, threadId, CredentialReference(account.credentialReference), selectedModel.modelId, thread.messages, text, attemptId).collect { event ->
+            session.send(
+                threadId = threadId,
+                target = target,
+                comboEntries = entries,
+                catalog = RouterCatalog(registry.connections, registry.accounts, registry.models, credentialPresent),
+                history = thread.messages,
+                prompt = text,
+                attemptId = attemptId
+            ).collect { event ->
                 when (event) {
                     is ProviderStreamEvent.Started -> appendUserMessage(threadId, text)
                     is ProviderStreamEvent.Delta -> {
                         assistantText += event.text
                         val current = _uiState.value.threads.find { it.id == threadId } ?: return@collect
-                        val partial = ChatMessage("msg-$attemptId-assistant", MessageSender.ASSISTANT, assistantText, "Now", modelBadge = selectedModel.modelId)
+                        val partial = ChatMessage("msg-$attemptId-assistant", MessageSender.ASSISTANT, assistantText, "Now", modelBadge = target.stableId)
                         updateThreadMessages(threadId, current.messages.filterNot { it.id == partial.id } + partial)
                     }
                     is ProviderStreamEvent.Completed -> _uiState.update { it.copy(isStreaming = false) }
@@ -334,6 +396,47 @@ class WorkspaceViewModel(
         }
     }
 
+    fun createRouterCombo(
+        displayName: String,
+        description: String,
+        candidates: List<RouterCandidateSelection>
+    ) {
+        val repository = workspaceRepository ?: return
+        val now = System.currentTimeMillis()
+        val comboId = "combo-$now"
+        viewModelScope.launch {
+            runCatching {
+                repository.saveRouterCombo(
+                    RouterComboEntity(
+                        id = comboId,
+                        displayName = displayName.trim(),
+                        description = description.trim(),
+                        isEnabled = true,
+                        createdAtEpochMs = now,
+                        updatedAtEpochMs = now
+                    ),
+                    candidates.mapIndexed { index, candidate ->
+                        RouterComboEntryEntity(
+                            id = "$comboId-entry-$index",
+                            comboId = comboId,
+                            position = index,
+                            connectionId = candidate.connectionId,
+                            accountId = candidate.accountId,
+                            modelId = candidate.modelId,
+                            isEnabled = true
+                        )
+                    }
+                )
+            }.onFailure { failure ->
+                _routerManagementState.update { it.copy(operationError = failure.message ?: "Combo could not be saved.") }
+            }
+        }
+    }
+
+    fun clearRouterOperationError() {
+        _routerManagementState.update { it.copy(operationError = null) }
+    }
+
     fun clearProviderOperationError() {
         _providerManagementState.update { it.copy(operationError = null) }
     }
@@ -381,6 +484,7 @@ class WorkspaceViewModel(
                             },
                             manualModels = snapshot.models.filter { it.connectionId == connection.id }.map { model ->
                                 ProviderModelCard(
+                                    registryModelId = model.id,
                                     modelId = model.providerModelId,
                                     displayName = model.displayName,
                                     capabilities = model.capabilitiesCsv.split(',').filter(String::isNotBlank),
@@ -391,6 +495,49 @@ class WorkspaceViewModel(
                     }
                 )
             }
+        }
+    }
+
+    private fun observeRouterManagement() {
+        val repository = workspaceRepository ?: return
+        viewModelScope.launch {
+            combine(repository.observeRouter(), repository.observeProviderRegistry(), repository.observeAllRouterAttempts()) { router, providers, attempts ->
+                val connectionById = providers.connections.associateBy { it.id }
+                val accountById = providers.accounts.associateBy { it.id }
+                val modelById = providers.models.associateBy { it.id }
+                RouterManagementState(
+                    combos = router.combos.map { combo ->
+                        RouterComboCard(
+                            comboId = combo.id,
+                            displayName = combo.displayName,
+                            description = combo.description,
+                            enabled = combo.isEnabled,
+                            entries = router.entries.filter { it.comboId == combo.id }.map { entry ->
+                                val connection = connectionById[entry.connectionId]
+                                val account = accountById[entry.accountId]
+                                val model = modelById[entry.modelId]
+                                RouterComboEntryCard(
+                                    entryId = entry.id,
+                                    position = entry.position,
+                                    providerLabel = connection?.displayName ?: "Removed provider",
+                                    accountLabel = account?.displayName ?: "Removed account",
+                                    modelLabel = model?.displayName ?: "Removed model",
+                                    capabilities = model?.capabilitiesCsv?.split(',')?.filter(String::isNotBlank).orEmpty(),
+                                    enabled = entry.isEnabled
+                                )
+                            }
+                        )
+                    },
+                    latestAttempts = attempts.take(12).map { attempt ->
+                        RouterAttemptCard(
+                            attemptId = attempt.id,
+                            targetLabel = "${attempt.targetKind}: ${attempt.targetId}",
+                            outcome = RouterAttemptOutcome.valueOf(attempt.outcome),
+                            safeErrorMessage = attempt.safeErrorMessage
+                        )
+                    }
+                )
+            }.collect { state -> _routerManagementState.value = state }
         }
     }
 
