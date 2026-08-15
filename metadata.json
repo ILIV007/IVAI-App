@@ -1,0 +1,6 @@
+{
+  "name": "IVAI",
+  "description": "Native Android local-first BYOK workspace for chat and basic bounded agents",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

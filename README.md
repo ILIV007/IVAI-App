@@ -1,11 +1,40 @@
-<div align="center">
+# IVAI — Task 01 UI Skeleton
 
-<img width="1200" height="475" alt="GHBanner" src="https://github.com/user-attachments/assets/0aa67016-6eaf-458a-adb2-6e31a0763ed6" />
+IVAI Task 01 is a mock-only UI skeleton demonstrating the core user interface, navigation, design tokens, state representations, and RTL/BiDi content rendering for IVAI.
 
-  <h1>Built with AI Studio</h2>
+## Architecture & Tech Stack
 
-  <p>The fastest path from prompt to production with Gemini.</p>
+- **Framework**: Kotlin + Jetpack Compose + Material 3
+- **Package**: `dev.iliv007.ivai`
+- **Min SDK**: 29
+- **Target SDK**: 36
+- **Architecture**: Single-activity shell with Compose Navigation and UI state management
+- **Backend**: None (Task 01 is a pure mock UI skeleton)
+- **Firebase**: None
+- **Analytics**: None
+- **Provider Calls**: None (all provider, model, agent, and routing flows are simulated mock previews)
+- **API Keys**: None required
 
-  <a href="https://aistudio.google.com/apps">Start building</a>
+## Language & Directionality
 
-</div>
+- **App Shell**: English (LTR)
+- **Content Rendering**: Bidirectional (RTL/BiDi) prototype supporting mixed language rendering (Hebrew/Arabic prose with explicit LTR inline code, paths, model IDs, logs, and URLs)
+
+## Local Build & Test Commands
+
+Build debug APK:
+```bash
+./gradlew assembleDebug
+```
+
+Run unit tests:
+```bash
+./gradlew test
+```
+
+Or run unit tests specifically:
+```bash
+gradle :app:testDebugUnitTest
+```
+
+Note: No `.env` file or `GEMINI_API_KEY` configuration is required.
