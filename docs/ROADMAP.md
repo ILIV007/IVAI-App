@@ -1,5 +1,7 @@
 # Execution Roadmap
 
+> **Product North Star:** IVAI is a Local-first, Backendless, BYOK **Agent Harness**. Users own and manage their provider connections, accounts, endpoints, models, capabilities, credential references, and ordered Combos. Gemini is the first streaming proof adapter only; it is not the product's fixed provider, required account, backend, or routing layer. See [Provider Harness Alignment](PROVIDER_HARNESS_ALIGNMENT.md).
+
 ## Phase 0 — Build and repository governance
 
 **Goal:** Buildable repository, Apache-2.0 governance, focused-branch workflow, CI quality gate, and protected main branch.
@@ -20,13 +22,13 @@
 
 ## Phase 3 — One-provider chat
 
-**Goal:** One provider-neutral adapter contract and a real Gemini chat vertical slice with streaming, cancellation, persistence, and safe error handling.
+**Goal:** Prove the provider-neutral adapter contract with one real Gemini chat vertical slice. This validates streaming, cancellation, persistence, and safe error handling; it does not make Gemini a fixed application provider.
 
 **Gate:** Real stream and cancel work; history survives restart; no secret appears in logs or exports.
 
 ## Phase 4 — Provider expansion and Router
 
-**Goal:** OpenRouter and Custom OpenAI-compatible adapters, capability-aware Combo model, sequential fallback, account health, and attempt trace.
+**Goal:** User-managed provider connections and accounts; OpenRouter and Custom OpenAI-compatible adapters alongside Gemini; manual/discovered models; a capability-aware Combo model; sequential fallback; account health; and attempt trace.
 
 **Gate:** Auth, timeout, 429, offline, cancellation, and fallback scenarios are verified without duplicate side effects.
 
