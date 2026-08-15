@@ -80,11 +80,7 @@ class IvaiDatabaseTest {
 
     @Test
     fun `repository emits deterministic workspace snapshot ordered by recency`() = runBlocking {
-        val repository = LocalWorkspaceRepository(
-            database.projectDao(),
-            database.threadDao(),
-            database.messageDao()
-        )
+        val repository = LocalWorkspaceRepository(database)
         repository.saveProject(
             WorkspaceProjectEntity("project-old", "Old", "", 0, updatedAtEpochMs = 10L)
         )

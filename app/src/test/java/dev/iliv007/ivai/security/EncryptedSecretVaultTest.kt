@@ -78,6 +78,21 @@ class EncryptedSecretVaultTest {
     }
 
     @Test
+    fun `vault clear all removes every ciphertext and matching key without decrypting`() = runBlocking {
+        vault.store("gemini", "first-secret")
+        vault.store("openrouter", "second-secret")
+        dataStore.edit { preferences ->
+            preferences[stringPreferencesKey("ivai.secret.v1.invalid reference")] = "malformed"
+        }
+
+        vault.clearAll()
+
+        assertTrue(dataStore.data.first().asMap().isEmpty())
+        assertTrue(cipherFactory.forAlias(EncryptedSecretVault.keyAlias("gemini")).wasDeleted)
+        assertTrue(cipherFactory.forAlias(EncryptedSecretVault.keyAlias("openrouter")).wasDeleted)
+    }
+
+    @Test
     fun `vault rejects invalid references before persistence`() = runBlocking {
         val exception = runCatching { vault.store("Open Router", "secret") }.exceptionOrNull()
 

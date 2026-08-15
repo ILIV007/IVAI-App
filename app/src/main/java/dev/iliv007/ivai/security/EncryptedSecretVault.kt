@@ -104,6 +104,38 @@ class EncryptedSecretVault(
         cipherForReference(keyAlias(normalized)).deleteKey()
     }
 
+    /**
+     * Deletes every ciphertext envelope owned by this vault and attempts to delete the matching
+     * Keystore aliases. It never decrypts or returns secret values.
+     */
+    suspend fun clearAll() {
+        val storedKeyNames = dataStore.data.firstValue().asMap().keys
+            .map { it.name }
+            .filter { it.startsWith(KEY_PREFIX) }
+        val validReferences = storedKeyNames.mapNotNull { keyName ->
+            keyName.removePrefix(KEY_PREFIX).takeIf(allowedReference::matches)
+        }
+
+        dataStore.edit { preferences ->
+            storedKeyNames.forEach { keyName -> preferences.remove(stringPreferencesKey(keyName)) }
+        }
+
+        var keyDeletionFailure: Throwable? = null
+        validReferences.forEach { reference ->
+            runCatching { cipherForReference(keyAlias(reference)).deleteKey() }
+                .onFailure { failure ->
+                    if (keyDeletionFailure == null) {
+                        keyDeletionFailure = failure
+                    } else {
+                        keyDeletionFailure?.addSuppressed(failure)
+                    }
+                }
+        }
+        keyDeletionFailure?.let { failure ->
+            throw IllegalStateException("Unable to fully remove encrypted secret key material", failure)
+        }
+    }
+
     companion object {
         private val allowedReference = Regex("[a-z0-9][a-z0-9._-]{0,63}")
         private const val KEY_PREFIX = "ivai.secret.v1."
