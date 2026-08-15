@@ -99,7 +99,7 @@ class ExampleRobolectricTest {
         composeTestRule.waitForIdle()
         composeTestRule.onNodeWithTag("nav_item_settings").performClick()
         composeTestRule.waitForIdle()
-        composeTestRule.onNodeWithTag("settings_byok_card").assertExists()
+        composeTestRule.onNodeWithTag("settings_provider_management").assertExists()
 
         // Open sidebar and return to Chats
         composeTestRule.onNodeWithTag("button_sidebar_toggle").performClick()

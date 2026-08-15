@@ -107,6 +107,16 @@ class LocalWorkspaceRepository(
         providerModelDao.upsert(model)
     }
 
+    suspend fun setProviderConnectionEnabled(connectionId: String, enabled: Boolean) {
+        val connection = providerConnectionDao.findById(connectionId) ?: return
+        saveProviderConnection(
+            connection.copy(
+                isEnabled = enabled,
+                updatedAtEpochMs = System.currentTimeMillis()
+            )
+        )
+    }
+
     suspend fun deleteProviderConnection(connectionId: String) {
         val connection = providerConnectionDao.findById(connectionId) ?: return
         providerConnectionDao.delete(connection)

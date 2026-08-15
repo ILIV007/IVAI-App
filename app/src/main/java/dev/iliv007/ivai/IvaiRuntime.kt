@@ -5,9 +5,14 @@ import androidx.datastore.preferences.core.PreferenceDataStoreFactory
 import dev.iliv007.ivai.chat.LocalGeminiChatSession
 import dev.iliv007.ivai.chat.LocalProviderChatSession
 import dev.iliv007.ivai.data.local.IvaiDatabase
+import dev.iliv007.ivai.data.local.LocalDataResetter
 import dev.iliv007.ivai.data.local.LocalWorkspaceRepository
+import dev.iliv007.ivai.data.local.ProjectWorkspace
+import dev.iliv007.ivai.provider.ChatProvider
 import dev.iliv007.ivai.provider.ProviderAdapterRegistry
+import dev.iliv007.ivai.provider.ProviderKind
 import dev.iliv007.ivai.provider.gemini.GeminiChatProvider
+import dev.iliv007.ivai.provider.openai.CustomOpenAiChatProvider
 import dev.iliv007.ivai.provider.openai.OpenRouterChatProvider
 import dev.iliv007.ivai.provider.gemini.GeminiNetworkGate
 import dev.iliv007.ivai.security.AndroidKeystoreSecretCipher
@@ -36,12 +41,24 @@ class IvaiRuntime(context: Context) {
         }
     )
 
+    private val projectWorkspace = ProjectWorkspace.appPrivate(applicationContext)
+    val localDataResetter = LocalDataResetter(workspaceRepository, projectWorkspace, secretVault)
+
     private val geminiProvider = GeminiChatProvider(GeminiNetworkGate(secretVault))
     private val openRouterProvider = OpenRouterChatProvider(secretVault)
 
     /** Registry contains installed adapters only; user-managed records decide whether any is used. */
     val providerAdapters = ProviderAdapterRegistry(setOf(geminiProvider, openRouterProvider))
     val providerChatSession = LocalProviderChatSession(workspaceRepository)
+
+    /** Resolves a foreground adapter from user-owned connection metadata without exposing secrets. */
+    fun resolveProvider(kind: ProviderKind, baseUrl: String?): ChatProvider = when (kind) {
+        ProviderKind.CUSTOM_OPENAI_COMPATIBLE -> CustomOpenAiChatProvider(
+            baseUrl = requireNotNull(baseUrl) { "Custom provider endpoint is required" },
+            vault = secretVault
+        )
+        else -> providerAdapters.requireAdapter(kind)
+    }
 
     /**
      * Compatibility bridge for the pre-registry chat UI. It is removed when Provider Management
