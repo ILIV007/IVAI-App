@@ -16,7 +16,8 @@ class WorkspaceViewModelFactory(
             providerResolver = runtime::resolveProvider,
             workspaceRepository = runtime.workspaceRepository,
             secretVault = runtime.secretVault,
-            localDataResetter = runtime.localDataResetter
+            localDataResetter = runtime.localDataResetter,
+            agentRuntime = runtime.agentRuntime
         ) as T
     }
 }

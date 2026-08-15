@@ -19,9 +19,13 @@ import androidx.sqlite.db.SupportSQLiteDatabase
         RouterComboEntryEntity::class,
         ThreadExecutionTargetEntity::class,
         RouterAttemptEntity::class,
-        RouterAttemptEntryEntity::class
+        RouterAttemptEntryEntity::class,
+        AgentProfileEntity::class,
+        AgentRunEntity::class,
+        AgentRunStepEntity::class,
+        AgentApprovalEntity::class
     ],
-    version = 3,
+    version = 4,
     exportSchema = true
 )
 abstract class IvaiDatabase : RoomDatabase() {
@@ -36,6 +40,10 @@ abstract class IvaiDatabase : RoomDatabase() {
     abstract fun threadExecutionTargetDao(): ThreadExecutionTargetDao
     abstract fun routerAttemptDao(): RouterAttemptDao
     abstract fun routerAttemptEntryDao(): RouterAttemptEntryDao
+    abstract fun agentProfileDao(): AgentProfileDao
+    abstract fun agentRunDao(): AgentRunDao
+    abstract fun agentRunStepDao(): AgentRunStepDao
+    abstract fun agentApprovalDao(): AgentApprovalDao
 
     companion object {
         const val DATABASE_NAME = "ivai-workspace.db"
@@ -45,7 +53,22 @@ abstract class IvaiDatabase : RoomDatabase() {
                 context.applicationContext,
                 IvaiDatabase::class.java,
                 DATABASE_NAME
-            ).addMigrations(MIGRATION_1_2, MIGRATION_2_3).build()
+            ).addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4).build()
+
+        val MIGRATION_3_4 = object : Migration(3, 4) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("CREATE TABLE IF NOT EXISTS `agent_profiles` (`id` TEXT NOT NULL, `name` TEXT NOT NULL, `instructions` TEXT NOT NULL, `target_kind` TEXT NOT NULL, `target_id` TEXT NOT NULL, `account_id` TEXT, `project_id` TEXT, `enabled_tools_csv` TEXT NOT NULL, `max_steps` INTEGER NOT NULL, `max_tool_calls` INTEGER NOT NULL, `max_runtime_ms` INTEGER NOT NULL, `is_enabled` INTEGER NOT NULL, `created_at_epoch_ms` INTEGER NOT NULL, `updated_at_epoch_ms` INTEGER NOT NULL, PRIMARY KEY(`id`), FOREIGN KEY(`project_id`) REFERENCES `workspace_projects`(`id`) ON UPDATE NO ACTION ON DELETE SET NULL)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS `index_agent_profiles_project_id` ON `agent_profiles` (`project_id`)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS `index_agent_profiles_updated_at_epoch_ms` ON `agent_profiles` (`updated_at_epoch_ms`)")
+                db.execSQL("CREATE TABLE IF NOT EXISTS `agent_runs` (`id` TEXT NOT NULL, `agent_id` TEXT NOT NULL, `goal` TEXT NOT NULL, `status` TEXT NOT NULL, `started_at_epoch_ms` INTEGER NOT NULL, `completed_at_epoch_ms` INTEGER, `safe_error_message` TEXT, PRIMARY KEY(`id`), FOREIGN KEY(`agent_id`) REFERENCES `agent_profiles`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS `index_agent_runs_agent_id_started_at_epoch_ms` ON `agent_runs` (`agent_id`, `started_at_epoch_ms`)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS `index_agent_runs_status` ON `agent_runs` (`status`)")
+                db.execSQL("CREATE TABLE IF NOT EXISTS `agent_run_steps` (`id` TEXT NOT NULL, `run_id` TEXT NOT NULL, `position` INTEGER NOT NULL, `step_kind` TEXT NOT NULL, `status` TEXT NOT NULL, `safe_summary` TEXT NOT NULL, `created_at_epoch_ms` INTEGER NOT NULL, `completed_at_epoch_ms` INTEGER, PRIMARY KEY(`id`), FOREIGN KEY(`run_id`) REFERENCES `agent_runs`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE)")
+                db.execSQL("CREATE UNIQUE INDEX IF NOT EXISTS `index_agent_run_steps_run_id_position` ON `agent_run_steps` (`run_id`, `position`)")
+                db.execSQL("CREATE TABLE IF NOT EXISTS `agent_approvals` (`id` TEXT NOT NULL, `run_id` TEXT NOT NULL, `tool_kind` TEXT NOT NULL, `target_path` TEXT NOT NULL, `preview` TEXT NOT NULL, `status` TEXT NOT NULL, `created_at_epoch_ms` INTEGER NOT NULL, `resolved_at_epoch_ms` INTEGER, PRIMARY KEY(`id`), FOREIGN KEY(`run_id`) REFERENCES `agent_runs`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS `index_agent_approvals_run_id_status` ON `agent_approvals` (`run_id`, `status`)")
+            }
+        }
 
         val MIGRATION_2_3 = object : Migration(2, 3) {
             override fun migrate(db: SupportSQLiteDatabase) {

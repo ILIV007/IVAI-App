@@ -235,3 +235,72 @@ data class RouterAttemptEntryEntity(
     @ColumnInfo(name = "safe_error_kind") val safeErrorKind: String?,
     @ColumnInfo(name = "safe_error_message") val safeErrorMessage: String?
 )
+
+@Entity(
+    tableName = "agent_profiles",
+    foreignKeys = [ForeignKey(entity = WorkspaceProjectEntity::class, parentColumns = ["id"], childColumns = ["project_id"], onDelete = ForeignKey.SET_NULL)],
+    indices = [Index(value = ["project_id"]), Index(value = ["updated_at_epoch_ms"])]
+)
+data class AgentProfileEntity(
+    @PrimaryKey val id: String,
+    val name: String,
+    val instructions: String,
+    @ColumnInfo(name = "target_kind") val targetKind: String,
+    @ColumnInfo(name = "target_id") val targetId: String,
+    @ColumnInfo(name = "account_id") val accountId: String?,
+    @ColumnInfo(name = "project_id") val projectId: String?,
+    @ColumnInfo(name = "enabled_tools_csv") val enabledToolsCsv: String,
+    @ColumnInfo(name = "max_steps") val maxSteps: Int,
+    @ColumnInfo(name = "max_tool_calls") val maxToolCalls: Int,
+    @ColumnInfo(name = "max_runtime_ms") val maxRuntimeMs: Long,
+    @ColumnInfo(name = "is_enabled") val isEnabled: Boolean,
+    @ColumnInfo(name = "created_at_epoch_ms") val createdAtEpochMs: Long,
+    @ColumnInfo(name = "updated_at_epoch_ms") val updatedAtEpochMs: Long
+)
+
+@Entity(
+    tableName = "agent_runs",
+    foreignKeys = [ForeignKey(entity = AgentProfileEntity::class, parentColumns = ["id"], childColumns = ["agent_id"], onDelete = ForeignKey.CASCADE)],
+    indices = [Index(value = ["agent_id", "started_at_epoch_ms"]), Index(value = ["status"])]
+)
+data class AgentRunEntity(
+    @PrimaryKey val id: String,
+    @ColumnInfo(name = "agent_id") val agentId: String,
+    val goal: String,
+    val status: String,
+    @ColumnInfo(name = "started_at_epoch_ms") val startedAtEpochMs: Long,
+    @ColumnInfo(name = "completed_at_epoch_ms") val completedAtEpochMs: Long?,
+    @ColumnInfo(name = "safe_error_message") val safeErrorMessage: String?
+)
+
+@Entity(
+    tableName = "agent_run_steps",
+    foreignKeys = [ForeignKey(entity = AgentRunEntity::class, parentColumns = ["id"], childColumns = ["run_id"], onDelete = ForeignKey.CASCADE)],
+    indices = [Index(value = ["run_id", "position"], unique = true)]
+)
+data class AgentRunStepEntity(
+    @PrimaryKey val id: String,
+    @ColumnInfo(name = "run_id") val runId: String,
+    val position: Int,
+    @ColumnInfo(name = "step_kind") val stepKind: String,
+    val status: String,
+    @ColumnInfo(name = "safe_summary") val safeSummary: String,
+    @ColumnInfo(name = "created_at_epoch_ms") val createdAtEpochMs: Long,
+    @ColumnInfo(name = "completed_at_epoch_ms") val completedAtEpochMs: Long?
+)
+
+@Entity(
+    tableName = "agent_approvals",
+    foreignKeys = [ForeignKey(entity = AgentRunEntity::class, parentColumns = ["id"], childColumns = ["run_id"], onDelete = ForeignKey.CASCADE)],
+    indices = [Index(value = ["run_id", "status"])]
+)
+data class AgentApprovalEntity(
+    @PrimaryKey val id: String,
+    @ColumnInfo(name = "run_id") val runId: String,
+    @ColumnInfo(name = "tool_kind") val toolKind: String,
+    @ColumnInfo(name = "target_path") val targetPath: String,
+    val preview: String,
+    val status: String,
+    @ColumnInfo(name = "created_at_epoch_ms") val createdAtEpochMs: Long,
+    @ColumnInfo(name = "resolved_at_epoch_ms") val resolvedAtEpochMs: Long?
+)

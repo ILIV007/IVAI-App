@@ -2,9 +2,14 @@ package dev.iliv007.ivai.ui.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import dev.iliv007.ivai.agent.AgentRunStatus
+import dev.iliv007.ivai.agent.AgentToolKind
+import dev.iliv007.ivai.agent.ApprovalStatus
+import dev.iliv007.ivai.agent.BasicAgentRuntime
 import dev.iliv007.ivai.chat.LocalProviderChatSession
 import dev.iliv007.ivai.data.local.LocalDataResetter
 import dev.iliv007.ivai.data.local.LocalWorkspaceRepository
+import dev.iliv007.ivai.data.local.AgentProfileEntity
 import dev.iliv007.ivai.data.local.ChatThreadEntity
 import dev.iliv007.ivai.data.local.ProviderAccountEntity
 import dev.iliv007.ivai.data.local.ProviderConnectionEntity
@@ -63,7 +68,8 @@ class WorkspaceViewModel(
     private val providerResolver: ((ProviderKind, String?) -> ChatProvider)? = null,
     private val workspaceRepository: LocalWorkspaceRepository? = null,
     private val secretVault: EncryptedSecretVault? = null,
-    private val localDataResetter: LocalDataResetter? = null
+    private val localDataResetter: LocalDataResetter? = null,
+    private val agentRuntime: BasicAgentRuntime? = null
 ) : ViewModel() {
 
     private var streamingJob: Job? = null
@@ -77,9 +83,14 @@ class WorkspaceViewModel(
     private val _routerManagementState = MutableStateFlow(RouterManagementState())
     val routerManagementState: StateFlow<RouterManagementState> = _routerManagementState.asStateFlow()
 
+    private val _agentManagementState = MutableStateFlow(AgentManagementState())
+    val agentManagementState: StateFlow<AgentManagementState> = _agentManagementState.asStateFlow()
+    private val selectedAgentRunId = MutableStateFlow<String?>(null)
+
     init {
         observeProviderRegistry()
         observeRouterManagement()
+        observeAgentManagement()
     }
 
     fun selectDestination(destination: NavDestination) {
@@ -433,6 +444,110 @@ class WorkspaceViewModel(
         }
     }
 
+    fun createAgent(
+        name: String,
+        instructions: String,
+        targetKind: String,
+        targetId: String,
+        accountId: String?,
+        projectId: String?,
+        enabledTools: Set<AgentToolKind>,
+        maxSteps: Int,
+        maxToolCalls: Int,
+        maxRuntimeMs: Long
+    ) {
+        val repository = workspaceRepository ?: return
+        val now = System.currentTimeMillis()
+        val profile = AgentProfileEntity(
+            id = "agent-$now",
+            name = name.trim(),
+            instructions = instructions.trim(),
+            targetKind = targetKind.trim(),
+            targetId = targetId.trim(),
+            accountId = accountId?.trim()?.takeIf(String::isNotBlank),
+            projectId = projectId,
+            enabledToolsCsv = enabledTools.joinToString(",") { it.name },
+            maxSteps = maxSteps,
+            maxToolCalls = maxToolCalls,
+            maxRuntimeMs = maxRuntimeMs,
+            isEnabled = true,
+            createdAtEpochMs = now,
+            updatedAtEpochMs = now
+        )
+        viewModelScope.launch {
+            runCatching {
+                require(profile.targetKind.isNotBlank() && profile.targetId.isNotBlank()) {
+                    "An agent must use a user-selected provider or combo target."
+                }
+                repository.saveAgentProfile(profile)
+            }.onFailure { failure ->
+                _agentManagementState.update {
+                    it.copy(operationError = failure.message ?: "Agent profile could not be saved.")
+                }
+            }
+        }
+    }
+
+    fun startAgentRun(profileId: String, goal: String) {
+        val repository = workspaceRepository ?: return
+        val runtime = agentRuntime ?: return
+        viewModelScope.launch {
+            runCatching {
+                val profile = requireNotNull(repository.findAgentProfile(profileId)) { "Agent profile was not found." }
+                runtime.start(profile, goal)
+            }.onSuccess { run ->
+                selectedAgentRunId.value = run.id
+            }.onFailure { failure ->
+                _agentManagementState.update {
+                    it.copy(operationError = failure.message ?: "Agent run could not be started.")
+                }
+            }
+        }
+    }
+
+    fun selectAgentRun(runId: String?) {
+        selectedAgentRunId.value = runId
+    }
+
+    fun resolveAgentApproval(approvalId: String, allowOnce: Boolean) {
+        val repository = workspaceRepository ?: return
+        val runtime = agentRuntime ?: return
+        viewModelScope.launch {
+            val approval = repository.findAgentApproval(approvalId)
+            if (approval == null) {
+                _agentManagementState.update { it.copy(operationError = "Approval request was not found.") }
+                return@launch
+            }
+            runCatching { runtime.resolveWriteApproval(approvalId, allowOnce) }
+                .onSuccess { selectedAgentRunId.value = approval.runId }
+                .onFailure { failure ->
+                    _agentManagementState.update {
+                        it.copy(operationError = failure.message ?: "Approval could not be resolved.")
+                    }
+                }
+        }
+    }
+
+    fun cancelAgentRun(runId: String) {
+        val repository = workspaceRepository ?: return
+        val runtime = agentRuntime ?: return
+        viewModelScope.launch {
+            runCatching {
+                val run = requireNotNull(repository.findAgentRun(runId)) { "Agent run was not found." }
+                runtime.cancel(run)
+            }.onSuccess { selectedAgentRunId.value = it.id }
+                .onFailure { failure ->
+                    _agentManagementState.update {
+                        it.copy(operationError = failure.message ?: "Agent run could not be cancelled.")
+                    }
+                }
+        }
+    }
+
+    fun clearAgentOperationError() {
+        _agentManagementState.update { it.copy(operationError = null) }
+    }
+
     fun clearRouterOperationError() {
         _routerManagementState.update { it.copy(operationError = null) }
     }
@@ -538,6 +653,82 @@ class WorkspaceViewModel(
                     }
                 )
             }.collect { state -> _routerManagementState.value = state }
+        }
+    }
+
+    @OptIn(ExperimentalCoroutinesApi::class)
+    private fun observeAgentManagement() {
+        val repository = workspaceRepository ?: return
+        val traceFlow = selectedAgentRunId.flatMapLatest { runId ->
+            runId?.let(repository::observeAgentRunSteps) ?: flowOf(emptyList())
+        }
+        viewModelScope.launch {
+            combine(
+                repository.observeAgentProfiles(),
+                repository.observeAllAgentRuns(),
+                repository.observePendingAgentApprovals(),
+                traceFlow
+            ) { profiles, runs, approvals, trace ->
+                val desiredRunId = selectedAgentRunId.value
+                    ?.takeIf { selectedId -> runs.any { it.id == selectedId } }
+                    ?: runs.firstOrNull()?.id
+                if (desiredRunId != selectedAgentRunId.value) selectedAgentRunId.value = desiredRunId
+                val profileById = profiles.associateBy { it.id }
+                AgentManagementState(
+                    profiles = profiles.map { profile ->
+                        AgentProfileCard(
+                            profileId = profile.id,
+                            name = profile.name,
+                            instructions = profile.instructions,
+                            targetLabel = "${profile.targetKind}: ${profile.targetId}",
+                            projectId = profile.projectId,
+                            enabledTools = profile.enabledToolsCsv.split(',').mapNotNull { name ->
+                                runCatching { AgentToolKind.valueOf(name) }.getOrNull()
+                            },
+                            maxSteps = profile.maxSteps,
+                            maxToolCalls = profile.maxToolCalls,
+                            maxRuntimeMs = profile.maxRuntimeMs,
+                            enabled = profile.isEnabled
+                        )
+                    },
+                    activeRuns = runs.take(12).map { run ->
+                        AgentRunCard(
+                            runId = run.id,
+                            agentId = run.agentId,
+                            agentName = profileById[run.agentId]?.name ?: "Removed agent",
+                            goal = run.goal,
+                            status = runCatching { AgentRunStatus.valueOf(run.status) }.getOrDefault(AgentRunStatus.FAILED),
+                            startedAtEpochMs = run.startedAtEpochMs,
+                            safeErrorMessage = run.safeErrorMessage
+                        )
+                    },
+                    pendingApprovals = approvals.mapNotNull { approval ->
+                        runCatching {
+                            AgentApprovalCard(
+                                approvalId = approval.id,
+                                runId = approval.runId,
+                                toolKind = AgentToolKind.valueOf(approval.toolKind),
+                                targetPath = approval.targetPath,
+                                preview = approval.preview.take(4_000),
+                                status = ApprovalStatus.valueOf(approval.status),
+                                createdAtEpochMs = approval.createdAtEpochMs
+                            )
+                        }.getOrNull()
+                    },
+                    selectedRunId = desiredRunId,
+                    selectedRunTrace = trace.map { step ->
+                        AgentRunTraceStepCard(
+                            stepId = step.id,
+                            runId = step.runId,
+                            position = step.position,
+                            stepKind = step.stepKind,
+                            status = step.status,
+                            safeSummary = step.safeSummary,
+                            createdAtEpochMs = step.createdAtEpochMs
+                        )
+                    }
+                )
+            }.collect { state -> _agentManagementState.value = state }
         }
     }
 
