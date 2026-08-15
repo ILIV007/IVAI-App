@@ -8,8 +8,13 @@ import androidx.compose.ui.test.performClick
 import androidx.test.core.app.ApplicationProvider
 import com.github.takahirom.roborazzi.RobolectricDeviceQualifiers
 import dev.iliv007.ivai.ui.components.IvaiSidebarContent
+import dev.iliv007.ivai.ui.model.ChatMessage
+import dev.iliv007.ivai.ui.model.ChatThread
+import dev.iliv007.ivai.ui.model.MessageSender
 import dev.iliv007.ivai.ui.navigation.NavDestination
 import dev.iliv007.ivai.ui.theme.IvaiTheme
+import dev.iliv007.ivai.ui.viewmodel.WorkspaceUiState
+import dev.iliv007.ivai.ui.viewmodel.WorkspaceViewModel
 import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test
@@ -118,17 +123,47 @@ class ExampleRobolectricTest {
     }
 
     @Test
-    fun `verify MainChatScreen message list and prompt input field`() {
+    fun `verify canonical chat path exposes composer stream and combo controls`() {
         composeTestRule.setContent {
             IvaiTheme {
-                dev.iliv007.ivai.ui.screens.MainChatScreen()
+                IvaiMainApp()
             }
         }
 
         composeTestRule.onNodeWithTag("input_message_text").assertIsDisplayed()
         composeTestRule.onNodeWithTag("button_send_message").assertIsDisplayed()
-        composeTestRule.onNodeWithTag("button_active_model").assertIsDisplayed()
+        composeTestRule.onNodeWithTag("button_select_combo").assertIsDisplayed()
         composeTestRule.onNodeWithTag("chat_messages_list").assertIsDisplayed()
+    }
+
+    @Test
+    fun `canonical chat renders mixed bidi message with LTR token`() {
+        val message = ChatMessage(
+            id = "mixed-bidi",
+            sender = MessageSender.USER,
+            text = "سلام IVAI — inspect README.md before ادامهٔ کار",
+            timestamp = "10:16 AM"
+        )
+        val thread = ChatThread(
+            id = "rtl-thread",
+            title = "RTL verification",
+            snippet = message.text,
+            timestamp = "Just now",
+            modelOrCombo = "Gemini Flash Combo",
+            messages = listOf(message)
+        )
+        val workspaceViewModel = WorkspaceViewModel(
+            WorkspaceUiState(threads = listOf(thread), selectedThreadId = thread.id)
+        )
+
+        composeTestRule.setContent {
+            IvaiTheme {
+                IvaiMainApp(workspaceViewModel = workspaceViewModel)
+            }
+        }
+
+        composeTestRule.onNodeWithTag("message_bubble_mixed-bidi").assertIsDisplayed()
+        composeTestRule.onNodeWithTag("input_message_text").assertIsDisplayed()
     }
 
     @Test
