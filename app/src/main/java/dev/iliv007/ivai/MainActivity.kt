@@ -75,6 +75,7 @@ fun IvaiMainApp(
     val uiState by resolvedViewModel.uiState.collectAsStateWithLifecycle()
     val providerManagementState by resolvedViewModel.providerManagementState.collectAsStateWithLifecycle()
     val routerManagementState by resolvedViewModel.routerManagementState.collectAsStateWithLifecycle()
+    val agentManagementState by resolvedViewModel.agentManagementState.collectAsStateWithLifecycle()
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
     val scope = rememberCoroutineScope()
 
@@ -162,7 +163,15 @@ fun IvaiMainApp(
                             onSelectComboTarget = resolvedViewModel::selectComboTarget,
                             onSelectDirectTarget = resolvedViewModel::selectDirectTarget
                         )
-                        dev.iliv007.ivai.ui.navigation.NavDestination.AGENTS -> AgentsScreen()
+                        dev.iliv007.ivai.ui.navigation.NavDestination.AGENTS -> AgentsScreen(
+                            state = agentManagementState,
+                            onCreateAgent = resolvedViewModel::createAgent,
+                            onStartRun = resolvedViewModel::startAgentRun,
+                            onSelectRun = resolvedViewModel::selectAgentRun,
+                            onCancelRun = resolvedViewModel::cancelAgentRun,
+                            onResolveApproval = resolvedViewModel::resolveAgentApproval,
+                            onDismissError = resolvedViewModel::clearAgentOperationError
+                        )
                         dev.iliv007.ivai.ui.navigation.NavDestination.PROJECTS -> ProjectsScreen()
                         dev.iliv007.ivai.ui.navigation.NavDestination.ROUTER -> RouterScreen(
                             state = routerManagementState,

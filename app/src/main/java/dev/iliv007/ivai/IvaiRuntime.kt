@@ -2,6 +2,8 @@ package dev.iliv007.ivai
 
 import android.content.Context
 import androidx.datastore.preferences.core.PreferenceDataStoreFactory
+import dev.iliv007.ivai.agent.AgentToolRegistry
+import dev.iliv007.ivai.agent.BasicAgentRuntime
 import dev.iliv007.ivai.chat.LocalGeminiChatSession
 import dev.iliv007.ivai.chat.LocalProviderChatSession
 import dev.iliv007.ivai.data.local.IvaiDatabase
@@ -43,8 +45,9 @@ class IvaiRuntime(context: Context) {
         }
     )
 
-    private val projectWorkspace = ProjectWorkspace.appPrivate(applicationContext)
+    val projectWorkspace = ProjectWorkspace.appPrivate(applicationContext)
     val localDataResetter = LocalDataResetter(workspaceRepository, projectWorkspace, secretVault)
+    val agentRuntime = BasicAgentRuntime(workspaceRepository, projectWorkspace, AgentToolRegistry())
 
     private val geminiProvider = GeminiChatProvider(GeminiNetworkGate(secretVault))
     private val openRouterProvider = OpenRouterChatProvider(secretVault)

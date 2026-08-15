@@ -1,0 +1,300 @@
+package dev.iliv007.ivai.agent
+
+import dev.iliv007.ivai.data.local.AgentApprovalEntity
+import dev.iliv007.ivai.data.local.AgentProfileEntity
+import dev.iliv007.ivai.data.local.AgentRunEntity
+import dev.iliv007.ivai.data.local.AgentRunStepEntity
+import dev.iliv007.ivai.data.local.LocalWorkspaceRepository
+import dev.iliv007.ivai.data.local.ProjectWorkspace
+
+/**
+ * Bounded local runtime for the Basic Agent Alpha.
+ *
+ * This runtime never selects a provider, performs a network operation, stores raw model reasoning,
+ * or executes a file write until the matching persisted approval is explicitly allowed once.
+ */
+class BasicAgentRuntime(
+    private val repository: LocalWorkspaceRepository,
+    private val projectWorkspace: ProjectWorkspace,
+    private val tools: AgentToolRegistry,
+    private val nowEpochMs: () -> Long = System::currentTimeMillis
+) {
+    private val pendingWrites = mutableMapOf<String, PendingWrite>()
+
+    suspend fun start(profile: AgentProfileEntity, goal: String): AgentRunEntity {
+        require(profile.isEnabled) { "Agent profile is disabled" }
+        require(goal.isNotBlank()) { "Agent goal must not be blank" }
+        AgentExecutionLimits(profile.maxSteps, profile.maxToolCalls, profile.maxRuntimeMs)
+
+        val now = nowEpochMs()
+        val run = AgentRunEntity(
+            id = "run-$now",
+            agentId = profile.id,
+            goal = goal.trim(),
+            status = AgentRunStatus.RUNNING.name,
+            startedAtEpochMs = now,
+            completedAtEpochMs = null,
+            safeErrorMessage = null
+        )
+        repository.saveAgentRun(run)
+        repository.saveAgentRunStep(
+            AgentRunStepEntity(
+                id = "${run.id}-step-0",
+                runId = run.id,
+                position = 0,
+                stepKind = "GOAL",
+                status = "COMPLETED",
+                safeSummary = "Run started with bounded local policy.",
+                createdAtEpochMs = now,
+                completedAtEpochMs = now
+            )
+        )
+        return run
+    }
+
+    suspend fun requestTool(
+        run: AgentRunEntity,
+        projectId: String?,
+        position: Int,
+        request: AgentToolRequest
+    ): AgentToolResult {
+        val currentRun = repository.findAgentRun(run.id)
+            ?: return AgentToolResult.Rejected("Agent run was not found.")
+        val profile = repository.findAgentProfile(currentRun.agentId)
+            ?: return fail(currentRun, "Agent profile was not found.")
+
+        val limitError = validateRequestBudget(currentRun, profile, position)
+        if (limitError != null) return limitError
+
+        val result = tools.evaluate(request)
+        val now = nowEpochMs()
+        when (result) {
+            is AgentToolResult.Completed -> repository.saveAgentRunStep(
+                AgentRunStepEntity(
+                    id = "${currentRun.id}-step-$position",
+                    runId = currentRun.id,
+                    position = position,
+                    stepKind = request.kind.name,
+                    status = "COMPLETED",
+                    safeSummary = result.safeSummary,
+                    createdAtEpochMs = now,
+                    completedAtEpochMs = now
+                )
+            )
+
+            is AgentToolResult.Rejected -> repository.saveAgentRunStep(
+                AgentRunStepEntity(
+                    id = "${currentRun.id}-step-$position",
+                    runId = currentRun.id,
+                    position = position,
+                    stepKind = request.kind.name,
+                    status = "REJECTED",
+                    safeSummary = result.safeReason,
+                    createdAtEpochMs = now,
+                    completedAtEpochMs = now
+                )
+            )
+
+            is AgentToolResult.RequiresApproval -> {
+                if (projectId == null) {
+                    return fail(currentRun, "A write tool requires a selected project workspace.")
+                }
+                repository.saveAgentRun(
+                    currentRun.copy(status = AgentRunStatus.AWAITING_APPROVAL.name)
+                )
+                repository.saveAgentRunStep(
+                    AgentRunStepEntity(
+                        id = "${currentRun.id}-step-$position",
+                        runId = currentRun.id,
+                        position = position,
+                        stepKind = request.kind.name,
+                        status = "AWAITING_APPROVAL",
+                        safeSummary = "Write requires explicit user approval.",
+                        createdAtEpochMs = now,
+                        completedAtEpochMs = null
+                    )
+                )
+                val approvalId = "${currentRun.id}-approval-$position"
+                val write = request as AgentToolRequest.WriteProjectFile
+                pendingWrites[approvalId] = PendingWrite(projectId, write.relativePath, write.content)
+                repository.saveAgentApproval(
+                    AgentApprovalEntity(
+                        id = approvalId,
+                        runId = currentRun.id,
+                        toolKind = request.kind.name,
+                        targetPath = result.targetPath,
+                        preview = result.preview,
+                        status = ApprovalStatus.PENDING.name,
+                        createdAtEpochMs = now,
+                        resolvedAtEpochMs = null
+                    )
+                )
+            }
+        }
+        return result
+    }
+
+    suspend fun resolveWriteApproval(approvalId: String, allowOnce: Boolean): AgentToolResult {
+        val approval = repository.findAgentApproval(approvalId)
+            ?: return AgentToolResult.Rejected("Approval request was not found.")
+        if (approval.status != ApprovalStatus.PENDING.name) {
+            return AgentToolResult.Rejected("Approval request is no longer pending.")
+        }
+        val run = repository.findAgentRun(approval.runId)
+            ?: return AgentToolResult.Rejected("Agent run was not found.")
+        if (run.status != AgentRunStatus.AWAITING_APPROVAL.name) {
+            return AgentToolResult.Rejected("Agent run is not awaiting approval.")
+        }
+
+        val now = nowEpochMs()
+        val position = approval.id.substringAfterLast('-').toIntOrNull() ?: 0
+        val pending = pendingWrites.remove(approvalId)
+        if (!allowOnce) {
+            repository.saveAgentApproval(approval.copy(status = ApprovalStatus.DENIED.name, resolvedAtEpochMs = now))
+            repository.saveAgentRunStep(
+                AgentRunStepEntity(
+                    id = "${approval.runId}-step-$position",
+                    runId = approval.runId,
+                    position = position,
+                    stepKind = approval.toolKind,
+                    status = "DENIED",
+                    safeSummary = "Write was denied by the user.",
+                    createdAtEpochMs = now,
+                    completedAtEpochMs = now
+                )
+            )
+            repository.saveAgentRun(run.copy(status = AgentRunStatus.RUNNING.name))
+            return AgentToolResult.Rejected("Write was denied by the user.")
+        }
+        if (pending == null) {
+            repository.saveAgentApproval(approval.copy(status = ApprovalStatus.DENIED.name, resolvedAtEpochMs = now))
+            return fail(run, "Write approval expired before execution.")
+        }
+
+        repository.saveAgentApproval(approval.copy(status = ApprovalStatus.ALLOWED_ONCE.name, resolvedAtEpochMs = now))
+        return try {
+            projectWorkspace.writeText(pending.projectId, pending.relativePath, pending.content)
+            repository.saveAgentApproval(approval.copy(status = ApprovalStatus.EXECUTED.name, resolvedAtEpochMs = now))
+            repository.saveAgentRunStep(
+                AgentRunStepEntity(
+                    id = "${approval.runId}-step-$position",
+                    runId = approval.runId,
+                    position = position,
+                    stepKind = approval.toolKind,
+                    status = "COMPLETED",
+                    safeSummary = "Approved write completed: ${approval.targetPath}",
+                    createdAtEpochMs = now,
+                    completedAtEpochMs = now
+                )
+            )
+            repository.saveAgentRun(run.copy(status = AgentRunStatus.RUNNING.name))
+            AgentToolResult.Completed("Approved write completed: ${approval.targetPath}")
+        } catch (_: Exception) {
+            fail(run, "Approved write could not be completed.")
+        }
+    }
+
+    suspend fun cancel(run: AgentRunEntity): AgentRunEntity {
+        val currentRun = repository.findAgentRun(run.id) ?: return run
+        if (currentRun.status in TERMINAL_STATUSES) return currentRun
+
+        val now = nowEpochMs()
+        pendingWrites.entries.removeIf { (approvalId, _) -> approvalId.startsWith("${currentRun.id}-approval-") }
+        repository.findPendingAgentApprovals(currentRun.id).forEach { approval ->
+            repository.saveAgentApproval(approval.copy(status = ApprovalStatus.DENIED.name, resolvedAtEpochMs = now))
+        }
+        val cancelled = currentRun.copy(
+            status = AgentRunStatus.CANCELLED.name,
+            completedAtEpochMs = now,
+            safeErrorMessage = null
+        )
+        repository.saveAgentRun(cancelled)
+        repository.saveAgentRunStep(
+            AgentRunStepEntity(
+                id = "${currentRun.id}-terminal-cancelled",
+                runId = currentRun.id,
+                position = Int.MAX_VALUE,
+                stepKind = "RUN",
+                status = AgentRunStatus.CANCELLED.name,
+                safeSummary = "Run cancelled by the user.",
+                createdAtEpochMs = now,
+                completedAtEpochMs = now
+            )
+        )
+        return cancelled
+    }
+
+    suspend fun complete(run: AgentRunEntity): AgentRunEntity {
+        val currentRun = repository.findAgentRun(run.id) ?: return run
+        if (currentRun.status in TERMINAL_STATUSES) return currentRun
+        return finish(currentRun, AgentRunStatus.COMPLETED, "Run completed within configured limits.", null)
+    }
+
+    suspend fun fail(run: AgentRunEntity, safeError: String): AgentToolResult.Rejected {
+        val currentRun = repository.findAgentRun(run.id) ?: run
+        if (currentRun.status !in TERMINAL_STATUSES) {
+            finish(currentRun, AgentRunStatus.FAILED, "Run stopped safely: $safeError", safeError)
+        }
+        return AgentToolResult.Rejected(safeError)
+    }
+
+    private suspend fun validateRequestBudget(
+        run: AgentRunEntity,
+        profile: AgentProfileEntity,
+        position: Int
+    ): AgentToolResult.Rejected? {
+        if (!profile.isEnabled) return fail(run, "Agent profile is disabled.")
+        if (run.status != AgentRunStatus.RUNNING.name) {
+            return AgentToolResult.Rejected("Agent run is not accepting tool requests.")
+        }
+        val limits = AgentExecutionLimits(profile.maxSteps, profile.maxToolCalls, profile.maxRuntimeMs)
+        if (position !in 1..limits.maxSteps) {
+            return fail(run, "Maximum step limit reached.")
+        }
+        if (nowEpochMs() - run.startedAtEpochMs > limits.maxRuntimeMs) {
+            return fail(run, "Maximum runtime reached.")
+        }
+        if (repository.countAgentToolCalls(run.id) >= limits.maxToolCalls) {
+            return fail(run, "Maximum tool-call limit reached.")
+        }
+        return null
+    }
+
+    private suspend fun finish(
+        run: AgentRunEntity,
+        status: AgentRunStatus,
+        safeSummary: String,
+        safeError: String?
+    ): AgentRunEntity {
+        val now = nowEpochMs()
+        val terminal = run.copy(
+            status = status.name,
+            completedAtEpochMs = now,
+            safeErrorMessage = safeError
+        )
+        repository.saveAgentRun(terminal)
+        repository.saveAgentRunStep(
+            AgentRunStepEntity(
+                id = "${run.id}-terminal-${status.name.lowercase()}",
+                runId = run.id,
+                position = Int.MAX_VALUE,
+                stepKind = "RUN",
+                status = status.name,
+                safeSummary = safeSummary,
+                createdAtEpochMs = now,
+                completedAtEpochMs = now
+            )
+        )
+        return terminal
+    }
+
+    private data class PendingWrite(val projectId: String, val relativePath: String, val content: String)
+
+    private companion object {
+        val TERMINAL_STATUSES = setOf(
+            AgentRunStatus.COMPLETED.name,
+            AgentRunStatus.CANCELLED.name,
+            AgentRunStatus.FAILED.name
+        )
+    }
+}

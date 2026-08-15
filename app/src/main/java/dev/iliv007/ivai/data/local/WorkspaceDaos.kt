@@ -226,3 +226,73 @@ interface RouterAttemptEntryDao {
     @Query("DELETE FROM router_attempt_entries")
     suspend fun deleteAll()
 }
+
+
+@Dao
+interface AgentProfileDao {
+    @Query("SELECT * FROM agent_profiles ORDER BY updated_at_epoch_ms DESC, id ASC")
+    fun observeAll(): Flow<List<AgentProfileEntity>>
+
+    @Query("SELECT * FROM agent_profiles WHERE id = :id LIMIT 1")
+    suspend fun findById(id: String): AgentProfileEntity?
+
+    @Upsert
+    suspend fun upsert(profile: AgentProfileEntity)
+
+    @Query("DELETE FROM agent_profiles")
+    suspend fun deleteAll()
+}
+
+@Dao
+interface AgentRunDao {
+    @Query("SELECT * FROM agent_runs WHERE agent_id = :agentId ORDER BY started_at_epoch_ms DESC, id DESC")
+    fun observeForAgent(agentId: String): Flow<List<AgentRunEntity>>
+
+    @Query("SELECT * FROM agent_runs ORDER BY started_at_epoch_ms DESC, id DESC")
+    fun observeAll(): Flow<List<AgentRunEntity>>
+
+    @Query("SELECT * FROM agent_runs WHERE id = :id LIMIT 1")
+    suspend fun findById(id: String): AgentRunEntity?
+
+    @Upsert
+    suspend fun upsert(run: AgentRunEntity)
+
+    @Query("DELETE FROM agent_runs")
+    suspend fun deleteAll()
+}
+
+@Dao
+interface AgentRunStepDao {
+    @Query("SELECT * FROM agent_run_steps WHERE run_id = :runId ORDER BY position ASC, id ASC")
+    fun observeForRun(runId: String): Flow<List<AgentRunStepEntity>>
+
+    @Query("SELECT COUNT(*) FROM agent_run_steps WHERE run_id = :runId AND step_kind IN ('CALCULATE', 'CURRENT_TIME', 'WRITE_PROJECT_FILE')")
+    suspend fun countToolCallsForRun(runId: String): Int
+
+    @Upsert
+    suspend fun upsert(step: AgentRunStepEntity)
+
+    @Query("DELETE FROM agent_run_steps")
+    suspend fun deleteAll()
+}
+
+@Dao
+interface AgentApprovalDao {
+    @Query("SELECT * FROM agent_approvals WHERE run_id = :runId ORDER BY created_at_epoch_ms ASC, id ASC")
+    fun observeForRun(runId: String): Flow<List<AgentApprovalEntity>>
+
+    @Query("SELECT * FROM agent_approvals WHERE status = :status ORDER BY created_at_epoch_ms ASC, id ASC")
+    fun observeByStatus(status: String): Flow<List<AgentApprovalEntity>>
+
+    @Query("SELECT * FROM agent_approvals WHERE run_id = :runId AND status = 'PENDING' ORDER BY created_at_epoch_ms ASC, id ASC")
+    suspend fun findPendingForRun(runId: String): List<AgentApprovalEntity>
+
+    @Query("SELECT * FROM agent_approvals WHERE id = :id LIMIT 1")
+    suspend fun findById(id: String): AgentApprovalEntity?
+
+    @Upsert
+    suspend fun upsert(approval: AgentApprovalEntity)
+
+    @Query("DELETE FROM agent_approvals")
+    suspend fun deleteAll()
+}

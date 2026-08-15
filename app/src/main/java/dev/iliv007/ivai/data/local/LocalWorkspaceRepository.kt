@@ -51,8 +51,25 @@ class LocalWorkspaceRepository(
     private val routerComboEntryDao: RouterComboEntryDao = database.routerComboEntryDao(),
     private val threadExecutionTargetDao: ThreadExecutionTargetDao = database.threadExecutionTargetDao(),
     private val routerAttemptDao: RouterAttemptDao = database.routerAttemptDao(),
-    private val routerAttemptEntryDao: RouterAttemptEntryDao = database.routerAttemptEntryDao()
+    private val routerAttemptEntryDao: RouterAttemptEntryDao = database.routerAttemptEntryDao(),
+    private val agentProfileDao: AgentProfileDao = database.agentProfileDao(),
+    private val agentRunDao: AgentRunDao = database.agentRunDao(),
+    private val agentRunStepDao: AgentRunStepDao = database.agentRunStepDao(),
+    private val agentApprovalDao: AgentApprovalDao = database.agentApprovalDao()
 ) {
+    fun observeAgentProfiles(): Flow<List<AgentProfileEntity>> = agentProfileDao.observeAll()
+
+    fun observeAgentRuns(agentId: String): Flow<List<AgentRunEntity>> = agentRunDao.observeForAgent(agentId)
+
+    fun observeAllAgentRuns(): Flow<List<AgentRunEntity>> = agentRunDao.observeAll()
+
+    fun observeAgentRunSteps(runId: String): Flow<List<AgentRunStepEntity>> = agentRunStepDao.observeForRun(runId)
+
+    fun observeAgentApprovals(runId: String): Flow<List<AgentApprovalEntity>> = agentApprovalDao.observeForRun(runId)
+
+    fun observePendingAgentApprovals(): Flow<List<AgentApprovalEntity>> =
+        agentApprovalDao.observeByStatus("PENDING")
+
     fun observeWorkspace(): Flow<PersistedWorkspaceSnapshot> = combine(
         projectDao.observeAll(),
         threadDao.observeAll()
@@ -160,6 +177,32 @@ class LocalWorkspaceRepository(
             "Router candidate references must belong to one provider connection"
         }
     }
+
+    suspend fun findAgentProfile(profileId: String): AgentProfileEntity? = agentProfileDao.findById(profileId)
+
+    suspend fun findAgentRun(runId: String): AgentRunEntity? = agentRunDao.findById(runId)
+
+    suspend fun countAgentToolCalls(runId: String): Int = agentRunStepDao.countToolCallsForRun(runId)
+
+    suspend fun findPendingAgentApprovals(runId: String): List<AgentApprovalEntity> =
+        agentApprovalDao.findPendingForRun(runId)
+
+    suspend fun saveAgentProfile(profile: AgentProfileEntity) {
+        require(profile.name.isNotBlank()) { "Agent name must not be blank" }
+        require(profile.instructions.isNotBlank()) { "Agent instructions must not be blank" }
+        require(profile.maxSteps in 1..20) { "Agent max steps must be between 1 and 20" }
+        require(profile.maxToolCalls in 0..20) { "Agent max tool calls must be between 0 and 20" }
+        require(profile.maxRuntimeMs in 1_000L..300_000L) { "Agent max runtime must be between 1 second and 5 minutes" }
+        agentProfileDao.upsert(profile)
+    }
+
+    suspend fun saveAgentRun(run: AgentRunEntity) = agentRunDao.upsert(run)
+
+    suspend fun saveAgentRunStep(step: AgentRunStepEntity) = agentRunStepDao.upsert(step)
+
+    suspend fun findAgentApproval(approvalId: String): AgentApprovalEntity? = agentApprovalDao.findById(approvalId)
+
+    suspend fun saveAgentApproval(approval: AgentApprovalEntity) = agentApprovalDao.upsert(approval)
 
     suspend fun saveProject(project: WorkspaceProjectEntity) {
         projectDao.upsert(project)
