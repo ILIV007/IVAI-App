@@ -17,6 +17,8 @@ import dev.iliv007.ivai.provider.ProviderKind
 import dev.iliv007.ivai.ui.model.ChatMessage
 import dev.iliv007.ivai.ui.model.MessageSender
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.NonCancellable
+import kotlinx.coroutines.withContext
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
 
@@ -98,11 +100,11 @@ class RouterChatSession(
                 )
             )
 
-            val provider = providerResolver(ProviderKind.valueOf(connection.providerKind), connection.baseUrl)
             val response = StringBuilder()
             var completed = false
             var candidateError: ProviderStreamEvent.Failed? = null
             try {
+                val provider = providerResolver(ProviderKind.valueOf(connection.providerKind), connection.baseUrl)
                 provider.streamChat(
                     ProviderChatRequest(
                         credentialReference = CredentialReference(account.credentialReference),
@@ -128,10 +130,14 @@ class RouterChatSession(
                     }
                 }
             } catch (cancelled: CancellationException) {
-                finishEntry(candidateAttemptId, candidate, RouterAttemptOutcome.CANCELLED, candidateStartedAt, null)
-                finishAttempt(attemptId, threadId, target, RouterAttemptOutcome.CANCELLED, startedAt, null)
+                withContext(NonCancellable) {
+                    finishEntry(candidateAttemptId, candidate, RouterAttemptOutcome.CANCELLED, candidateStartedAt, null)
+                    finishAttempt(attemptId, threadId, target, RouterAttemptOutcome.CANCELLED, startedAt, null)
+                }
                 emit(ProviderStreamEvent.Cancelled)
                 return@flow
+            } catch (_: Throwable) {
+                candidateError = ProviderStreamEvent.Failed(unexpectedProviderError())
             }
 
             if (completed) {
@@ -223,6 +229,12 @@ class RouterChatSession(
             ProviderErrorKind.NETWORK_UNAVAILABLE,
             ProviderErrorKind.TIMEOUT
         )
+
+    private fun unexpectedProviderError() = dev.iliv007.ivai.provider.NormalizedProviderError(
+        kind = ProviderErrorKind.UNKNOWN,
+        safeMessage = "Provider request failed before a complete response.",
+        retryable = true
+    )
 
     private fun routerUnavailableError() = dev.iliv007.ivai.provider.NormalizedProviderError(
         kind = ProviderErrorKind.UNSUPPORTED_CAPABILITY,
