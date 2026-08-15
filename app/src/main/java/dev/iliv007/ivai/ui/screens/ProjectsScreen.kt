@@ -37,7 +37,7 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import dev.iliv007.ivai.ui.model.MockDataRepository
+import dev.iliv007.ivai.ui.model.WorkspaceProject
 import dev.iliv007.ivai.ui.theme.CyanDark
 import dev.iliv007.ivai.ui.theme.CyanPrimary
 import dev.iliv007.ivai.ui.theme.IvaiBackground
@@ -56,9 +56,9 @@ import dev.iliv007.ivai.ui.theme.TextSecondary
 
 @Composable
 fun ProjectsScreen(
+    projects: List<WorkspaceProject>,
     modifier: Modifier = Modifier
 ) {
-    val projects = MockDataRepository.mockProjects
 
     LazyColumn(
         modifier = modifier

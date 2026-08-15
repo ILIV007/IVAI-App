@@ -11,6 +11,10 @@ import dev.iliv007.ivai.data.local.LocalDataResetter
 import dev.iliv007.ivai.data.local.LocalWorkspaceRepository
 import dev.iliv007.ivai.data.local.AgentProfileEntity
 import dev.iliv007.ivai.data.local.ChatThreadEntity
+import dev.iliv007.ivai.data.local.ChatMessageEntity
+import dev.iliv007.ivai.data.local.WorkspaceProjectEntity
+import dev.iliv007.ivai.data.local.toDomainMessage
+import dev.iliv007.ivai.data.local.toEntity
 import dev.iliv007.ivai.data.local.ProviderAccountEntity
 import dev.iliv007.ivai.data.local.ProviderConnectionEntity
 import dev.iliv007.ivai.data.local.ProviderModelEntity
@@ -28,7 +32,6 @@ import dev.iliv007.ivai.provider.ProviderStreamEvent
 import dev.iliv007.ivai.ui.model.ChatMessage
 import dev.iliv007.ivai.ui.model.ChatThread
 import dev.iliv007.ivai.ui.model.MessageSender
-import dev.iliv007.ivai.ui.model.MockDataRepository
 import dev.iliv007.ivai.ui.model.UiPreviewState
 import dev.iliv007.ivai.ui.model.WorkspaceProject
 import dev.iliv007.ivai.ui.navigation.NavDestination
@@ -44,18 +47,13 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
-/**
- * Canonical in-memory workspace state for the Phase 1 UI Skeleton.
- *
- * This ViewModel deliberately keeps mock data only. Persistence, secure storage, and
- * provider integration belong to later roadmap phases.
- */
+/** Canonical UI state backed by local Room data when a workspace repository is available. */
 data class WorkspaceUiState(
     val destination: NavDestination = NavDestination.CHATS,
     val previewState: UiPreviewState = UiPreviewState.NORMAL,
-    val threads: List<ChatThread> = MockDataRepository.defaultChatThreads,
-    val projects: List<WorkspaceProject> = MockDataRepository.mockProjects,
-    val selectedThreadId: String = MockDataRepository.defaultChatThreads.firstOrNull()?.id.orEmpty(),
+    val threads: List<ChatThread> = emptyList(),
+    val projects: List<WorkspaceProject> = emptyList(),
+    val selectedThreadId: String = "",
     val selectedProjectId: String? = null,
     val isStreaming: Boolean = false,
     val streamError: String? = null
@@ -86,8 +84,11 @@ class WorkspaceViewModel(
     private val _agentManagementState = MutableStateFlow(AgentManagementState())
     val agentManagementState: StateFlow<AgentManagementState> = _agentManagementState.asStateFlow()
     private val selectedAgentRunId = MutableStateFlow<String?>(null)
+    private val selectedWorkspaceThreadId = MutableStateFlow(_uiState.value.selectedThreadId.ifBlank { null })
 
     init {
+        observeWorkspace()
+        observeSelectedWorkspaceMessages()
         observeProviderRegistry()
         observeRouterManagement()
         observeAgentManagement()
@@ -108,6 +109,7 @@ class WorkspaceViewModel(
     fun selectThread(threadId: String) {
         _uiState.update { state ->
             if (state.threads.any { it.id == threadId }) {
+                selectedWorkspaceThreadId.value = threadId
                 state.copy(
                     destination = NavDestination.CHATS,
                     selectedThreadId = threadId
@@ -129,67 +131,88 @@ class WorkspaceViewModel(
     }
 
     fun createNewChat(targetProjectId: String? = _uiState.value.selectedProjectId) {
+        val now = System.currentTimeMillis()
+        val assignedProject = _uiState.value.projects.find { it.id == targetProjectId }
+        val thread = ChatThread(
+            id = "chat-$now",
+            title = assignedProject?.let { "New ${it.name} Chat" } ?: "New Conversation",
+            snippet = "No messages yet",
+            timestamp = "Just now",
+            modelOrCombo = "No execution target selected",
+            messages = emptyList(),
+            projectId = assignedProject?.id,
+            projectName = assignedProject?.name
+        )
+        selectedWorkspaceThreadId.value = thread.id
         _uiState.update { state ->
-            val assignedProject = state.projects.find { it.id == targetProjectId }
-            val threadId = "chat-${System.currentTimeMillis()}"
-            val thread = ChatThread(
-                id = threadId,
-                title = assignedProject?.let { "New ${it.name} Chat" } ?: "New Conversation",
-                snippet = "No messages yet",
-                timestamp = "Just now",
-                modelOrCombo = "No execution target selected",
-                messages = emptyList(),
-                projectId = assignedProject?.id,
-                projectName = assignedProject?.name
-            )
             state.copy(
                 destination = NavDestination.CHATS,
                 threads = listOf(thread) + state.threads,
-                selectedThreadId = threadId
+                selectedThreadId = thread.id
             )
         }
+        persistThread(thread, now, "Chat could not be created locally.")
     }
 
     fun deleteThread(threadId: String) {
-        _uiState.update { state ->
-            val remaining = state.threads.filterNot { it.id == threadId }
-            val selectedThreadId = if (state.selectedThreadId == threadId) {
-                remaining.firstOrNull()?.id.orEmpty()
-            } else {
-                state.selectedThreadId
-            }
-            state.copy(threads = remaining, selectedThreadId = selectedThreadId).normalized()
+        val previous = _uiState.value
+        val remaining = previous.threads.filterNot { it.id == threadId }
+        val selectedThreadId = if (previous.selectedThreadId == threadId) {
+            remaining.firstOrNull()?.id.orEmpty()
+        } else {
+            previous.selectedThreadId
+        }
+        selectedWorkspaceThreadId.value = selectedThreadId.ifBlank { null }
+        _uiState.update { it.copy(threads = remaining, selectedThreadId = selectedThreadId).normalized() }
+        val repository = workspaceRepository ?: return
+        viewModelScope.launch {
+            runCatching { repository.deleteThread(threadId) }
+                .onFailure { failure -> _uiState.update { it.copy(streamError = failure.message ?: "Chat could not be deleted locally.") } }
         }
     }
 
     fun assignThreadToProject(threadId: String, projectId: String?) {
-        _uiState.update { state ->
-            val project = state.projects.find { it.id == projectId }
-            if (projectId != null && project == null) {
-                state
-            } else {
-                state.copy(
-                    threads = state.threads.map { thread ->
-                        if (thread.id == threadId) {
-                            thread.copy(projectId = project?.id, projectName = project?.name)
-                        } else {
-                            thread
-                        }
-                    }
-                )
-            }
+        val state = _uiState.value
+        val project = state.projects.find { it.id == projectId }
+        if (projectId != null && project == null) return
+        val updatedThread = state.threads.firstOrNull { it.id == threadId }?.copy(
+            projectId = project?.id,
+            projectName = project?.name
+        ) ?: return
+        _uiState.update { current ->
+            current.copy(threads = current.threads.map { if (it.id == threadId) updatedThread else it })
         }
+        persistThread(updatedThread, System.currentTimeMillis(), "Chat project assignment could not be saved.")
     }
 
     fun createNewProject(name: String, description: String): WorkspaceProject {
+        val now = System.currentTimeMillis()
         val project = WorkspaceProject(
-            id = "proj-${System.currentTimeMillis()}",
+            id = "proj-$now",
             name = name.ifBlank { "Untitled Project" },
             description = description.ifBlank { "Local workspace project" },
             fileCount = 0,
             lastModified = "Just now"
         )
         _uiState.update { state -> state.copy(projects = state.projects + project) }
+        val repository = workspaceRepository
+        if (repository != null) {
+            viewModelScope.launch {
+                runCatching {
+                    repository.saveProject(
+                        WorkspaceProjectEntity(
+                            id = project.id,
+                            name = project.name,
+                            description = project.description,
+                            fileCount = project.fileCount,
+                            updatedAtEpochMs = now
+                        )
+                    )
+                }.onFailure { failure ->
+                    _uiState.update { it.copy(streamError = failure.message ?: "Project could not be created locally.") }
+                }
+            }
+        }
         return project
     }
 
@@ -213,11 +236,12 @@ class WorkspaceViewModel(
     fun selectComboTarget(threadId: String, comboId: String, displayLabel: String) {
         val repository = workspaceRepository ?: return
         val thread = _uiState.value.threads.firstOrNull { it.id == threadId } ?: return
+        val updatedThread = thread.copy(modelOrCombo = displayLabel)
         viewModelScope.launch {
             runCatching {
-                persistThreadForRouter(repository, thread)
+                persistThreadForRouter(repository, updatedThread)
                 repository.selectThreadExecutionTarget(threadId, ExecutionTarget.Combo(comboId))
-                _uiState.update { state -> state.copy(threads = state.threads.map { if (it.id == threadId) it.copy(modelOrCombo = displayLabel) else it }) }
+                _uiState.update { state -> state.copy(threads = state.threads.map { if (it.id == threadId) updatedThread else it }) }
             }.onFailure { failure -> _uiState.update { it.copy(streamError = failure.message ?: "Combo could not be selected.") } }
         }
     }
@@ -225,12 +249,33 @@ class WorkspaceViewModel(
     fun selectDirectTarget(threadId: String, connectionId: String, accountId: String, modelId: String, displayLabel: String) {
         val repository = workspaceRepository ?: return
         val thread = _uiState.value.threads.firstOrNull { it.id == threadId } ?: return
+        val updatedThread = thread.copy(modelOrCombo = displayLabel)
         viewModelScope.launch {
             runCatching {
-                persistThreadForRouter(repository, thread)
+                persistThreadForRouter(repository, updatedThread)
                 repository.selectThreadExecutionTarget(threadId, ExecutionTarget.DirectModel(connectionId, accountId, modelId))
-                _uiState.update { state -> state.copy(threads = state.threads.map { if (it.id == threadId) it.copy(modelOrCombo = displayLabel) else it }) }
+                _uiState.update { state -> state.copy(threads = state.threads.map { if (it.id == threadId) updatedThread else it }) }
             }.onFailure { failure -> _uiState.update { it.copy(streamError = failure.message ?: "Model could not be selected.") } }
+        }
+    }
+
+    private fun persistThread(thread: ChatThread, updatedAtEpochMs: Long, failureMessage: String) {
+        val repository = workspaceRepository ?: return
+        viewModelScope.launch {
+            runCatching {
+                repository.saveThread(
+                    ChatThreadEntity(
+                        id = thread.id,
+                        title = thread.title,
+                        snippet = thread.snippet,
+                        updatedAtEpochMs = updatedAtEpochMs,
+                        modelOrCombo = thread.modelOrCombo,
+                        projectId = thread.projectId
+                    )
+                )
+            }.onFailure { failure ->
+                _uiState.update { it.copy(streamError = failure.message ?: failureMessage) }
+            }
         }
     }
 
@@ -287,7 +332,7 @@ class WorkspaceViewModel(
                 attemptId = attemptId
             ).collect { event ->
                 when (event) {
-                    is ProviderStreamEvent.Started -> appendUserMessage(threadId, text)
+                    is ProviderStreamEvent.Started -> appendUserMessage(threadId, text, persistLocally = false)
                     is ProviderStreamEvent.Delta -> {
                         assistantText += event.text
                         val current = _uiState.value.threads.find { it.id == threadId } ?: return@collect
@@ -309,18 +354,27 @@ class WorkspaceViewModel(
         _uiState.update { it.copy(isStreaming = false) }
     }
 
-    fun appendUserMessage(threadId: String, rawText: String) {
+    fun appendUserMessage(threadId: String, rawText: String, persistLocally: Boolean = true) {
         val text = rawText.trim()
         if (text.isBlank()) return
-
+        val createdAt = System.currentTimeMillis()
         val message = ChatMessage(
-            id = "msg-${System.currentTimeMillis()}",
+            id = "msg-$createdAt",
             sender = MessageSender.USER,
             text = text,
             timestamp = "Now"
         )
         val currentThread = _uiState.value.threads.find { it.id == threadId } ?: return
         updateThreadMessages(threadId, currentThread.messages + message)
+        if (persistLocally) {
+            val repository = workspaceRepository ?: return
+            viewModelScope.launch {
+                runCatching { repository.appendMessage(message.toEntity(threadId, createdAt)) }
+                    .onFailure { failure ->
+                        _uiState.update { it.copy(streamError = failure.message ?: "Message could not be saved locally.") }
+                    }
+            }
+        }
     }
 
     /** The raw secret is accepted only at the save boundary and is never copied into state. */
@@ -565,6 +619,77 @@ class WorkspaceViewModel(
                         it.copy(operationError = failure.message ?: "Local data could not be fully deleted.")
                     }
                 }
+        }
+    }
+
+    private fun observeWorkspace() {
+        val repository = workspaceRepository ?: return
+        viewModelScope.launch {
+            repository.observeWorkspace().collect { snapshot ->
+                val projectById = snapshot.projects.associateBy { it.id }
+                val existingThreads = _uiState.value.threads.associateBy { it.id }
+                val threads = snapshot.threads.map { thread ->
+                    ChatThread(
+                        id = thread.id,
+                        title = thread.title,
+                        snippet = thread.snippet,
+                        timestamp = "Local",
+                        modelOrCombo = thread.modelOrCombo,
+                        messages = existingThreads[thread.id]?.messages.orEmpty(),
+                        projectId = thread.projectId,
+                        projectName = thread.projectId?.let { projectById[it]?.name }
+                    )
+                }
+                val selectedThreadId = _uiState.value.selectedThreadId
+                    .takeIf { selected -> threads.any { it.id == selected } }
+                    ?: threads.firstOrNull()?.id.orEmpty()
+                if (selectedWorkspaceThreadId.value != selectedThreadId.ifBlank { null }) {
+                    selectedWorkspaceThreadId.value = selectedThreadId.ifBlank { null }
+                }
+                _uiState.update { state ->
+                    state.copy(
+                        projects = snapshot.projects.map { project ->
+                            WorkspaceProject(
+                                id = project.id,
+                                name = project.name,
+                                description = project.description,
+                                fileCount = project.fileCount,
+                                lastModified = "Local"
+                            )
+                        },
+                        threads = threads,
+                        selectedThreadId = selectedThreadId,
+                        selectedProjectId = state.selectedProjectId?.takeIf { it in projectById }
+                    ).normalized()
+                }
+            }
+        }
+    }
+
+    @OptIn(ExperimentalCoroutinesApi::class)
+    private fun observeSelectedWorkspaceMessages() {
+        val repository = workspaceRepository ?: return
+        viewModelScope.launch {
+            selectedWorkspaceThreadId.flatMapLatest { threadId ->
+                threadId?.let(repository::observeMessages) ?: flowOf(emptyList())
+            }.collect { entities ->
+                val threadId = selectedWorkspaceThreadId.value ?: return@collect
+                val messages = entities.map { entity -> entity.toDomainMessage(timestamp = "Local") }
+                _uiState.update { state ->
+                    state.copy(
+                        threads = state.threads.map { thread ->
+                            if (thread.id == threadId) {
+                                thread.copy(
+                                    messages = messages,
+                                    snippet = messages.lastOrNull()?.text ?: thread.snippet
+                                )
+                            } else {
+                                thread
+                            }
+                        }
+                    )
+                }
+            }
         }
     }
 

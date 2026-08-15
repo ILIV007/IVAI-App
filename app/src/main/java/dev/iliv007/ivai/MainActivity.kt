@@ -172,7 +172,9 @@ fun IvaiMainApp(
                             onResolveApproval = resolvedViewModel::resolveAgentApproval,
                             onDismissError = resolvedViewModel::clearAgentOperationError
                         )
-                        dev.iliv007.ivai.ui.navigation.NavDestination.PROJECTS -> ProjectsScreen()
+                        dev.iliv007.ivai.ui.navigation.NavDestination.PROJECTS -> ProjectsScreen(
+                            projects = uiState.projects
+                        )
                         dev.iliv007.ivai.ui.navigation.NavDestination.ROUTER -> RouterScreen(
                             state = routerManagementState,
                             providers = providerManagementState,

@@ -124,9 +124,20 @@ class ExampleRobolectricTest {
 
     @Test
     fun `verify canonical chat path exposes composer stream and combo controls`() {
+        val thread = ChatThread(
+            id = "chat-controls",
+            title = "Local chat",
+            snippet = "",
+            timestamp = "Now",
+            modelOrCombo = "No execution target selected",
+            messages = listOf(ChatMessage("control-message", MessageSender.USER, "Local fixture", "Now"))
+        )
+        val viewModel = WorkspaceViewModel(
+            initialState = WorkspaceUiState(threads = listOf(thread), selectedThreadId = thread.id)
+        )
         composeTestRule.setContent {
             IvaiTheme {
-                IvaiMainApp()
+                IvaiMainApp(workspaceViewModel = viewModel)
             }
         }
 

@@ -67,7 +67,6 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import dev.iliv007.ivai.ui.model.ChatThread
-import dev.iliv007.ivai.ui.model.MockDataRepository
 import dev.iliv007.ivai.ui.model.WorkspaceProject
 import dev.iliv007.ivai.ui.navigation.NavDestination
 import dev.iliv007.ivai.ui.theme.CyanPrimary
@@ -80,10 +79,10 @@ import dev.iliv007.ivai.ui.theme.PurpleDark
 fun IvaiSidebarContent(
     currentDestination: NavDestination,
     onDestinationSelected: (NavDestination) -> Unit,
-    threads: List<ChatThread> = MockDataRepository.defaultChatThreads,
+    threads: List<ChatThread> = emptyList(),
     selectedThreadId: String = threads.firstOrNull()?.id ?: "",
     onSelectThread: (String) -> Unit = {},
-    projects: List<WorkspaceProject> = MockDataRepository.mockProjects,
+    projects: List<WorkspaceProject> = emptyList(),
     selectedProjectId: String? = null,
     onSelectProject: (String?) -> Unit = {},
     onNewChatClick: () -> Unit = {},
