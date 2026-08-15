@@ -86,7 +86,6 @@ import dev.iliv007.ivai.ui.components.OfflineStateView
 import dev.iliv007.ivai.ui.model.ChatMessage
 import dev.iliv007.ivai.ui.model.ChatThread
 import dev.iliv007.ivai.ui.model.MessageSender
-import dev.iliv007.ivai.ui.model.MockDataRepository
 import dev.iliv007.ivai.ui.model.UiPreviewState
 import dev.iliv007.ivai.ui.model.WorkspaceProject
 import dev.iliv007.ivai.ui.viewmodel.ProviderManagementState
@@ -100,15 +99,17 @@ import kotlinx.coroutines.launch
 fun ChatsScreen(
     previewState: UiPreviewState,
     onResetState: () -> Unit,
-    threads: List<ChatThread> = MockDataRepository.defaultChatThreads,
+    threads: List<ChatThread> = emptyList(),
     selectedThreadId: String = threads.firstOrNull()?.id ?: "",
     onSelectThread: (String) -> Unit = {},
-    projects: List<WorkspaceProject> = MockDataRepository.mockProjects,
+    projects: List<WorkspaceProject> = emptyList(),
     selectedProjectId: String? = null,
     onSelectProject: (String?) -> Unit = {},
     onNewChatInProject: (String?) -> Unit = {},
     onAssignThreadToProject: (String, String?) -> Unit = { _, _ -> },
-    onCreateNewProject: (String, String) -> WorkspaceProject = { _, _ -> MockDataRepository.mockProjects.first() },
+    onCreateNewProject: (String, String) -> WorkspaceProject = { name, description ->
+        WorkspaceProject("preview-project", name, description, 0, "Local")
+    },
     onUpdateThreadMessages: (String, List<ChatMessage>) -> Unit = { _, _ -> },
     onSendMessage: (String, String) -> Unit = { _, _ -> },
     isStreaming: Boolean = false,

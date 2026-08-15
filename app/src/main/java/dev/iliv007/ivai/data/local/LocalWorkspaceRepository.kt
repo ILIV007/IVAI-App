@@ -213,7 +213,16 @@ class LocalWorkspaceRepository(
     }
 
     suspend fun appendMessage(message: ChatMessageEntity) {
-        messageDao.insert(message)
+        database.withTransaction {
+            messageDao.insert(message)
+            val thread = requireNotNull(threadDao.findById(message.threadId)) { "Unknown chat thread" }
+            threadDao.upsert(
+                thread.copy(
+                    snippet = message.text.take(240),
+                    updatedAtEpochMs = message.createdAtEpochMs
+                )
+            )
+        }
     }
 
     suspend fun saveProviderConnection(connection: ProviderConnectionEntity) {

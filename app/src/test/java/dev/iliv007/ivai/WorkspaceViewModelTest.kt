@@ -13,18 +13,19 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class WorkspaceViewModelTest {
-
     @Test
     fun `workspace state owns navigation preview and selected thread`() {
-        val viewModel = WorkspaceViewModel()
-        val initialThreadId = viewModel.uiState.value.selectedThreadId
+        val thread = localThread()
+        val viewModel = WorkspaceViewModel(
+            initialState = WorkspaceUiState(threads = listOf(thread), selectedThreadId = thread.id)
+        )
 
         viewModel.selectDestination(NavDestination.ROUTER)
         viewModel.selectPreviewState(UiPreviewState.ERROR)
-        viewModel.selectThread(initialThreadId)
+        viewModel.selectThread(thread.id)
 
         assertEquals(NavDestination.CHATS, viewModel.uiState.value.destination)
-        assertEquals(initialThreadId, viewModel.uiState.value.selectedThreadId)
+        assertEquals(thread.id, viewModel.uiState.value.selectedThreadId)
         assertEquals(UiPreviewState.ERROR, viewModel.uiState.value.previewState)
 
         viewModel.resetPreviewState()
@@ -55,32 +56,37 @@ class WorkspaceViewModelTest {
 
     @Test
     fun `workspace ignores invalid ids and normalizes selection after deletion`() {
-        val viewModel = WorkspaceViewModel()
-        val before = viewModel.uiState.value
-        val initialThreadId = before.selectedThreadId
+        val thread = localThread()
+        val viewModel = WorkspaceViewModel(
+            initialState = WorkspaceUiState(threads = listOf(thread), selectedThreadId = thread.id)
+        )
 
         viewModel.selectThread("missing-thread")
         viewModel.selectProject("missing-project")
 
-        assertEquals(initialThreadId, viewModel.uiState.value.selectedThreadId)
+        assertEquals(thread.id, viewModel.uiState.value.selectedThreadId)
         assertNull(viewModel.uiState.value.selectedProjectId)
 
-        viewModel.deleteThread(initialThreadId)
-        val remaining = viewModel.uiState.value.threads
-
-        assertFalse(remaining.any { it.id == initialThreadId })
-        assertTrue(
-            viewModel.uiState.value.selectedThreadId.isEmpty() ||
-                remaining.any { it.id == viewModel.uiState.value.selectedThreadId }
-        )
+        viewModel.deleteThread(thread.id)
+        assertTrue(viewModel.uiState.value.threads.isEmpty())
+        assertTrue(viewModel.uiState.value.selectedThreadId.isEmpty())
     }
 
     @Test
-    fun `workspace normalizes an invalid initial selection`() {
-        val state = WorkspaceUiState(selectedThreadId = "invalid", selectedProjectId = "invalid")
-        val viewModel = WorkspaceViewModel(initialState = state)
+    fun `workspace normalizes an invalid selection to empty workspace`() {
+        val viewModel = WorkspaceViewModel(initialState = WorkspaceUiState(selectedThreadId = "invalid", selectedProjectId = "invalid"))
 
-        assertTrue(viewModel.uiState.value.threads.any { it.id == viewModel.uiState.value.selectedThreadId })
+        assertTrue(viewModel.uiState.value.threads.isEmpty())
+        assertTrue(viewModel.uiState.value.selectedThreadId.isEmpty())
         assertNull(viewModel.uiState.value.selectedProjectId)
     }
+
+    private fun localThread() = ChatThread(
+        id = "thread-local",
+        title = "Local chat",
+        snippet = "",
+        timestamp = "Now",
+        modelOrCombo = "No execution target selected",
+        messages = emptyList()
+    )
 }
