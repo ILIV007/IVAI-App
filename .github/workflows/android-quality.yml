@@ -16,6 +16,8 @@ jobs:
     steps:
       - name: Check out source
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - name: Scan tracked history and files
         uses: gitleaks/gitleaks-action@v2
         env:
