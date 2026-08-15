@@ -34,7 +34,7 @@ ProviderStreamEvent
   Cancelled
 ```
 
-The request has an explicit model ID, conversation messages, capability requirements, and cancellation handle. Error variants are provider-neutral: authentication, rate limit, timeout, network unavailable, invalid request, unsupported capability, and unknown. Network diagnostics retain only provider ID, HTTP class/status, latency, opaque attempt ID, and redacted error category.
+The request has an explicit model ID, conversation messages, capability requirements, and cancellation handle. Error variants are provider-neutral: authentication, rate limit, timeout, network unavailable, invalid request, unsupported capability, and unknown. Network diagnostics retain only provider ID, HTTP class/status, latency, opaque attempt ID, and redacted error category. Gemini documentation currently recommends the Interactions API; the adapter must isolate its endpoint and streaming parser behind this contract, verify the official streaming endpoint at implementation time, and avoid hard-coding a model alias in UI state. [1]
 
 ## Scope
 
