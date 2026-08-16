@@ -1,31 +1,22 @@
 package dev.iliv007.ivai.ui.screens
 
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.scaleIn
-import androidx.compose.animation.scaleOut
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
@@ -35,19 +26,16 @@ import androidx.compose.material.icons.automirrored.filled.AltRoute
 import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ArrowDownward
-import androidx.compose.material.icons.filled.ArrowDropDown
-import androidx.compose.material.icons.filled.AutoAwesome
-import androidx.compose.material.icons.filled.Check
-import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Folder
 import androidx.compose.material.icons.filled.FolderOpen
+import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
-import androidx.compose.material3.FloatingActionButtonDefaults
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedButton
@@ -56,7 +44,6 @@ import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
@@ -68,32 +55,44 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.unit.dp
 import dev.iliv007.ivai.ui.components.BidiMessageBubble
-import dev.iliv007.ivai.ui.components.EmptyStateView
-import dev.iliv007.ivai.ui.components.ErrorStateView
-import dev.iliv007.ivai.ui.components.LoadingStateView
-import dev.iliv007.ivai.ui.components.OfflineStateView
+import dev.iliv007.ivai.ui.components.IvaiExecutionState
+import dev.iliv007.ivai.ui.components.IvaiExecutionStatusBanner
+import dev.iliv007.ivai.ui.components.IvaiScreenScaffold
+import dev.iliv007.ivai.ui.components.IvaiStateCard
+import dev.iliv007.ivai.ui.components.IvaiStateTone
+import dev.iliv007.ivai.ui.components.IvaiTargetChip
 import dev.iliv007.ivai.ui.model.ChatMessage
 import dev.iliv007.ivai.ui.model.ChatThread
 import dev.iliv007.ivai.ui.model.MessageSender
 import dev.iliv007.ivai.ui.model.UiPreviewState
 import dev.iliv007.ivai.ui.model.WorkspaceProject
+import dev.iliv007.ivai.ui.theme.IvaiElevationTokens
+import dev.iliv007.ivai.ui.theme.IvaiIconSizeTokens
+import dev.iliv007.ivai.ui.theme.IvaiLayoutTokens
+import dev.iliv007.ivai.ui.theme.IvaiShapeTokens
+import dev.iliv007.ivai.ui.theme.IvaiSpacing
+import dev.iliv007.ivai.ui.theme.IvaiStrokeTokens
 import dev.iliv007.ivai.ui.viewmodel.ProviderManagementState
+import dev.iliv007.ivai.ui.viewmodel.RouterComboCard
 import dev.iliv007.ivai.ui.viewmodel.RouterManagementState
-import dev.iliv007.ivai.ui.theme.CyanPrimary
-import dev.iliv007.ivai.ui.theme.JadePrimary
 import kotlinx.coroutines.launch
 
+private const val NoExecutionTarget = "No execution target selected"
+
+/**
+ * Phase 7.1 Chat Foundation. It reorders existing state and callbacks into a target-first flow;
+ * it does not alter persistence, target resolution, streaming, provider routing or model rules.
+ */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ChatsScreen(
@@ -118,962 +117,601 @@ fun ChatsScreen(
     providerManagementState: ProviderManagementState = ProviderManagementState(),
     onSelectComboTarget: (String, String, String) -> Unit = { _, _, _ -> },
     onSelectDirectTarget: (String, String, String, String, String) -> Unit = { _, _, _, _, _ -> },
+    onOpenConnections: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     val currentThread = threads.find { it.id == selectedThreadId } ?: threads.firstOrNull() ?: ChatThread(
         id = "chat-fallback",
-        title = "New Conversation",
+        title = "New conversation",
         snippet = "No messages yet",
         timestamp = "Just now",
-        modelOrCombo = "No execution target selected",
+        modelOrCombo = NoExecutionTarget,
         messages = emptyList(),
         projectId = null,
         projectName = null
     )
+    val hasPersistedThread = threads.any { it.id == currentThread.id }
+    val hasTarget = currentThread.modelOrCombo != NoExecutionTarget
+    val hasCombo = routerManagementState.combos.any { it.enabled }
+    val hasDirectModel = providerManagementState.connections.any { connection ->
+        connection.enabled && connection.accounts.any { it.enabled && it.credentialStored } &&
+            connection.manualModels.any { it.selectable }
+    }
+    val hasAvailableTarget = hasCombo || hasDirectModel
 
     var messages by remember(currentThread.id, currentThread.messages) { mutableStateOf(currentThread.messages) }
-    var inputText by remember { mutableStateOf("") }
-    var showModelSheet by remember { mutableStateOf(false) }
+    var inputText by remember(currentThread.id) { mutableStateOf("") }
+    var showTargetSheet by remember { mutableStateOf(false) }
     var showProjectSheet by remember { mutableStateOf(false) }
     var showCreateProjectDialog by remember { mutableStateOf(false) }
     var newProjectName by remember { mutableStateOf("") }
-    var newProjectDesc by remember { mutableStateOf("") }
-
-    var selectedComboName by remember(currentThread.id) { mutableStateOf(currentThread.modelOrCombo) }
+    var newProjectDescription by remember { mutableStateOf("") }
+    var selectedTargetLabel by remember(currentThread.id) { mutableStateOf(currentThread.modelOrCombo) }
     val listState = rememberLazyListState()
     val scope = rememberCoroutineScope()
     val focusManager = LocalFocusManager.current
     val keyboardController = LocalSoftwareKeyboardController.current
-
     val isScrolledUp by remember {
         derivedStateOf {
-            val totalItems = listState.layoutInfo.totalItemsCount
-            if (totalItems <= 1) {
-                false
-            } else {
-                val lastVisibleIndex = listState.layoutInfo.visibleItemsInfo.lastOrNull()?.index ?: 0
-                lastVisibleIndex < totalItems - 1
-            }
+            val total = listState.layoutInfo.totalItemsCount
+            total > 1 && (listState.layoutInfo.visibleItemsInfo.lastOrNull()?.index ?: 0) < total - 1
         }
     }
 
-    // Scroll to latest message when messages change or thread is switched
-    LaunchedEffect(selectedThreadId) {
-        if (messages.isNotEmpty()) {
-            listState.scrollToItem(messages.size - 1)
-        }
+    LaunchedEffect(currentThread.id, messages.size) {
+        if (messages.isNotEmpty()) listState.scrollToItem(messages.lastIndex)
     }
 
-    // State routing
     when (previewState) {
         UiPreviewState.LOADING -> {
-            LoadingStateView(message = "Simulating streaming response...")
+            ChatPreviewState(title = "Preparing conversation", detail = "Waiting for local workspace state.", tone = IvaiStateTone.INFO, onDismiss = onResetState)
             return
         }
         UiPreviewState.EMPTY -> {
-            EmptyStateView(
-                title = "No Messages in Conversation",
-                description = "Send a test prompt or insert an RTL/BiDi sample.",
-                actionLabel = "Load BiDi Corpus",
-                onActionClick = {
-                    onSelectThread("chat-1")
-                    onResetState()
-                }
-            )
+            ChatPreviewState(title = "No messages in this conversation", detail = "Choose a target and send a test prompt when ready.", tone = IvaiStateTone.NEUTRAL, onDismiss = onResetState)
             return
         }
         UiPreviewState.ERROR -> {
-            ErrorStateView(
-                title = "Provider Stream Interrupted",
-                errorMessage = "HTTP 429: Rate limit reached on primary route. Fallback combo member available.",
-                onRetryClick = onResetState
-            )
+            ChatPreviewState(title = "Provider stream interrupted", detail = "The target remains selected. Review the route and try again when ready.", tone = IvaiStateTone.ERROR, onDismiss = onResetState)
             return
         }
         UiPreviewState.OFFLINE -> {
-            OfflineStateView(onDismiss = onResetState)
+            ChatPreviewState(title = "Offline mode active", detail = "Your local chats and project records remain available on this device.", tone = IvaiStateTone.WARNING, onDismiss = onResetState)
             return
         }
-        UiPreviewState.NORMAL -> {
-            // Normal conversation UI below
-        }
+        UiPreviewState.NORMAL -> Unit
     }
 
-    Column(
-        modifier = modifier
-            .fillMaxSize()
-            .background(MaterialTheme.colorScheme.background)
-    ) {
-        // Top Context Bar: Combo Selector & Project Workspace Assignment
-        Surface(
-            color = MaterialTheme.colorScheme.surface,
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 12.dp, vertical = 8.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
-                // Combo selector pill
-                Row(
-                    modifier = Modifier
-                        .clip(RoundedCornerShape(10.dp))
-                        .background(MaterialTheme.colorScheme.surfaceVariant)
-                        .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(10.dp))
-                        .defaultMinSize(minWidth = 48.dp, minHeight = 44.dp)
-                        .clickable { showModelSheet = true }
-                        .padding(horizontal = 10.dp, vertical = 6.dp)
-                        .testTag("button_select_combo"),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Icon(
-                        imageVector = Icons.AutoMirrored.Filled.AltRoute,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.tertiary,
-                        modifier = Modifier.size(15.dp)
-                    )
-                    Spacer(modifier = Modifier.width(6.dp))
-                    Text(
-                        text = selectedComboName,
-                        style = MaterialTheme.typography.labelMedium.copy(
-                            fontWeight = FontWeight.SemiBold
-                        ),
-                        color = MaterialTheme.colorScheme.onSurface,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
-                    )
-                    Spacer(modifier = Modifier.width(4.dp))
-                    Icon(
-                        imageVector = Icons.Default.ArrowDropDown,
-                        contentDescription = "Select combo",
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.size(18.dp)
-                    )
+    IvaiScreenScaffold(modifier = modifier, testTag = "chat_foundation_screen") {
+        Column(modifier = Modifier.fillMaxSize()) {
+            ChatContextBar(
+                targetLabel = selectedTargetLabel,
+                targetAvailable = hasTarget,
+                hasPersistedThread = hasPersistedThread,
+                projectName = currentThread.projectName,
+                onTargetClick = {
+                    if (hasPersistedThread) showTargetSheet = true else onNewChatInProject(selectedProjectId)
+                },
+                onProjectClick = {
+                    if (hasPersistedThread) showProjectSheet = true else onNewChatInProject(selectedProjectId)
                 }
+            )
 
-                Spacer(modifier = Modifier.width(8.dp))
-
-                // Project Workspace Assignment Pill Button
-                val hasProject = currentThread.projectId != null
-                Row(
-                    modifier = Modifier
-                        .clip(RoundedCornerShape(10.dp))
-                        .background(
-                            if (hasProject) MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.6f)
-                            else MaterialTheme.colorScheme.surfaceVariant
-                        )
-                        .border(
-                            1.dp,
-                            if (hasProject) MaterialTheme.colorScheme.secondary.copy(alpha = 0.5f)
-                            else MaterialTheme.colorScheme.outlineVariant,
-                            RoundedCornerShape(10.dp)
-                        )
-                        .defaultMinSize(minWidth = 48.dp, minHeight = 44.dp)
-                        .clickable { showProjectSheet = true }
-                        .padding(horizontal = 10.dp, vertical = 6.dp)
-                        .testTag("button_assign_project"),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Icon(
-                        imageVector = if (hasProject) Icons.Default.Folder else Icons.Default.FolderOpen,
-                        contentDescription = "Project",
-                        tint = if (hasProject) MaterialTheme.colorScheme.secondary else MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.size(16.dp)
-                    )
-                    Spacer(modifier = Modifier.width(6.dp))
-                    Text(
-                        text = currentThread.projectName ?: "No Project",
-                        style = MaterialTheme.typography.labelMedium.copy(
-                            fontWeight = if (hasProject) FontWeight.Bold else FontWeight.Normal
-                        ),
-                        color = if (hasProject) MaterialTheme.colorScheme.secondary else MaterialTheme.colorScheme.onSurfaceVariant,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
-                    )
-                    Spacer(modifier = Modifier.width(4.dp))
-                    Icon(
-                        imageVector = Icons.Default.Edit,
-                        contentDescription = "Assign Project",
-                        tint = if (hasProject) MaterialTheme.colorScheme.secondary else MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.size(14.dp)
-                    )
-                }
+            if (isStreaming || !hasTarget) {
+                IvaiExecutionStatusBanner(
+                    state = when {
+                        isStreaming -> IvaiExecutionState.STREAMING
+                        hasPersistedThread && hasAvailableTarget -> IvaiExecutionState.READY
+                        else -> IvaiExecutionState.READY
+                    },
+                    targetLabel = if (hasTarget) selectedTargetLabel else "No execution target",
+                    detail = when {
+                        isStreaming -> "Streaming through the selected user-managed target."
+                        !hasPersistedThread -> "Create a chat before choosing a target."
+                        !hasAvailableTarget -> "Add a user-managed connection before choosing a target."
+                        else -> "Choose a model or Combo for this chat before sending."
+                    },
+                    announceChange = isStreaming,
+                    modifier = Modifier.padding(horizontal = IvaiSpacing.Small, vertical = IvaiSpacing.XSmall),
+                    testTag = "chat_execution_status"
+                )
             }
-        }
 
-        // Project Filter Carousel Tabs
-        Surface(
-            color = MaterialTheme.colorScheme.surface,
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 12.dp, vertical = 4.dp)
-                    .horizontalScroll(rememberScrollState()),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                // "All Projects" filter chip
-                val isAllSelected = selectedProjectId == null
-                Box(
-                    modifier = Modifier
-                        .clip(RoundedCornerShape(10.dp))
-                        .background(
-                            if (isAllSelected) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceVariant
-                        )
-                        .border(
-                            1.dp,
-                            if (isAllSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outlineVariant,
-                            RoundedCornerShape(10.dp)
-                        )
-                        .defaultMinSize(minWidth = 48.dp, minHeight = 36.dp)
-                        .clickable { onSelectProject(null) }
-                        .padding(horizontal = 12.dp, vertical = 6.dp)
-                        .testTag("filter_all_projects"),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(
-                        text = "All Chats (${threads.size})",
-                        style = MaterialTheme.typography.labelSmall.copy(
-                            fontWeight = if (isAllSelected) FontWeight.Bold else FontWeight.Normal
-                        ),
-                        color = if (isAllSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-
-                // Project Filter Chips
-                projects.forEach { proj ->
-                    val isProjSelected = selectedProjectId == proj.id
-                    val projectThreadsCount = threads.count { it.projectId == proj.id }
-                    Row(
-                        modifier = Modifier
-                            .clip(RoundedCornerShape(10.dp))
-                            .background(
-                                if (isProjSelected) MaterialTheme.colorScheme.secondaryContainer else MaterialTheme.colorScheme.surfaceVariant
-                            )
-                            .border(
-                                1.dp,
-                                if (isProjSelected) MaterialTheme.colorScheme.secondary else MaterialTheme.colorScheme.outlineVariant,
-                                RoundedCornerShape(10.dp)
-                            )
-                            .defaultMinSize(minWidth = 48.dp, minHeight = 36.dp)
-                            .clickable { onSelectProject(proj.id) }
-                            .padding(horizontal = 10.dp, vertical = 6.dp)
-                            .testTag("filter_project_${proj.id}"),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Folder,
-                            contentDescription = null,
-                            tint = if (isProjSelected) MaterialTheme.colorScheme.secondary else MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.size(14.dp)
-                        )
-                        Spacer(modifier = Modifier.width(6.dp))
-                        Text(
-                            text = "${proj.name} ($projectThreadsCount)",
-                            style = MaterialTheme.typography.labelSmall.copy(
-                                fontWeight = if (isProjSelected) FontWeight.Bold else FontWeight.Normal
-                            ),
-                            color = if (isProjSelected) MaterialTheme.colorScheme.secondary else MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-                }
-
-                // Quick "+ New Project" chip in carousel
-                Row(
-                    modifier = Modifier
-                        .clip(RoundedCornerShape(10.dp))
-                        .background(MaterialTheme.colorScheme.surface)
-                        .border(1.dp, MaterialTheme.colorScheme.tertiary.copy(alpha = 0.6f), RoundedCornerShape(10.dp))
-                        .defaultMinSize(minWidth = 48.dp, minHeight = 36.dp)
-                        .clickable {
-                            newProjectName = ""
-                            newProjectDesc = ""
-                            showCreateProjectDialog = true
-                        }
-                        .padding(horizontal = 10.dp, vertical = 6.dp)
-                        .testTag("button_create_project_chip"),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Add,
-                        contentDescription = "New Project",
-                        tint = MaterialTheme.colorScheme.tertiary,
-                        modifier = Modifier.size(14.dp)
-                    )
-                    Spacer(modifier = Modifier.width(4.dp))
-                    Text(
-                        text = "New Project",
-                        style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.SemiBold),
-                        color = MaterialTheme.colorScheme.tertiary
-                    )
-                }
-            }
-        }
-
-        // Thread Chips Row (Filtered by selected project if active)
-        val visibleThreads = if (selectedProjectId == null) {
-            threads
-        } else {
-            threads.filter { it.projectId == selectedProjectId }
-        }
-
-        Surface(
-            color = MaterialTheme.colorScheme.surface,
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 12.dp, vertical = 6.dp)
-                    .horizontalScroll(rememberScrollState()),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                // "+ New Chat" button in current project context
-                Row(
-                    modifier = Modifier
-                        .clip(RoundedCornerShape(12.dp))
-                        .background(Brush.linearGradient(listOf(JadePrimary, CyanPrimary)))
-                        .defaultMinSize(minWidth = 48.dp, minHeight = 44.dp)
-                        .clickable { onNewChatInProject(selectedProjectId) }
-                        .padding(horizontal = 12.dp, vertical = 8.dp)
-                        .testTag("button_new_chat_in_context"),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Add,
-                        contentDescription = "New Chat",
-                        tint = Color.White,
-                        modifier = Modifier.size(16.dp)
-                    )
-                    Spacer(modifier = Modifier.width(4.dp))
-                    Text(
-                        text = if (selectedProjectId != null) "+ Chat in Project" else "+ New Chat",
-                        style = MaterialTheme.typography.labelMedium.copy(
-                            fontWeight = FontWeight.Bold,
-                            color = Color.White
-                        )
-                    )
-                }
-
-                if (visibleThreads.isEmpty()) {
-                    Text(
-                        text = "No chats in this project yet",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.padding(horizontal = 8.dp)
+            Box(modifier = Modifier.weight(1f).fillMaxWidth()) {
+                if (messages.isEmpty()) {
+                    ChatOnboardingState(
+                        hasPersistedThread = hasPersistedThread,
+                        hasAvailableTarget = hasAvailableTarget,
+                        hasTarget = hasTarget,
+                        projectName = currentThread.projectName,
+                        onCreateChat = { onNewChatInProject(selectedProjectId) },
+                        onOpenConnections = onOpenConnections,
+                        onChooseTarget = { showTargetSheet = true }
                     )
                 } else {
-                    visibleThreads.forEach { thread ->
-                        val isSelected = thread.id == selectedThreadId
-                        Box(
-                            modifier = Modifier
-                                .clip(RoundedCornerShape(12.dp))
-                                .background(
-                                    if (isSelected) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceVariant
-                                )
-                                .border(
-                                    1.dp,
-                                    if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline,
-                                    RoundedCornerShape(12.dp)
-                                )
-                                .defaultMinSize(minWidth = 48.dp, minHeight = 44.dp)
-                                .clickable { onSelectThread(thread.id) }
-                                .padding(horizontal = 12.dp, vertical = 7.dp)
-                                .testTag("thread_chip_${thread.id}"),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                if (thread.projectId != null && selectedProjectId == null) {
-                                    Icon(
-                                        imageVector = Icons.Default.Folder,
-                                        contentDescription = null,
-                                        tint = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.secondary,
-                                        modifier = Modifier.size(13.dp)
-                                    )
-                                    Spacer(modifier = Modifier.width(5.dp))
+                    LazyColumn(
+                        state = listState,
+                        contentPadding = PaddingValues(IvaiSpacing.XSmall),
+                        verticalArrangement = Arrangement.spacedBy(IvaiSpacing.XxxSmall),
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .testTag("chat_messages_list")
+                    ) {
+                        items(messages, key = { it.id }) { message ->
+                            BidiMessageBubble(
+                                message = message,
+                                onDeleteMessage = { deleted ->
+                                    val updated = messages.filterNot { it.id == deleted.id }
+                                    messages = updated
+                                    onUpdateThreadMessages(currentThread.id, updated)
                                 }
-                                Text(
-                                    text = thread.title,
-                                    style = MaterialTheme.typography.labelMedium.copy(
-                                        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
-                                    ),
-                                    color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
-                                    maxLines = 1,
-                                    overflow = TextOverflow.Ellipsis
-                                )
-                            }
+                            )
                         }
                     }
                 }
-            }
-        }
-
-        // Chat Message Stream
-        Box(
-            modifier = Modifier
-                .weight(1f)
-                .fillMaxWidth()
-        ) {
-            if (messages.isEmpty()) {
-                Box(
-                    modifier = Modifier.fillMaxSize(),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Column(
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        modifier = Modifier.padding(24.dp)
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.AutoAwesome,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.size(40.dp)
-                        )
-                        Spacer(modifier = Modifier.height(12.dp))
-                        Text(
-                            text = "Start a new conversation",
-                            style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
-                            color = MaterialTheme.colorScheme.onSurface
-                        )
-                        Spacer(modifier = Modifier.height(4.dp))
-                        Text(
-                            text = if (currentThread.projectName != null) "Project: ${currentThread.projectName}" else "Assign this chat to a project above to keep it organized.",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-                }
-            } else {
-                LazyColumn(
-                    state = listState,
-                    contentPadding = PaddingValues(vertical = 8.dp),
-                    verticalArrangement = Arrangement.spacedBy(4.dp),
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .testTag("chat_messages_list")
-                ) {
-                    items(messages, key = { it.id }) { message ->
-                        BidiMessageBubble(
-                            message = message,
-                            onDeleteMessage = { deletedMsg ->
-                                val updated = messages.filterNot { it.id == deletedMsg.id }
-                                messages = updated
-                                onUpdateThreadMessages(currentThread.id, updated)
-                            }
-                        )
-                    }
-                }
-            }
-
-            // Scroll to Bottom Floating Action Button
-            Box(
-                modifier = Modifier
-                    .align(Alignment.BottomEnd)
-                    .padding(bottom = 16.dp, end = 16.dp)
-            ) {
-                androidx.compose.animation.AnimatedVisibility(
-                    visible = isScrolledUp,
-                    enter = fadeIn() + scaleIn(),
-                    exit = fadeOut() + scaleOut()
-                ) {
+                if (isScrolledUp) {
                     FloatingActionButton(
-                        onClick = {
-                            scope.launch {
-                                if (messages.isNotEmpty()) {
-                                    listState.animateScrollToItem(messages.size - 1)
-                                }
-                            }
-                        },
+                        onClick = { scope.launch { if (messages.isNotEmpty()) listState.animateScrollToItem(messages.lastIndex) } },
                         containerColor = MaterialTheme.colorScheme.primaryContainer,
                         contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
-                        elevation = FloatingActionButtonDefaults.elevation(
-                            defaultElevation = 4.dp,
-                            pressedElevation = 8.dp
-                        ),
-                        shape = CircleShape,
                         modifier = Modifier
-                            .size(44.dp)
+                            .align(Alignment.BottomEnd)
+                            .padding(IvaiSpacing.Small)
                             .testTag("fab_scroll_to_bottom")
                     ) {
-                        Icon(
-                            imageVector = Icons.Default.ArrowDownward,
-                            contentDescription = "Scroll to latest message",
-                            modifier = Modifier.size(20.dp)
-                        )
+                        Icon(Icons.Default.ArrowDownward, contentDescription = "Scroll to latest message")
                     }
                 }
             }
-        }
 
-        // Message Input Composer
-        Surface(
-            color = MaterialTheme.colorScheme.surface,
-            modifier = Modifier
-                .fillMaxWidth()
-                .border(width = 1.dp, color = MaterialTheme.colorScheme.outlineVariant)
-        ) {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 12.dp, vertical = 8.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                val isSendEnabled = inputText.isNotBlank() && !isStreaming
-                fun submit() {
-                    if (!isSendEnabled) return
+            ChatComposer(
+                value = inputText,
+                onValueChange = { inputText = it },
+                canSendToTarget = hasPersistedThread && hasTarget,
+                isStreaming = isStreaming,
+                onSend = {
+                    if (inputText.isBlank() || !hasPersistedThread || !hasTarget) return@ChatComposer
                     onSendMessage(currentThread.id, inputText.trim())
                     inputText = ""
                     keyboardController?.hide()
                     focusManager.clearFocus()
-                }
-
-                OutlinedTextField(
-                    value = inputText,
-                    onValueChange = { inputText = it },
-                    placeholder = {
-                        Text(
-                            text = "Type Persian, Arabic, or English message...",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    },
-                    keyboardOptions = KeyboardOptions(
-                        imeAction = ImeAction.Send,
-                        capitalization = KeyboardCapitalization.Sentences
-                    ),
-                    keyboardActions = KeyboardActions(
-                        onSend = { submit() }
-                    ),
-                    colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = MaterialTheme.colorScheme.primary,
-                        unfocusedBorderColor = MaterialTheme.colorScheme.outline,
-                        focusedTextColor = MaterialTheme.colorScheme.onSurface,
-                        unfocusedTextColor = MaterialTheme.colorScheme.onSurface,
-                        cursorColor = MaterialTheme.colorScheme.primary,
-                        focusedContainerColor = MaterialTheme.colorScheme.surfaceVariant,
-                        unfocusedContainerColor = MaterialTheme.colorScheme.surfaceVariant
-                    ),
-                    shape = RoundedCornerShape(16.dp),
-                    modifier = Modifier
-                        .weight(1f)
-                        .testTag("input_message_text")
-                )
-
-                Spacer(modifier = Modifier.width(10.dp))
-
-                // Modern Send Button
-                Box(
-                    modifier = Modifier
-                        .size(48.dp)
-                        .clip(CircleShape)
-                        .background(
-                            if (isSendEnabled)
-                                Brush.linearGradient(
-                                    listOf(
-                                        MaterialTheme.colorScheme.primary,
-                                        CyanPrimary
-                                    )
-                                )
-                            else
-                                Brush.linearGradient(
-                                    listOf(
-                                        MaterialTheme.colorScheme.surfaceVariant,
-                                        MaterialTheme.colorScheme.surfaceVariant
-                                    )
-                                )
-                        )
-                        .border(
-                            width = 1.dp,
-                            color = if (isSendEnabled)
-                                MaterialTheme.colorScheme.primary.copy(alpha = 0.8f)
-                            else
-                                MaterialTheme.colorScheme.outlineVariant,
-                            shape = CircleShape
-                        )
-                        .clickable(enabled = isStreaming || isSendEnabled) {
-                            if (isStreaming) onStopStreaming() else submit()
-                        }
-                        .testTag("button_send_message"),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Icon(
-                        imageVector = Icons.AutoMirrored.Filled.Send,
-                        contentDescription = if (isStreaming) "Stop streaming" else "Send message",
-                        tint = if (isSendEnabled)
-                            Color.White
-                        else
-                            MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f),
-                        modifier = Modifier.size(20.dp)
-                    )
-                }
-            }
+                },
+                onStop = onStopStreaming
+            )
         }
     }
 
-    // Modal Sheet for Project Workspace Assignment
-    val projectSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
-    if (showProjectSheet) {
-        ModalBottomSheet(
-            onDismissRequest = {
-                scope.launch { projectSheetState.hide() }.invokeOnCompletion {
-                    if (!projectSheetState.isVisible) {
-                        showProjectSheet = false
-                    }
-                }
+    if (showProjectSheet && hasPersistedThread) {
+        ProjectAssignmentSheet(
+            currentThread = currentThread,
+            projects = projects,
+            onDismiss = { showProjectSheet = false },
+            onAssign = { projectId ->
+                onAssignThreadToProject(currentThread.id, projectId)
+                showProjectSheet = false
             },
-            sheetState = projectSheetState,
-            containerColor = MaterialTheme.colorScheme.surface
-        ) {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(24.dp)
-            ) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Column {
-                        Text(
-                            text = "Assign Chat to Project",
-                            style = MaterialTheme.typography.titleMedium.copy(
-                                fontWeight = FontWeight.Bold
-                            ),
-                            color = MaterialTheme.colorScheme.onSurface
-                        )
-                        Spacer(modifier = Modifier.height(2.dp))
-                        Text(
-                            text = "Group this conversation with related project workspaces.",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-
-                    // Button to create project
-                    OutlinedButton(
-                        onClick = {
-                            newProjectName = ""
-                            newProjectDesc = ""
-                            showCreateProjectDialog = true
-                        },
-                        shape = RoundedCornerShape(10.dp),
-                        modifier = Modifier.testTag("button_add_new_project")
-                    ) {
-                        Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(16.dp))
-                        Spacer(modifier = Modifier.width(4.dp))
-                        Text("New Project", style = MaterialTheme.typography.labelSmall)
-                    }
-                }
-
-                Spacer(modifier = Modifier.height(16.dp))
-
-                // Option: Unassigned / No Project
-                val isUnassigned = currentThread.projectId == null
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(vertical = 4.dp)
-                        .clip(RoundedCornerShape(12.dp))
-                        .background(if (isUnassigned) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceVariant)
-                        .border(
-                            1.dp,
-                            if (isUnassigned) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outlineVariant,
-                            RoundedCornerShape(12.dp)
-                        )
-                        .clickable {
-                            onAssignThreadToProject(currentThread.id, null)
-                            scope.launch { projectSheetState.hide() }.invokeOnCompletion {
-                                if (!projectSheetState.isVisible) {
-                                    showProjectSheet = false
-                                }
-                            }
-                        }
-                        .padding(14.dp)
-                        .testTag("project_option_none")
-                ) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.SpaceBetween
-                    ) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(
-                                imageVector = Icons.Default.FolderOpen,
-                                contentDescription = null,
-                                tint = if (isUnassigned) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
-                                modifier = Modifier.size(20.dp)
-                            )
-                            Spacer(modifier = Modifier.width(12.dp))
-                            Column {
-                                Text(
-                                    text = "No Project (General Chat)",
-                                    style = MaterialTheme.typography.bodyMedium.copy(
-                                        fontWeight = if (isUnassigned) FontWeight.Bold else FontWeight.Normal
-                                    ),
-                                    color = if (isUnassigned) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
-                                )
-                                Text(
-                                    text = "Standalone conversation without project context",
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                            }
-                        }
-                        if (isUnassigned) {
-                            Icon(
-                                imageVector = Icons.Default.Check,
-                                contentDescription = "Selected",
-                                tint = MaterialTheme.colorScheme.primary,
-                                modifier = Modifier.size(18.dp)
-                            )
-                        }
-                    }
-                }
-
-                HorizontalDivider(
-                    modifier = Modifier.padding(vertical = 8.dp),
-                    color = MaterialTheme.colorScheme.outlineVariant
-                )
-
-                // List of Projects
-                projects.forEach { project ->
-                    val isSelected = currentThread.projectId == project.id
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(vertical = 4.dp)
-                            .clip(RoundedCornerShape(12.dp))
-                            .background(if (isSelected) MaterialTheme.colorScheme.secondaryContainer else MaterialTheme.colorScheme.surfaceVariant)
-                            .border(
-                                1.dp,
-                                if (isSelected) MaterialTheme.colorScheme.secondary else MaterialTheme.colorScheme.outlineVariant,
-                                RoundedCornerShape(12.dp)
-                            )
-                            .clickable {
-                                onAssignThreadToProject(currentThread.id, project.id)
-                                scope.launch { projectSheetState.hide() }.invokeOnCompletion {
-                                    if (!projectSheetState.isVisible) {
-                                        showProjectSheet = false
-                                    }
-                                }
-                            }
-                            .padding(14.dp)
-                            .testTag("project_option_${project.id}")
-                    ) {
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.SpaceBetween
-                        ) {
-                            Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.weight(1f)) {
-                                Icon(
-                                    imageVector = Icons.Default.Folder,
-                                    contentDescription = null,
-                                    tint = if (isSelected) MaterialTheme.colorScheme.secondary else MaterialTheme.colorScheme.onSurfaceVariant,
-                                    modifier = Modifier.size(20.dp)
-                                )
-                                Spacer(modifier = Modifier.width(12.dp))
-                                Column {
-                                    Text(
-                                        text = project.name,
-                                        style = MaterialTheme.typography.bodyMedium.copy(
-                                            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.SemiBold
-                                        ),
-                                        color = if (isSelected) MaterialTheme.colorScheme.secondary else MaterialTheme.colorScheme.onSurface
-                                    )
-                                    Text(
-                                        text = "${project.fileCount} files • ${project.description}",
-                                        style = MaterialTheme.typography.bodySmall,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                        maxLines = 1,
-                                        overflow = TextOverflow.Ellipsis
-                                    )
-                                }
-                            }
-                            if (isSelected) {
-                                Icon(
-                                    imageVector = Icons.Default.Check,
-                                    contentDescription = "Selected",
-                                    tint = MaterialTheme.colorScheme.secondary,
-                                    modifier = Modifier.size(18.dp)
-                                )
-                            }
-                        }
-                    }
-                }
-
-                Spacer(modifier = Modifier.height(16.dp))
+            onCreateProject = {
+                newProjectName = ""
+                newProjectDescription = ""
+                showCreateProjectDialog = true
             }
-        }
+        )
     }
 
-    // Modal Sheet for Model/Combo Selector
-    val modelSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
-    if (showModelSheet) {
-        ModalBottomSheet(
-            onDismissRequest = {
-                scope.launch { modelSheetState.hide() }.invokeOnCompletion {
-                    if (!modelSheetState.isVisible) {
-                        showModelSheet = false
-                    }
-                }
+    if (showTargetSheet && hasPersistedThread) {
+        TargetSelectionSheet(
+            selectedTargetLabel = selectedTargetLabel,
+            combos = routerManagementState.combos.filter { it.enabled },
+            providerManagementState = providerManagementState,
+            onDismiss = { showTargetSheet = false },
+            onSelectCombo = { comboId, displayLabel ->
+                selectedTargetLabel = displayLabel
+                onSelectComboTarget(currentThread.id, comboId, displayLabel)
+                showTargetSheet = false
             },
-            sheetState = modelSheetState,
-            containerColor = MaterialTheme.colorScheme.surface
-        ) {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(24.dp)
-            ) {
-                Text(
-                    text = "Select Model / Router Combo",
-                    style = MaterialTheme.typography.titleMedium.copy(
-                        fontWeight = FontWeight.Bold
-                    ),
-                    color = MaterialTheme.colorScheme.onSurface
-                )
-                Spacer(modifier = Modifier.height(4.dp))
-                Text(
-                    text = "Combos attempt ordered members sequentially with deterministic retry rules.",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-                Spacer(modifier = Modifier.height(16.dp))
-
-                Text("Your local Combos", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.SemiBold)
-                routerManagementState.combos.filter { it.enabled }.forEach { combo ->
-                    val isSelected = combo.displayName == selectedComboName
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(vertical = 6.dp)
-                            .clip(RoundedCornerShape(14.dp))
-                            .background(if (isSelected) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceVariant)
-                            .border(1.dp, if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline, RoundedCornerShape(14.dp))
-                            .clickable {
-                                selectedComboName = combo.displayName
-                                onSelectComboTarget(currentThread.id, combo.comboId, combo.displayName)
-                                scope.launch { modelSheetState.hide() }.invokeOnCompletion { if (!modelSheetState.isVisible) showModelSheet = false }
-                            }
-                            .padding(16.dp)
-                            .testTag("combo_option_${combo.comboId}")
-                    ) {
-                        Column {
-                            Text(combo.displayName, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.SemiBold, color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface)
-                            Text("${combo.entries.size} ordered candidates", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.secondary)
-                            if (combo.description.isNotBlank()) Text(combo.description, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                        }
-                    }
-                }
-
-                Spacer(modifier = Modifier.height(12.dp))
-                Text("Your direct Provider models", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.SemiBold)
-                providerManagementState.connections.filter { it.enabled }.forEach { connection ->
-                    connection.accounts.filter { it.enabled && it.credentialStored }.forEach { account ->
-                        connection.manualModels.filter { it.selectable }.forEach { model ->
-                            val label = "${connection.displayName} · ${model.displayName}"
-                            val isSelected = label == selectedComboName
-                            Box(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(vertical = 6.dp)
-                                    .clip(RoundedCornerShape(14.dp))
-                                    .background(if (isSelected) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceVariant)
-                                    .border(1.dp, if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline, RoundedCornerShape(14.dp))
-                                    .clickable {
-                                        selectedComboName = label
-                                        onSelectDirectTarget(currentThread.id, connection.connectionId, account.accountId, model.registryModelId, label)
-                                        scope.launch { modelSheetState.hide() }.invokeOnCompletion { if (!modelSheetState.isVisible) showModelSheet = false }
-                                    }
-                                    .padding(16.dp)
-                                    .testTag("direct_model_option_${model.registryModelId}")
-                            ) {
-                                Column {
-                                    Text(label, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.SemiBold, color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface)
-                                    Text(account.displayName, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                                    Text(model.capabilities.joinToString(" · "), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.secondary)
-                                }
-                            }
-                        }
-                    }
-                }
-
-                Spacer(modifier = Modifier.height(16.dp))
-            }
-        }
+            onSelectDirect = { connectionId, accountId, modelId, displayLabel ->
+                selectedTargetLabel = displayLabel
+                onSelectDirectTarget(currentThread.id, connectionId, accountId, modelId, displayLabel)
+                showTargetSheet = false
+            },
+            onOpenConnections = onOpenConnections
+        )
     }
 
-    // Dialog for creating a new Workspace Project
-    if (showCreateProjectDialog) {
+    if (showCreateProjectDialog && hasPersistedThread) {
         AlertDialog(
             onDismissRequest = { showCreateProjectDialog = false },
-            title = {
-                Text(
-                    text = "Create Workspace Project",
-                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
-                )
-            },
+            title = { Text("Create workspace project") },
             text = {
-                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                    Text(
-                        text = "Projects organize chats, context files, and AI router policies together.",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
+                Column(verticalArrangement = Arrangement.spacedBy(IvaiSpacing.XSmall)) {
+                    Text("Projects organize local chats and files without changing your selected target.", style = MaterialTheme.typography.bodySmall)
                     OutlinedTextField(
                         value = newProjectName,
                         onValueChange = { newProjectName = it },
-                        label = { Text("Project Name") },
-                        placeholder = { Text("e.g., E-Commerce App, Marketing") },
+                        label = { Text("Project name") },
                         singleLine = true,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .testTag("input_create_project_name")
+                        modifier = Modifier.fillMaxWidth().testTag("input_create_project_name")
                     )
                     OutlinedTextField(
-                        value = newProjectDesc,
-                        onValueChange = { newProjectDesc = it },
-                        label = { Text("Description (Optional)") },
-                        placeholder = { Text("Brief description of workspace goals") },
-                        singleLine = false,
-                        maxLines = 3,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .testTag("input_create_project_desc")
+                        value = newProjectDescription,
+                        onValueChange = { newProjectDescription = it },
+                        label = { Text("Description") },
+                        modifier = Modifier.fillMaxWidth().testTag("input_create_project_desc")
                     )
                 }
             },
             confirmButton = {
                 Button(
-                    onClick = {
-                        if (newProjectName.isNotBlank()) {
-                            val createdProj = onCreateNewProject(newProjectName.trim(), newProjectDesc.trim())
-                            onAssignThreadToProject(currentThread.id, createdProj.id)
-                            onSelectProject(createdProj.id)
-                            showCreateProjectDialog = false
-                            showProjectSheet = false
-                        }
-                    },
                     enabled = newProjectName.isNotBlank(),
+                    onClick = {
+                        val project = onCreateNewProject(newProjectName.trim(), newProjectDescription.trim())
+                        onAssignThreadToProject(currentThread.id, project.id)
+                        onSelectProject(project.id)
+                        showCreateProjectDialog = false
+                        showProjectSheet = false
+                    },
                     modifier = Modifier.testTag("button_confirm_create_project")
-                ) {
-                    Text("Create & Assign")
-                }
+                ) { Text("Create and assign") }
             },
-            dismissButton = {
-                TextButton(
-                    onClick = { showCreateProjectDialog = false }
-                ) {
-                    Text("Cancel")
+            dismissButton = { TextButton(onClick = { showCreateProjectDialog = false }) { Text("Cancel") } }
+        )
+    }
+}
+
+@Composable
+private fun ChatContextBar(
+    targetLabel: String,
+    targetAvailable: Boolean,
+    hasPersistedThread: Boolean,
+    projectName: String?,
+    onTargetClick: () -> Unit,
+    onProjectClick: () -> Unit
+) {
+    Surface(color = MaterialTheme.colorScheme.surface, modifier = Modifier.fillMaxWidth()) {
+        Row(
+            modifier = Modifier.padding(horizontal = IvaiSpacing.Small, vertical = IvaiSpacing.XSmall),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(IvaiSpacing.XSmall)
+        ) {
+            IvaiTargetChip(
+                label = if (targetAvailable) targetLabel else "Choose execution target",
+                availabilityLabel = when {
+                    !hasPersistedThread -> "Create chat first"
+                    targetAvailable -> "Selected for this chat"
+                    else -> "Required before sending"
+                },
+                onClick = onTargetClick,
+                leadingIcon = Icons.AutoMirrored.Filled.AltRoute,
+                modifier = Modifier.weight(1f),
+                testTag = "button_select_combo"
+            )
+            IconButton(
+                onClick = onProjectClick,
+                modifier = Modifier
+                    .size(IvaiLayoutTokens.MinimumTouchTarget)
+                    .semantics { contentDescription = "Assign chat to project" }
+                    .testTag("button_assign_project")
+            ) {
+                Icon(
+                    imageVector = if (projectName == null) Icons.Default.FolderOpen else Icons.Default.Folder,
+                    contentDescription = null,
+                    tint = if (projectName == null) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.secondary
+                )
+            }
+            IconButton(
+                onClick = onProjectClick,
+                modifier = Modifier.size(IvaiLayoutTokens.MinimumTouchTarget)
+            ) {
+                Icon(Icons.Default.MoreVert, contentDescription = "Conversation options")
+            }
+        }
+    }
+}
+
+@Composable
+private fun ChatOnboardingState(
+    hasPersistedThread: Boolean,
+    hasAvailableTarget: Boolean,
+    hasTarget: Boolean,
+    projectName: String?,
+    onCreateChat: () -> Unit,
+    onOpenConnections: () -> Unit,
+    onChooseTarget: () -> Unit
+) {
+    Box(modifier = Modifier.fillMaxSize().padding(IvaiSpacing.Medium), contentAlignment = Alignment.Center) {
+        when {
+            !hasPersistedThread -> IvaiStateCard(
+                title = "Start a local conversation",
+                message = "Create a chat first. Then choose the user-managed model or Combo that should handle it.",
+                tone = IvaiStateTone.INFO,
+                icon = Icons.Default.Add,
+                action = {
+                    Button(onClick = onCreateChat, modifier = Modifier.testTag("chat_onboarding_create")) { Text("Create chat") }
+                },
+                testTag = "chat_onboarding_no_thread"
+            )
+            !hasAvailableTarget -> IvaiStateCard(
+                title = "Add a connection before sending",
+                message = "IVAI has no user-managed model or Combo available for this chat yet. Connections stay under your control.",
+                tone = IvaiStateTone.WARNING,
+                icon = Icons.Default.FolderOpen,
+                action = {
+                    Button(onClick = onOpenConnections, modifier = Modifier.testTag("chat_onboarding_open_connections")) { Text("Open connections") }
+                },
+                testTag = "chat_onboarding_no_connection"
+            )
+            !hasTarget -> IvaiStateCard(
+                title = "Choose an execution target",
+                message = "Select a direct model or an ordered Combo explicitly before the first message is sent.",
+                tone = IvaiStateTone.INFO,
+                icon = Icons.AutoMirrored.Filled.AltRoute,
+                action = {
+                    Button(onClick = onChooseTarget, modifier = Modifier.testTag("chat_onboarding_choose_target")) { Text("Choose target") }
+                },
+                testTag = "chat_onboarding_no_target"
+            )
+            else -> IvaiStateCard(
+                title = "Ready for this conversation",
+                message = projectName?.let { "This chat belongs to $it. Your selected target is shown above." }
+                    ?: "Your selected target is shown above. Add a project only when it helps organize the work.",
+                tone = IvaiStateTone.SUCCESS,
+                icon = Icons.AutoMirrored.Filled.Send,
+                testTag = "chat_onboarding_ready"
+            )
+        }
+    }
+}
+
+@Composable
+private fun ChatComposer(
+    value: String,
+    onValueChange: (String) -> Unit,
+    canSendToTarget: Boolean,
+    isStreaming: Boolean,
+    onSend: () -> Unit,
+    onStop: () -> Unit
+) {
+    val canSend = value.isNotBlank() && canSendToTarget && !isStreaming
+    Surface(
+        color = MaterialTheme.colorScheme.surface,
+        modifier = Modifier.fillMaxWidth().border(IvaiStrokeTokens.Default, MaterialTheme.colorScheme.outlineVariant)
+    ) {
+        Row(
+            modifier = Modifier.padding(IvaiSpacing.XSmall),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(IvaiSpacing.XSmall)
+        ) {
+            OutlinedTextField(
+                value = value,
+                onValueChange = onValueChange,
+                enabled = canSendToTarget && !isStreaming,
+                placeholder = {
+                    Text(
+                        when {
+                            isStreaming -> "Streaming response…"
+                            !canSendToTarget -> "Choose a target before writing a message"
+                            else -> "Type Persian, Arabic, or English message…"
+                        }
+                    )
+                },
+                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Send, capitalization = KeyboardCapitalization.Sentences),
+                keyboardActions = KeyboardActions(onSend = { if (canSend) onSend() }),
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedBorderColor = MaterialTheme.colorScheme.primary,
+                    focusedContainerColor = MaterialTheme.colorScheme.surfaceVariant,
+                    unfocusedContainerColor = MaterialTheme.colorScheme.surfaceVariant
+                ),
+                shape = RoundedCornerShape(IvaiShapeTokens.Card),
+                modifier = Modifier
+                    .weight(1f)
+                    .heightIn(min = IvaiLayoutTokens.MinimumTouchTarget)
+                    .testTag("input_message_text")
+            )
+            Button(
+                onClick = { if (isStreaming) onStop() else onSend() },
+                enabled = isStreaming || canSend,
+                shape = CircleShape,
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = if (isStreaming) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary,
+                    contentColor = if (isStreaming) MaterialTheme.colorScheme.onError else MaterialTheme.colorScheme.onPrimary
+                ),
+                modifier = Modifier
+                    .size(IvaiLayoutTokens.MinimumTouchTarget)
+                    .semantics { contentDescription = if (isStreaming) "Stop streaming" else "Send message" }
+                    .testTag("button_send_message")
+            ) {
+                if (isStreaming) {
+                    Text("Stop", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold)
+                } else {
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Filled.Send,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.onPrimary,
+                        modifier = Modifier.size(IvaiIconSizeTokens.Inline)
+                    )
                 }
             }
-        )
+        }
+    }
+}
+
+@Composable
+private fun ChatPreviewState(title: String, detail: String, tone: IvaiStateTone, onDismiss: () -> Unit) {
+    IvaiScreenScaffold(testTag = "chat_preview_state") {
+        Box(modifier = Modifier.fillMaxSize().padding(IvaiSpacing.Medium), contentAlignment = Alignment.Center) {
+            IvaiStateCard(
+                title = title,
+                message = detail,
+                tone = tone,
+                action = { TextButton(onClick = onDismiss) { Text("Return to chat") } }
+            )
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun ProjectAssignmentSheet(
+    currentThread: ChatThread,
+    projects: List<WorkspaceProject>,
+    onDismiss: () -> Unit,
+    onAssign: (String?) -> Unit,
+    onCreateProject: () -> Unit
+) {
+    ModalBottomSheet(onDismissRequest = onDismiss, containerColor = MaterialTheme.colorScheme.surface) {
+        Column(
+            modifier = Modifier.padding(IvaiSpacing.Medium),
+            verticalArrangement = Arrangement.spacedBy(IvaiSpacing.XSmall)
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text("Assign chat to project", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                    Text("Projects organize local work; they do not alter the selected execution target.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+                OutlinedButton(onClick = onCreateProject, modifier = Modifier.testTag("button_add_new_project")) {
+                    Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(IvaiIconSizeTokens.Inline))
+                    Spacer(Modifier.width(IvaiSpacing.XxxSmall))
+                    Text("Project")
+                }
+            }
+            ProjectOption(
+                title = "No project",
+                subtitle = "Keep this as a standalone conversation",
+                selected = currentThread.projectId == null,
+                onClick = { onAssign(null) },
+                testTag = "project_option_none"
+            )
+            projects.forEach { project ->
+                ProjectOption(
+                    title = project.name,
+                    subtitle = project.description,
+                    selected = project.id == currentThread.projectId,
+                    onClick = { onAssign(project.id) },
+                    testTag = "project_option_${project.id}"
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun ProjectOption(title: String, subtitle: String, selected: Boolean, onClick: () -> Unit, testTag: String) {
+    Surface(
+        onClick = onClick,
+        shape = RoundedCornerShape(IvaiShapeTokens.Card),
+        color = if (selected) MaterialTheme.colorScheme.secondaryContainer else MaterialTheme.colorScheme.surfaceVariant,
+        contentColor = if (selected) MaterialTheme.colorScheme.onSecondaryContainer else MaterialTheme.colorScheme.onSurface,
+        border = androidx.compose.foundation.BorderStroke(
+            IvaiStrokeTokens.Default,
+            if (selected) MaterialTheme.colorScheme.secondary else MaterialTheme.colorScheme.outlineVariant
+        ),
+        modifier = Modifier.fillMaxWidth().testTag(testTag)
+    ) {
+        Row(
+            modifier = Modifier.padding(IvaiSpacing.XSmall),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(IvaiSpacing.XSmall)
+        ) {
+            Icon(Icons.Default.Folder, contentDescription = null, tint = MaterialTheme.colorScheme.secondary)
+            Column(modifier = Modifier.weight(1f)) {
+                Text(title, style = MaterialTheme.typography.labelLarge, fontWeight = if (selected) FontWeight.Bold else FontWeight.SemiBold)
+                Text(subtitle, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun TargetSelectionSheet(
+    selectedTargetLabel: String,
+    combos: List<RouterComboCard>,
+    providerManagementState: ProviderManagementState,
+    onDismiss: () -> Unit,
+    onSelectCombo: (String, String) -> Unit,
+    onSelectDirect: (String, String, String, String) -> Unit,
+    onOpenConnections: () -> Unit
+) {
+    val directOptions = providerManagementState.connections.filter { it.enabled }.flatMap { connection ->
+        connection.accounts.filter { it.enabled && it.credentialStored }.flatMap { account ->
+            connection.manualModels.filter { it.selectable }.map { model ->
+                DirectTargetOption(
+                    connectionId = connection.connectionId,
+                    accountId = account.accountId,
+                    modelId = model.registryModelId,
+                    label = "${connection.displayName} · ${model.displayName}",
+                    detail = account.displayName
+                )
+            }
+        }
+    }
+    ModalBottomSheet(onDismissRequest = onDismiss, containerColor = MaterialTheme.colorScheme.surface) {
+        Column(
+            modifier = Modifier.padding(IvaiSpacing.Medium),
+            verticalArrangement = Arrangement.spacedBy(IvaiSpacing.XSmall)
+        ) {
+            Text("Choose execution target", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+            Text("Targets are explicit per chat. A Combo tries only its user-defined ordered candidates.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            if (combos.isEmpty() && directOptions.isEmpty()) {
+                IvaiStateCard(
+                    title = "No target is available",
+                    message = "Add a user-managed provider connection, account and model before selecting a target.",
+                    tone = IvaiStateTone.WARNING,
+                    action = { Button(onClick = onOpenConnections) { Text("Open connections") } }
+                )
+            }
+            if (combos.isNotEmpty()) {
+                Text("Your Combos", style = MaterialTheme.typography.labelLarge)
+                combos.forEach { combo ->
+                    TargetOption(
+                        label = combo.displayName,
+                        detail = "${combo.entries.size} ordered candidates",
+                        selected = combo.displayName == selectedTargetLabel,
+                        onClick = { onSelectCombo(combo.comboId, combo.displayName) },
+                        testTag = "combo_option_${combo.comboId}"
+                    )
+                }
+            }
+            if (directOptions.isNotEmpty()) {
+                Text("Your direct provider models", style = MaterialTheme.typography.labelLarge)
+                directOptions.forEach { option ->
+                    TargetOption(
+                        label = option.label,
+                        detail = option.detail,
+                        selected = option.label == selectedTargetLabel,
+                        onClick = { onSelectDirect(option.connectionId, option.accountId, option.modelId, option.label) },
+                        testTag = "direct_model_option_${option.modelId}"
+                    )
+                }
+            }
+        }
+    }
+}
+
+private data class DirectTargetOption(
+    val connectionId: String,
+    val accountId: String,
+    val modelId: String,
+    val label: String,
+    val detail: String
+)
+
+@Composable
+private fun TargetOption(label: String, detail: String, selected: Boolean, onClick: () -> Unit, testTag: String) {
+    Surface(
+        onClick = onClick,
+        shape = RoundedCornerShape(IvaiShapeTokens.Card),
+        color = if (selected) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceVariant,
+        contentColor = if (selected) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurface,
+        border = androidx.compose.foundation.BorderStroke(
+            IvaiStrokeTokens.Default,
+            if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outlineVariant
+        ),
+        modifier = Modifier.fillMaxWidth().testTag(testTag)
+    ) {
+        Column(modifier = Modifier.padding(IvaiSpacing.XSmall), verticalArrangement = Arrangement.spacedBy(IvaiSpacing.XxxSmall)) {
+            Text(label, style = MaterialTheme.typography.labelLarge, fontWeight = if (selected) FontWeight.Bold else FontWeight.SemiBold)
+            Text(detail, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
     }
 }

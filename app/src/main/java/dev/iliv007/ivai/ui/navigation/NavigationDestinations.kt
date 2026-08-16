@@ -21,9 +21,9 @@ enum class NavDestination(
     val unselectedIcon: ImageVector,
     val testTag: String
 ) {
-    CHATS("Chats", Icons.Filled.ChatBubble, Icons.Outlined.ChatBubbleOutline, "nav_item_chats"),
+    CHATS("Chat", Icons.Filled.ChatBubble, Icons.Outlined.ChatBubbleOutline, "nav_item_chats"),
     AGENTS("Agents", Icons.Filled.SmartToy, Icons.Outlined.SmartToy, "nav_item_agents"),
-    PROJECTS("Projects", Icons.Filled.Folder, Icons.Outlined.Folder, "nav_item_projects"),
-    ROUTER("Router", Icons.AutoMirrored.Filled.AltRoute, Icons.AutoMirrored.Outlined.AltRoute, "nav_item_router"),
+    PROJECTS("Workspace", Icons.Filled.Folder, Icons.Outlined.Folder, "nav_item_projects"),
+    ROUTER("Connections", Icons.AutoMirrored.Filled.AltRoute, Icons.AutoMirrored.Outlined.AltRoute, "nav_item_router"),
     SETTINGS("Settings", Icons.Filled.Settings, Icons.Outlined.Settings, "nav_item_settings")
 }
