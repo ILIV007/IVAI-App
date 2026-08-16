@@ -25,6 +25,7 @@ class BasicAgentRuntime(
         require(profile.isEnabled) { "Agent profile is disabled" }
         require(goal.isNotBlank()) { "Agent goal must not be blank" }
         AgentExecutionLimits(profile.maxSteps, profile.maxToolCalls, profile.maxRuntimeMs)
+        repository.validateAgentProfileTarget(profile)
 
         val now = nowEpochMs()
         val run = AgentRunEntity(
@@ -192,6 +193,15 @@ class BasicAgentRuntime(
         } catch (_: Exception) {
             fail(run, "Approved write could not be completed.")
         }
+    }
+
+    /**
+     * A process restart intentionally loses pending write content. Every persisted pending approval
+     * is therefore denied and traced by the repository; no write can be replayed automatically.
+     */
+    suspend fun recoverAfterProcessDeath(): Int {
+        pendingWrites.clear()
+        return repository.expirePendingAgentApprovalsAfterProcessDeath(nowEpochMs())
     }
 
     suspend fun cancel(run: AgentRunEntity): AgentRunEntity {

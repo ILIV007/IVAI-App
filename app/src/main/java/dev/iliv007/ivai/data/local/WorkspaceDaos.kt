@@ -287,6 +287,9 @@ interface AgentApprovalDao {
     @Query("SELECT * FROM agent_approvals WHERE run_id = :runId AND status = 'PENDING' ORDER BY created_at_epoch_ms ASC, id ASC")
     suspend fun findPendingForRun(runId: String): List<AgentApprovalEntity>
 
+    @Query("SELECT * FROM agent_approvals WHERE status = 'PENDING' ORDER BY created_at_epoch_ms ASC, id ASC")
+    suspend fun listPending(): List<AgentApprovalEntity>
+
     @Query("SELECT * FROM agent_approvals WHERE id = :id LIMIT 1")
     suspend fun findById(id: String): AgentApprovalEntity?
 

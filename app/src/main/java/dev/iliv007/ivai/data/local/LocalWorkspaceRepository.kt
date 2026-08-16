@@ -180,6 +180,37 @@ class LocalWorkspaceRepository(
 
     suspend fun findAgentProfile(profileId: String): AgentProfileEntity? = agentProfileDao.findById(profileId)
 
+    suspend fun validateAgentProfileTarget(profile: AgentProfileEntity) {
+        when (ExecutionTargetKind.valueOf(profile.targetKind)) {
+            ExecutionTargetKind.DIRECT_MODEL -> {
+                val accountId = requireNotNull(profile.accountId) { "A direct model Agent target requires an account." }
+                val model = providerModelDao.findById(profile.targetId)
+                    ?: throw IllegalArgumentException("Unknown Agent model target")
+                val account = providerAccountDao.findById(accountId)
+                    ?: throw IllegalArgumentException("Unknown Agent account target")
+                val connection = providerConnectionDao.findById(model.connectionId)
+                    ?: throw IllegalArgumentException("Unknown Agent provider connection")
+                require(connection.isEnabled && account.isEnabled && model.isSelectable) {
+                    "Agent direct model target must be an enabled user-managed provider, account, and selectable model."
+                }
+                require(account.connectionId == connection.id) {
+                    "Agent account must belong to the selected model provider connection."
+                }
+            }
+
+            ExecutionTargetKind.COMBO -> {
+                require(profile.accountId == null) { "A Combo Agent target must not declare an account." }
+                val combo = routerComboDao.findById(profile.targetId)
+                    ?: throw IllegalArgumentException("Unknown Agent Combo target")
+                require(combo.isEnabled) { "Agent Combo target must be enabled." }
+                val usableEntries = routerComboEntryDao.listForCombo(combo.id)
+                    .filter { it.isEnabled }
+                    .count { entry -> isUsableRouterCandidate(entry.connectionId, entry.accountId, entry.modelId) }
+                require(usableEntries > 0) { "Agent Combo target has no enabled user-managed candidates." }
+            }
+        }
+    }
+
     suspend fun findAgentRun(runId: String): AgentRunEntity? = agentRunDao.findById(runId)
 
     suspend fun countAgentToolCalls(runId: String): Int = agentRunStepDao.countToolCallsForRun(runId)
@@ -193,7 +224,44 @@ class LocalWorkspaceRepository(
         require(profile.maxSteps in 1..20) { "Agent max steps must be between 1 and 20" }
         require(profile.maxToolCalls in 0..20) { "Agent max tool calls must be between 0 and 20" }
         require(profile.maxRuntimeMs in 1_000L..300_000L) { "Agent max runtime must be between 1 second and 5 minutes" }
+        validateAgentProfileTarget(profile)
         agentProfileDao.upsert(profile)
+    }
+
+    /**
+     * Recovery policy for an interrupted process: pending write content is intentionally not
+     * persisted, so every unresolved approval is denied and its awaiting run ends safely.
+     */
+    suspend fun expirePendingAgentApprovalsAfterProcessDeath(nowEpochMs: Long): Int = database.withTransaction {
+        val pendingApprovals = agentApprovalDao.listPending()
+        pendingApprovals.forEach { approval ->
+            agentApprovalDao.upsert(
+                approval.copy(status = "DENIED", resolvedAtEpochMs = nowEpochMs)
+            )
+            val run = agentRunDao.findById(approval.runId)
+            if (run?.status == "AWAITING_APPROVAL") {
+                agentRunDao.upsert(
+                    run.copy(
+                        status = "FAILED",
+                        completedAtEpochMs = nowEpochMs,
+                        safeErrorMessage = "Pending write approval expired after app restart."
+                    )
+                )
+                agentRunStepDao.upsert(
+                    AgentRunStepEntity(
+                        id = "${run.id}-terminal-approval-expired",
+                        runId = run.id,
+                        position = Int.MAX_VALUE - 1,
+                        stepKind = "RUN",
+                        status = "FAILED",
+                        safeSummary = "Pending write approval expired after app restart; no write was performed.",
+                        createdAtEpochMs = nowEpochMs,
+                        completedAtEpochMs = nowEpochMs
+                    )
+                )
+            }
+        }
+        pendingApprovals.size
     }
 
     suspend fun saveAgentRun(run: AgentRunEntity) = agentRunDao.upsert(run)
@@ -203,6 +271,14 @@ class LocalWorkspaceRepository(
     suspend fun findAgentApproval(approvalId: String): AgentApprovalEntity? = agentApprovalDao.findById(approvalId)
 
     suspend fun saveAgentApproval(approval: AgentApprovalEntity) = agentApprovalDao.upsert(approval)
+
+    private suspend fun isUsableRouterCandidate(connectionId: String, accountId: String, modelId: String): Boolean {
+        val connection = providerConnectionDao.findById(connectionId) ?: return false
+        val account = providerAccountDao.findById(accountId) ?: return false
+        val model = providerModelDao.findById(modelId) ?: return false
+        return connection.isEnabled && account.isEnabled && model.isSelectable &&
+            account.connectionId == connection.id && model.connectionId == connection.id
+    }
 
     suspend fun saveProject(project: WorkspaceProjectEntity) {
         projectDao.upsert(project)
