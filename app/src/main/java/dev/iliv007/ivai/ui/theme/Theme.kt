@@ -44,7 +44,7 @@ private val IvaiDarkColorScheme = darkColorScheme(
     secondary = NeonViolet,
     onSecondary = IvaiBackground,
     secondaryContainer = PurpleDark,
-    onSecondaryContainer = NeonPurple,
+    onSecondaryContainer = TextPrimary,
     tertiary = CyanPrimary,
     onTertiary = IvaiBackground,
     background = IvaiBackground,
@@ -58,7 +58,7 @@ private val IvaiDarkColorScheme = darkColorScheme(
     outline = IvaiBorder,
     outlineVariant = IvaiBorderSubtle,
     error = IvaiError,
-    onError = TextPrimary
+    onError = IvaiBackground
 )
 
 @Composable

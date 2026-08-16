@@ -64,6 +64,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.dp
 import dev.iliv007.ivai.ui.components.BidiMessageBubble
 import dev.iliv007.ivai.ui.components.IvaiExecutionState
 import dev.iliv007.ivai.ui.components.IvaiExecutionStatusBanner
@@ -510,18 +511,23 @@ private fun ChatComposer(
             Button(
                 onClick = { if (isStreaming) onStop() else onSend() },
                 enabled = isStreaming || canSend,
-                shape = CircleShape,
+                shape = if (isStreaming) RoundedCornerShape(IvaiShapeTokens.Control) else CircleShape,
                 colors = ButtonDefaults.buttonColors(
                     containerColor = if (isStreaming) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary,
                     contentColor = if (isStreaming) MaterialTheme.colorScheme.onError else MaterialTheme.colorScheme.onPrimary
                 ),
-                modifier = Modifier
-                    .size(IvaiLayoutTokens.MinimumTouchTarget)
+                modifier = (if (isStreaming) {
+                    Modifier
+                        .width(76.dp)
+                        .heightIn(min = IvaiLayoutTokens.MinimumTouchTarget)
+                } else {
+                    Modifier.size(IvaiLayoutTokens.MinimumTouchTarget)
+                })
                     .semantics { contentDescription = if (isStreaming) "Stop streaming" else "Send message" }
                     .testTag("button_send_message")
             ) {
                 if (isStreaming) {
-                    Text("Stop", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold)
+                    Text("Stop", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
                 } else {
                     Icon(
                         imageVector = Icons.AutoMirrored.Filled.Send,
