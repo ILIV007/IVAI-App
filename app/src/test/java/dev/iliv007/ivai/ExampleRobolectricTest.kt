@@ -69,42 +69,32 @@ class ExampleRobolectricTest {
             }
         }
 
-        // Initially in Chats
+        // Pixel 8 uses compact navigation. Destination controls remain persistent in the bottom bar.
         composeTestRule.onNodeWithTag("input_message_text").assertIsDisplayed()
-        composeTestRule.onNodeWithTag("button_sidebar_toggle").assertIsDisplayed()
+        composeTestRule.onNodeWithTag("ivai_compact_navigation").assertIsDisplayed()
 
-        // Open sidebar and navigate to Agents
-        composeTestRule.onNodeWithTag("button_sidebar_toggle").performClick()
-        composeTestRule.waitForIdle()
+        // Navigate to Agents through the destination control.
         composeTestRule.onNodeWithTag("nav_item_agents").performClick()
         composeTestRule.waitForIdle()
         composeTestRule.onNodeWithTag("agent_notice_banner").assertExists()
 
-        // Open sidebar and navigate to Projects
-        composeTestRule.onNodeWithTag("button_sidebar_toggle").performClick()
-        composeTestRule.waitForIdle()
+        // Navigate to Workspace through the destination control.
         composeTestRule.onNodeWithTag("nav_item_projects").performClick()
         composeTestRule.waitForIdle()
         composeTestRule.onNodeWithTag("projects_notice_banner").assertExists()
 
-        // Open sidebar and navigate to Router
-        composeTestRule.onNodeWithTag("button_sidebar_toggle").performClick()
-        composeTestRule.waitForIdle()
+        // Navigate to Connections through the destination control.
         composeTestRule.onNodeWithTag("nav_item_router").performClick()
         composeTestRule.waitForIdle()
         composeTestRule.onNodeWithTag("router_notice_banner").assertExists()
 
-        // Open sidebar and navigate to Settings
-        composeTestRule.onNodeWithTag("button_sidebar_toggle").performClick()
-        composeTestRule.waitForIdle()
+        // Navigate to Settings through the destination control.
         composeTestRule.onNodeWithTag("nav_item_settings").performClick()
         composeTestRule.waitForIdle()
         composeTestRule.onNodeWithTag("settings_provider_management").assertExists()
 
-        // Open sidebar and return to Chats
-        composeTestRule.onNodeWithTag("button_sidebar_toggle").performClick()
-        composeTestRule.waitForIdle()
-        composeTestRule.onNodeWithTag("sidebar_button_new_chat").performClick()
+        // Return to Chat through the destination control.
+        composeTestRule.onNodeWithTag("nav_item_chats").performClick()
         composeTestRule.waitForIdle()
         composeTestRule.onNodeWithTag("input_message_text").assertExists()
     }

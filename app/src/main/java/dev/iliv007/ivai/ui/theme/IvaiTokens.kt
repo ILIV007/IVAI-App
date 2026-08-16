@@ -56,6 +56,15 @@ object IvaiMotionTokens {
     const val SheetMillis: Int = 240
 }
 
+object IvaiLayoutTokens {
+    val MinimumTouchTarget: Dp = 48.dp
+    val MediumBreakpoint: Dp = 600.dp
+    val ExpandedBreakpoint: Dp = 840.dp
+    val MediumRailWidth: Dp = 80.dp
+    val ExpandedRailWidth: Dp = 152.dp
+    val ChatDrawerWidth: Dp = 336.dp
+}
+
 @Immutable
 data class IvaiSemanticColors(
     val canvas: Color,

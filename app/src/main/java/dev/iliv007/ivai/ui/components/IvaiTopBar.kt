@@ -70,7 +70,7 @@ fun IvaiTopBar(
     subtitle: String? = null,
     currentState: UiPreviewState,
     onStateSelected: (UiPreviewState) -> Unit,
-    onOpenSidebar: () -> Unit = {},
+    onOpenSidebar: (() -> Unit)? = null,
     onOpenModelSelector: (() -> Unit)? = null,
     isDarkTheme: Boolean = false,
     onToggleTheme: () -> Unit = {}
@@ -94,28 +94,29 @@ fun IvaiTopBar(
                 actionIconContentColor = MaterialTheme.colorScheme.onSurfaceVariant
             ),
             navigationIcon = {
-                // Sidebar Menu Toggle Button
-                IconButton(
-                    onClick = onOpenSidebar,
-                    modifier = Modifier
-                        .padding(start = 8.dp, end = 4.dp)
-                        .size(44.dp)
-                        .testTag("button_sidebar_toggle")
-                ) {
-                    Box(
+                onOpenSidebar?.let { openChatSessions ->
+                    IconButton(
+                        onClick = openChatSessions,
                         modifier = Modifier
-                            .size(36.dp)
-                            .clip(RoundedCornerShape(10.dp))
-                            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.7f))
-                            .border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(10.dp)),
-                        contentAlignment = Alignment.Center
+                            .padding(start = 8.dp, end = 4.dp)
+                            .size(44.dp)
+                            .testTag("button_open_chat_sessions")
                     ) {
-                        Icon(
-                            imageVector = Icons.Default.Menu,
-                            contentDescription = "Open Sidebar Menu",
-                            tint = MaterialTheme.colorScheme.onSurface,
-                            modifier = Modifier.size(20.dp)
-                        )
+                        Box(
+                            modifier = Modifier
+                                .size(36.dp)
+                                .clip(RoundedCornerShape(10.dp))
+                                .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.7f))
+                                .border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(10.dp)),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Menu,
+                                contentDescription = "Open chat sessions",
+                                tint = MaterialTheme.colorScheme.onSurface,
+                                modifier = Modifier.size(20.dp)
+                            )
+                        }
                     }
                 }
             },
