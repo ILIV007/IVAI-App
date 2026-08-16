@@ -1,6 +1,6 @@
 # GitHub Alpha Release Checklist
 
-This document governs the first public GitHub Alpha release of IVAI. A debug APK, a green pull request, or a successful local build is **not** by itself a release authorization.
+This document governs the first public GitHub Alpha release of IVAI. A debug APK, a green pull request, or a successful local build is **not** by itself a release authorization. The current hardening findings and sequencing are recorded in [PHASE6_HARDENING_AUDIT.md](PHASE6_HARDENING_AUDIT.md).
 
 ## Release decision
 
@@ -13,7 +13,7 @@ The current repository is **not yet approved for a public GitHub Alpha release**
 | Provider-neutral UX | No implicit provider/target; empty states and registry-derived target selection; explicit cloud preset catalog with user-selected model ID and capabilities. | Implemented; rerun UI checks on release candidate. |
 | Local model server trust | Explicit persisted HTTPS trust mode, endpoint classification, confirmation, no-auth policy, migration and transport regression tests; physical-device evidence for loopback/LAN, cancellation and timeout. | HTTPS loopback/RFC1918 local mode is implemented and unit-tested; device evidence remains pending. HTTP, `.local` discovery and scanning are not implemented and must not be claimed. |
 | Safe read-only Agent scope | Workspace read/list/search tools have bounded path, size, preview, trace, and test coverage, or are explicitly excluded from the release scope. | Implemented in the bounded local runtime; rerun safety tests on the release candidate. |
-| RTL and accessibility | Force-RTL, mixed BiDi, TalkBack/semantics, touch-target, contrast, and screenshot evidence. | Pending. |
+| RTL and accessibility | Force-RTL, mixed BiDi, TalkBack/semantics, touch-target, contrast, and screenshot evidence. | VA logo semantic assertion and JVM screenshot coverage are implemented; global forced-LTR behavior, Force-RTL, TalkBack, touch-target and physical-device evidence remain pending. |
 | Device matrix | Fresh install, upgrade, restart, offline, and rotation checks on the agreed Android API/device matrix. | Pending. |
 | Migration/recovery | Legacy upgrade, reopen, corrupted import, delete-all-data, and local reset evidence. | Partially automated; release evidence pending. |
 | Performance/network | Streaming, cancellation, timeout, offline, 429/fallback, and no-duplicate-side-effect evidence. | Pending release evidence. |
@@ -53,7 +53,7 @@ Release notes must include the following sections:
 1. **What this Alpha is:** a local-first, backendless, BYOK Android Agent Harness.
 2. **What users control:** providers, accounts, endpoints, models, Combos, execution targets, Agent profiles, and local project workspace.
 3. **Security boundaries:** secrets remain device-local; workspace reads, lists, and searches are confined to the profile project and bounded; writes require Allow once; no automatic write replay after restart; no Shell, Termux, Accessibility automation, MCP server, or backend proxy.
-4. **Known limitations:** all unfinished items from the gate table and any accepted product limitations, including blocked local-model endpoint connectivity until its dedicated security gate is complete.
+4. **Known limitations:** all unfinished items from the gate table and any accepted product limitations, including pending device evidence for the allowed HTTPS loopback/LAN endpoint modes and the explicitly blocked HTTP and `.local`/mDNS discovery scopes.
 5. **Installation and verification:** Android compatibility, APK checksum verification, and how to report a non-sensitive issue.
 6. **Upgrade and rollback:** local-data warning, backup/export guidance, and the prior release/tag used for rollback.
 

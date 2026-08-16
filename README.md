@@ -4,6 +4,8 @@
 
 IVAI is an Android harness for configuring, routing, and running bounded AI-agent workflows using connections and credentials that remain under the user's control. The user owns the provider connection, account, endpoint, model, capability metadata, ordered fallback Combo, chat execution target, Agent profile, and project workspace. The app creates no central IVAI account, mandatory backend, telemetry service, or implicit provider configuration.
 
+The Android launcher and in-app top bar use the supplied **VA** brand mark. Its visual system pairs an indigo ground with emerald/aqua and aurora-violet accents; this presentation layer does not alter provider selection, local data ownership, or any execution boundary.
+
 ## Product principles
 
 | Principle | IVAI Alpha behavior |
@@ -29,13 +31,13 @@ After process death, write payloads are intentionally unavailable because they a
 
 ### Data and security
 
-Room schema history is exported under `app/schemas/`. Migration and reopen coverage includes a real legacy v1 fixture upgraded through all current migrations to v4. Local export/import is versioned and secret-free. The app-private workspace rejects unsafe traversal paths. Provider diagnostics and user-visible errors are designed to avoid raw credentials, authorization headers, raw model reasoning, and unredacted secrets.
+Room schema history is exported under `app/schemas/`. Migration and reopen coverage includes a real legacy v1 fixture upgraded through all current migrations to v5, including endpoint trust and authentication-mode defaults. Local export/import is versioned and secret-free. The app-private workspace rejects unsafe traversal paths. Provider diagnostics and user-visible errors are designed to avoid raw credentials, authorization headers, raw model reasoning, and unredacted secrets.
 
 ## Explicit Alpha boundaries
 
 The following capabilities are intentionally **not** part of Alpha: Shell/Termux execution, Shizuku, Accessibility automation, unrestricted storage access, unrestricted HTTP POST tools, MCP process/server execution, autonomous background agents, multi-agent swarms, local model inference, cloud backup, multi-device synchronization, voice, Google Play distribution, or a central IVAI backend.
 
-Safe workspace read/list/search tooling and the full RTL/accessibility/device evidence matrix remain planned hardening work. See [the roadmap](docs/ROADMAP.md) and [the Alpha release checklist](docs/ALPHA_RELEASE.md).
+Safe workspace read/list/search tooling is implemented within the bounded local runtime. The full RTL/accessibility/device evidence matrix remains planned hardening work; see [the roadmap](docs/ROADMAP.md), [the Alpha release checklist](docs/ALPHA_RELEASE.md), and the [Phase 6 hardening readiness audit](docs/PHASE6_HARDENING_AUDIT.md).
 
 ## Architecture
 

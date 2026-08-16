@@ -8,7 +8,7 @@ IVAI is a single Android application module built with Kotlin, Jetpack Compose, 
 Compose UI
   -> WorkspaceViewModel and feature state flows
   -> LocalWorkspaceRepository
-  -> Room v4 | app-private ProjectWorkspace | encrypted Secret Vault
+  -> Room v5 with provider trust/auth metadata | app-private ProjectWorkspace | encrypted Secret Vault
   -> ProviderAdapterRegistry and foreground provider sessions
   -> user-selected Direct Model or ordered Combo
 ```
