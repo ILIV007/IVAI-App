@@ -5,6 +5,7 @@ import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
 import dev.iliv007.ivai.data.local.IvaiDatabase
 import dev.iliv007.ivai.data.local.LocalWorkspaceRepository
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withTimeout
@@ -73,9 +74,11 @@ class WorkspacePersistenceBridgeTest {
 
         viewModel.deleteThread(thread.id)
         assertFalse(viewModel.uiState.value.threads.any { it.id == thread.id })
-        shadowOf(Looper.getMainLooper()).idle()
         withTimeout(5_000) {
-            repository.observeWorkspace().first { snapshot -> snapshot.threads.none { it.id == thread.id } }
+            while (database.threadDao().findById(thread.id) != null) {
+                shadowOf(Looper.getMainLooper()).idle()
+                delay(20)
+            }
         }
         Unit
     }

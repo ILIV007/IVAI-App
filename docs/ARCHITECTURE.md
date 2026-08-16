@@ -1,37 +1,43 @@
 # Architecture
 
-## Current state
+## Current Alpha state
 
-The repository currently contains a single Android application module built with Kotlin, Jetpack Compose, Material 3, Coroutines, and ViewModel state. Phase 2 adds a versioned Room v1 foundation for local workspace projects, threads, and messages, plus a DataStore/Android Keystore vault boundary for future credentials. The UI remains mock-only: it has no production Provider adapter, network client, credential-entry UI, or Agent runtime.
-
-## Target direction
-
-The project evolves incrementally toward a lightweight clean architecture. UI features call use cases; use cases depend on provider-neutral domain contracts; local persistence, security, files, and provider adapters sit behind data interfaces. Module extraction is gradual and must follow a demonstrated boundary, not precede it.
+IVAI is a single Android application module built with Kotlin, Jetpack Compose, Material 3, Coroutines, Room, DataStore, and Android Keystore primitives. It is a **local-first, backendless, BYOK Agent Harness**: user-owned local records determine whether any provider adapter can be used. The application has no central IVAI backend, mandatory login, proxy, default telemetry, or implicit provider target.
 
 ```text
 Compose UI
-  -> ViewModel / UiState / UiEvent
-  -> Domain use cases
-  -> Repository interfaces
-  -> Local data | Security vault | Files | Provider adapters
+  -> WorkspaceViewModel and feature state flows
+  -> LocalWorkspaceRepository
+  -> Room v4 | app-private ProjectWorkspace | encrypted Secret Vault
+  -> ProviderAdapterRegistry and foreground provider sessions
+  -> user-selected Direct Model or ordered Combo
 ```
 
-## Local data foundation
+## Canonical boundaries
 
-The local database is `IvaiDatabase` version `1`, with `workspace_projects`, `chat_threads`, and `chat_messages` tables. A project deletion unassigns related threads; a thread deletion cascades to its messages. Room schemas are exported under `app/schemas/` and must be committed with every version change. `LocalWorkspaceRepository` is the persistence boundary; UI integration is intentionally deferred until the reviewed UI/RTL state branch is merged.
+| Layer | Responsibility | Boundary |
+|---|---|---|
+| Compose UI | Renders Room-backed workspace, provider, router, and Agent state; sends user actions to the ViewModel. | UI never receives or stores plaintext credentials. |
+| `WorkspaceViewModel` | Coordinates local state flows, explicit foreground actions, and safe user-visible errors. | It does not select an implicit provider or execute shell/background automation. |
+| `LocalWorkspaceRepository` | Transactional local persistence, registry validation, Router references, Agent target validation, and recovery state. | Room stores credential references, not secret values. |
+| `ProjectWorkspace` | App-private project-file isolation with relative-path validation. | No unrestricted external-storage or Shell file access. |
+| `EncryptedSecretVault` | Encrypted credential storage through a per-reference Android Keystore key. | Secrets are excluded from Room, traces, exports, and UI state. |
+| Provider adapters | Gemini, OpenRouter, and Custom OpenAI-compatible foreground request implementations. | A user-managed enabled connection/account/model is required before use. |
+| `SequentialRouter` | Capability-aware ordered Combo resolution, controlled fallback, and attempt trace. | No hidden fallback provider is injected. |
+| `BasicAgentRuntime` | Bounded local runs, safe tools, approval-first writes, limits, cancellation, and trace. | No always-allow write, automatic post-restart write, Shell, Termux, MCP, or background autonomy. |
 
-The credential vault persists only a versioned AES-GCM ciphertext envelope in Preferences DataStore. `AndroidKeystoreSecretCipher` owns a per-reference non-exportable Android Keystore key. The source includes no provider, secret-entry UI, network traffic, or secret logging.
+## Local data and migration
 
-## Phase constraints
+`IvaiDatabase` is currently schema version `4`. It persists workspace projects, threads, messages, provider registry records, router Combos and attempts, Agent profiles, runs, run steps, and approvals. Schemas are exported under `app/schemas/` and must be committed with every version change. The repository includes a file-backed legacy v1 fixture upgraded through `MIGRATION_1_2`, `MIGRATION_2_3`, and `MIGRATION_3_4`, followed by a reopen check.
 
-| Phase | Architectural rule |
-|---|---|
-| UI/RTL | Keep mock-only behavior; consolidate duplicated UI state before persistence. |
-| Data/Security | Add Room, DataStore, Keystore and app-private workspace before credentials or provider traffic. |
-| Provider | Add one provider-neutral adapter contract and one provider implementation first. |
-| Router | Add sequential fallback only after the provider contract has stream, cancel, error, usage and capability semantics. |
-| Agent | Add bounded tools only after workspace isolation, approval, budgets and trace entities exist. |
+Project deletion unassigns related threads; thread deletion cascades messages. Router and Agent records use durable identifiers and maintain a user-visible safe trace without raw model reasoning.
 
-## Prohibited shortcuts
+## Agent integrity and restart policy
 
-Do not store secrets in `BuildConfig`, source code, plaintext preferences, Room plaintext, exported diagnostics, or default backups. Do not make Compose screens call a provider directly. Do not add a backend proxy merely to avoid designing a local security boundary.
+An Agent profile must reference an enabled Direct Model with a matching enabled account/connection, or an enabled Combo containing at least one usable enabled candidate. The UI presents only such locally derived choices, and the runtime validates again before starting a run to prevent stale or externally inserted profiles from executing.
+
+Write content is deliberately held only in runtime memory. If Android terminates the process while an approval is pending, recovery denies the approval, fails the awaiting run safely, and records that no write was performed. This prevents replay of a mutation whose exact payload was not persisted.
+
+## Architectural constraints
+
+Do not store secrets in `BuildConfig`, source code, plaintext preferences, Room plaintext, exported diagnostics, default backups, traces, or screenshots. Do not make Compose screens call a provider directly. Do not add an IVAI backend proxy to avoid local security design. Any future provider, network behavior, Agent tool, file capability, migration, or release change requires a focused review and validation evidence.
