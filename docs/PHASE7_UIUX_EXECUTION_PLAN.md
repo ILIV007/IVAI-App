@@ -14,11 +14,11 @@
 | Core primitives | `IvaiScreenScaffold`, `IvaiPageHeader`, `IvaiStateCard`, `IvaiTargetChip`, `ExecutionStatusBanner`, semantic section heading. |
 | Accessibility utilities | Standard modifiers for heading, state description, live-region terminal event, minimum touch target, stable test tag. |
 | Screenshot harness | Test matrix helper for light/dark, English/RTL/mixed BiDi, normal/error/empty/loading states. |
-| Brand-coherence checklist | PR-review checklist that compares every new surface against the VA icon: approved indigo/emerald/violet token use, rounded shape scale, coherent Material iconography, and no unrelated visual language. |
+| UI-coherence checklist | PR-review checklist that confirms every new surface follows the independent IVAI UI system: approved semantic tokens, rounded shape scale, coherent Material iconography, `IVAI` wordmark boundary, and no unrelated visual language. The VA artwork remains launcher-only. |
 
 **Scope boundary:** No navigation restructuring and no behavior change.
 
-**Acceptance gate:** Core components have semantic and screenshot tests; contrast table is current; all existing screens compile unchanged on the new theme layer; every redesigned primitive passes the VA icon brand-coherence checklist.
+**Acceptance gate:** Core components have semantic and screenshot tests; contrast table is current; all existing screens compile unchanged on the new theme layer; every redesigned primitive passes the independent IVAI UI-coherence checklist.
 
 ---
 
@@ -145,4 +145,4 @@ Each sub-phase receives its own feature branch and PR. Wait for Secret Scan and 
 
 ## Phase 7 Completion Definition
 
-Phase 7 is complete only when every redesigned destination uses the IVAI token/component layer and visibly aligns with the approved VA launcher icon identity; all flows preserve explicit provider/model/Combo/Agent control; dark/light/RTL/semantics coverage exists; external research findings are documented; and CI/regression gates are green. Alpha release remains independently blocked by the physical-device, HTTPS local network, signing, checksum and release-note gates listed in `docs/ALPHA_RELEASE.md`.
+Phase 7 is complete only when every redesigned destination uses the independent IVAI token/component layer; the VA artwork remains confined to launcher-icon resources; all flows preserve explicit provider/model/Combo/Agent control; dark/light/RTL/semantics coverage exists; external research findings are documented; and CI/regression gates are green. Alpha release remains independently blocked by the physical-device, HTTPS local network, signing, checksum and release-note gates listed in `docs/ALPHA_RELEASE.md`.

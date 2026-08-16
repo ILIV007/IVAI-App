@@ -123,3 +123,8 @@ The current Chat baseline has a valid IVAI logo, recognizable brand colors and a
 ## Phase map artifact
 
 The visual execution map in `docs/phase7_uiux_map.png` was rendered and reviewed. It presents the intended sequential delivery order—Foundation, Core Chat/Navigation, Connections, Bounded Agent, and Validation—and displays Local-first, Backendless, BYOK, and explicit control as constraints over every sub-phase.
+
+
+## Correction — launcher icon versus in-app identity
+
+The supplied VA image is **launcher-icon artwork only**. It is not the general IVAI logo and must not be reused in the TopBar, navigation, empty states, badges, or general component styling. Phase 7 will establish an independent in-app IVAI wordmark and UI identity. The approved interface palette can remain visually harmonious with the launcher icon’s indigo, emerald/aqua, and violet atmosphere, but it is governed by independent semantic tokens and must not copy the icon’s mark or gradient treatment.

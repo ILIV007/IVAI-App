@@ -15,17 +15,17 @@ IVAI should feel like a **calm local control room for AI work**, not a generic c
 
 The visual language combines an indigo night-workspace foundation with aurora emerald and violet accents. Gradients are identity and atmosphere, never a substitute for a semantic status color, control state, label, or readable text.
 
-### 1.1 Brand-coherence rule — non-negotiable
+### 1.1 App-icon boundary and UI visual coherence — non-negotiable
 
-The launcher icon and VA mark are the authoritative visual source for the complete interface. Every Phase 7 surface must express the same identity through the existing deep-indigo canvas, emerald/aqua energy, aurora-violet counterpoint, soft luminous contours, and restrained organic rounding. **No screen may introduce an unrelated visual language, arbitrary palette, generic gradient, or icon style.**
+The supplied VA artwork is **only the Android launcher icon**. It must not be reused as the in-app logo, TopBar mark, navigation symbol, empty-state glyph, or component decoration. Phase 7 defines an independent IVAI product identity based on a clear text wordmark, a coherent component system, and a calm professional visual language. The UI may **harmonize** with the launcher icon’s indigo/emerald/violet atmosphere, but it must not copy or treat the launcher artwork as its visual authority.
 
 | Visual dimension | Required rule |
 |---|---|
-| Color | Use semantic tokens derived from the VA icon palette only; do not use a raw color outside the approved IVAI token set. |
-| Gradient | Use only approved IVAI brand gradients and only as ambient/non-essential decoration with solid semantic fallback. |
-| Iconography | Use one coherent rounded Material-symbol style at a consistent optical size; the VA mark is the only brand mark. |
+| Color | Use the approved IVAI semantic token set. It may coordinate with the launcher icon’s color family, but it is maintained as an independent UI palette and is never extracted mechanically from the VA artwork. |
+| Gradient | Use only approved IVAI UI gradients as ambient/non-essential decoration with solid semantic fallback. Do not reproduce the VA icon gradient treatment in product components. |
+| In-app identity | Use the `IVAI` wordmark and one coherent rounded Material-symbol style at a consistent optical size. The VA artwork appears only in launcher-icon resources. |
 | Shape | Use the Phase 7 8/12/16/20dp shape scale; never mix sharp web-style rectangles with rounded IVAI surfaces. |
-| Theme parity | Dark mode remains the canonical indigo environment; light mode is a quiet violet-white interpretation of the same VA identity, not a separate product style. |
+| Theme parity | Dark mode remains the canonical indigo environment; light mode is a quiet violet-white interpretation of the independent IVAI UI system, not a separate product style. |
 | Motion | Motion reflects precise, calm aurora transitions and never becomes a decorative distraction or blocks user control. |
 
 ## 2. User Jobs and UX Principles
