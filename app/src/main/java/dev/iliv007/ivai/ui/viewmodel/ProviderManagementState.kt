@@ -1,5 +1,7 @@
 package dev.iliv007.ivai.ui.viewmodel
 
+import dev.iliv007.ivai.provider.ProviderAccountAuthMode
+import dev.iliv007.ivai.provider.ProviderEndpointTrustMode
 import dev.iliv007.ivai.provider.ProviderKind
 
 data class ProviderConnectionCard(
@@ -7,6 +9,8 @@ data class ProviderConnectionCard(
     val kind: ProviderKind,
     val displayName: String,
     val baseUrlLabel: String?,
+    val endpointTrustMode: ProviderEndpointTrustMode,
+    val localTrustConfirmed: Boolean,
     val enabled: Boolean,
     val accounts: List<ProviderAccountCard>,
     val manualModels: List<ProviderModelCard>
@@ -16,6 +20,7 @@ data class ProviderAccountCard(
     val accountId: String,
     val displayName: String,
     val credentialReference: String,
+    val authMode: ProviderAccountAuthMode,
     val enabled: Boolean,
     val credentialStored: Boolean
 )

@@ -7,6 +7,8 @@ import dev.iliv007.ivai.data.local.RouterComboEntryEntity
 import dev.iliv007.ivai.data.local.toEntity
 import dev.iliv007.ivai.provider.ChatProvider
 import dev.iliv007.ivai.provider.CredentialReference
+import dev.iliv007.ivai.provider.ProviderAccountAuthMode
+import dev.iliv007.ivai.provider.ProviderEndpointTrustMode
 import dev.iliv007.ivai.provider.ProviderCapability
 import dev.iliv007.ivai.provider.ProviderChatRequest
 import dev.iliv007.ivai.provider.ProviderErrorKind
@@ -30,7 +32,7 @@ import kotlinx.coroutines.flow.flow
 class RouterChatSession(
     private val workspace: LocalWorkspaceRepository,
     private val router: SequentialRouter,
-    private val providerResolver: (ProviderKind, String?) -> ChatProvider,
+    private val providerResolver: (ProviderKind, String?, ProviderEndpointTrustMode) -> ChatProvider,
     private val nowEpochMs: () -> Long = System::currentTimeMillis
 ) {
     fun send(
@@ -104,10 +106,17 @@ class RouterChatSession(
             var completed = false
             var candidateError: ProviderStreamEvent.Failed? = null
             try {
-                val provider = providerResolver(ProviderKind.valueOf(connection.providerKind), connection.baseUrl)
+                val authMode = ProviderAccountAuthMode.valueOf(account.authMode)
+                val provider = providerResolver(
+                    ProviderKind.valueOf(connection.providerKind),
+                    connection.baseUrl,
+                    ProviderEndpointTrustMode.valueOf(connection.endpointTrustMode)
+                )
                 provider.streamChat(
                     ProviderChatRequest(
-                        credentialReference = CredentialReference(account.credentialReference),
+                        credentialReference = account.credentialReference.takeIf { authMode == ProviderAccountAuthMode.API_KEY }
+                            ?.let(::CredentialReference),
+                        authMode = authMode,
                         modelId = candidate.providerModelId,
                         messages = providerMessages,
                         requiredCapabilities = setOf(ProviderCapability.TEXT, ProviderCapability.STREAMING),

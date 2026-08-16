@@ -47,7 +47,9 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
+import dev.iliv007.ivai.provider.ProviderAccountAuthMode
 import dev.iliv007.ivai.provider.ProviderCapability
+import dev.iliv007.ivai.provider.ProviderEndpointTrustMode
 import dev.iliv007.ivai.provider.ProviderKind
 import dev.iliv007.ivai.provider.ProviderPresetCatalog
 import dev.iliv007.ivai.ui.viewmodel.ProviderConnectionCard
@@ -56,7 +58,18 @@ import dev.iliv007.ivai.ui.viewmodel.ProviderManagementState
 @Composable
 fun ProviderManagementSection(
     state: ProviderManagementState,
-    onAddProvider: (ProviderKind, String, String?, String, String, Set<ProviderCapability>, String) -> Unit,
+    onAddProvider: (
+        ProviderKind,
+        String,
+        String?,
+        String,
+        String,
+        Set<ProviderCapability>,
+        ProviderEndpointTrustMode,
+        Boolean,
+        ProviderAccountAuthMode,
+        String?
+    ) -> Unit,
     onDeleteProvider: (String) -> Unit,
     onSetProviderEnabled: (String, Boolean) -> Unit,
     onDismissError: () -> Unit,
@@ -136,8 +149,19 @@ fun ProviderManagementSection(
     if (showAddDialog) {
         AddProviderDialog(
             onDismiss = { showAddDialog = false },
-            onSave = { kind, name, endpoint, account, model, capabilities, secret ->
-                onAddProvider(kind, name, endpoint, account, model, capabilities, secret)
+            onSave = { kind, name, endpoint, account, model, capabilities, trustMode, trustConfirmed, authMode, secret ->
+                onAddProvider(
+                    kind,
+                    name,
+                    endpoint,
+                    account,
+                    model,
+                    capabilities,
+                    trustMode,
+                    trustConfirmed,
+                    authMode,
+                    secret
+                )
                 showAddDialog = false
             }
         )
@@ -166,6 +190,15 @@ private fun ProviderConnectionCardItem(
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
+                    Text(
+                        text = when (connection.endpointTrustMode) {
+                            ProviderEndpointTrustMode.REMOTE_HTTPS -> "Remote HTTPS"
+                            ProviderEndpointTrustMode.LOCAL_LOOPBACK_HTTPS -> "Trusted local device HTTPS"
+                            ProviderEndpointTrustMode.LOCAL_LAN_HTTPS -> "Trusted private-LAN HTTPS"
+                        } + if (connection.localTrustConfirmed) " · confirmed" else "",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = if (connection.localTrustConfirmed) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
+                    )
                 }
                 Switch(
                     checked = connection.enabled,
@@ -178,7 +211,10 @@ private fun ProviderConnectionCardItem(
             }
             connection.accounts.forEach { account ->
                 Text(
-                    text = "${account.displayName}: ${if (account.credentialStored) "Credential stored" else "Credential missing"}",
+                    text = "${account.displayName}: " + when (account.authMode) {
+                        ProviderAccountAuthMode.NONE -> "No credential required"
+                        ProviderAccountAuthMode.API_KEY -> if (account.credentialStored) "Credential stored" else "Credential missing"
+                    },
                     style = MaterialTheme.typography.bodySmall,
                     color = if (account.credentialStored) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error
                 )
@@ -201,12 +237,25 @@ private fun ProviderKind.displayLabel(): String = when (this) {
 }
 
 private const val ADVANCED_CUSTOM_PRESET_ID = "advanced-custom"
+private const val LOCAL_LOOPBACK_HTTPS_PRESET_ID = "local-loopback-https"
+private const val LOCAL_LAN_HTTPS_PRESET_ID = "local-lan-https"
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun AddProviderDialog(
     onDismiss: () -> Unit,
-    onSave: (ProviderKind, String, String?, String, String, Set<ProviderCapability>, String) -> Unit
+    onSave: (
+        ProviderKind,
+        String,
+        String?,
+        String,
+        String,
+        Set<ProviderCapability>,
+        ProviderEndpointTrustMode,
+        Boolean,
+        ProviderAccountAuthMode,
+        String?
+    ) -> Unit
 ) {
     var selectedPresetId by remember { mutableStateOf<String?>(null) }
     var presetMenuOpen by remember { mutableStateOf(false) }
@@ -215,11 +264,19 @@ private fun AddProviderDialog(
     var accountName by remember { mutableStateOf("") }
     var modelId by remember { mutableStateOf("") }
     var apiKey by remember { mutableStateOf("") }
+    var authMode by remember { mutableStateOf(ProviderAccountAuthMode.API_KEY) }
+    var localTrustConfirmed by remember { mutableStateOf(false) }
     var capabilities by remember { mutableStateOf(setOf(ProviderCapability.TEXT, ProviderCapability.STREAMING)) }
     var validationError by remember { mutableStateOf<String?>(null) }
     val selectedPreset = selectedPresetId?.let(ProviderPresetCatalog::find)
     val isAdvancedCustom = selectedPresetId == ADVANCED_CUSTOM_PRESET_ID
-    val kind = selectedPreset?.kind ?: if (isAdvancedCustom) ProviderKind.CUSTOM_OPENAI_COMPATIBLE else null
+    val trustMode = when (selectedPresetId) {
+        LOCAL_LOOPBACK_HTTPS_PRESET_ID -> ProviderEndpointTrustMode.LOCAL_LOOPBACK_HTTPS
+        LOCAL_LAN_HTTPS_PRESET_ID -> ProviderEndpointTrustMode.LOCAL_LAN_HTTPS
+        else -> ProviderEndpointTrustMode.REMOTE_HTTPS
+    }
+    val isLocalEndpoint = trustMode != ProviderEndpointTrustMode.REMOTE_HTTPS
+    val kind = selectedPreset?.kind ?: if (isAdvancedCustom || isLocalEndpoint) ProviderKind.CUSTOM_OPENAI_COMPATIBLE else null
     val requiresEndpoint = kind == ProviderKind.CUSTOM_OPENAI_COMPATIBLE
 
     fun selectPreset(id: String, name: String, baseUrl: String?) {
@@ -229,6 +286,8 @@ private fun AddProviderDialog(
         accountName = ""
         modelId = ""
         apiKey = ""
+        authMode = ProviderAccountAuthMode.API_KEY
+        localTrustConfirmed = false
         capabilities = setOf(ProviderCapability.TEXT, ProviderCapability.STREAMING)
         validationError = null
     }
@@ -247,11 +306,16 @@ private fun AddProviderDialog(
                 )
                 ExposedDropdownMenuBox(expanded = presetMenuOpen, onExpandedChange = { presetMenuOpen = it }) {
                     OutlinedTextField(
-                        value = selectedPreset?.displayName ?: if (isAdvancedCustom) "Advanced custom endpoint" else "Choose provider preset",
+                        value = selectedPreset?.displayName ?: when (selectedPresetId) {
+                            ADVANCED_CUSTOM_PRESET_ID -> "Advanced custom endpoint"
+                            LOCAL_LOOPBACK_HTTPS_PRESET_ID -> "Local device server · HTTPS"
+                            LOCAL_LAN_HTTPS_PRESET_ID -> "Private-LAN server · HTTPS"
+                            else -> "Choose provider preset"
+                        },
                         onValueChange = {},
                         readOnly = true,
                         label = { Text("Connection family") },
-                        supportingText = { Text("Cloud presets use the installed provider protocol; local servers are not enabled in this Alpha flow.") },
+                        supportingText = { Text("Cloud uses HTTPS. Local endpoints are HTTPS-only, user-confirmed and never discovered automatically.") },
                         trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(presetMenuOpen) },
                         modifier = Modifier.menuAnchor(MenuAnchorType.PrimaryNotEditable, enabled = true).fillMaxWidth().testTag("provider_preset_selector")
                     )
@@ -266,6 +330,20 @@ private fun AddProviderDialog(
                             )
                         }
                         DropdownMenuItem(
+                            text = { Text("Local device server · HTTPS") },
+                            onClick = {
+                                selectPreset(LOCAL_LOOPBACK_HTTPS_PRESET_ID, "Local device server", null)
+                                presetMenuOpen = false
+                            }
+                        )
+                        DropdownMenuItem(
+                            text = { Text("Private-LAN server · HTTPS") },
+                            onClick = {
+                                selectPreset(LOCAL_LAN_HTTPS_PRESET_ID, "Private-LAN server", null)
+                                presetMenuOpen = false
+                            }
+                        )
+                        DropdownMenuItem(
                             text = { Text("Advanced custom OpenAI-compatible") },
                             onClick = {
                                 selectPreset(ADVANCED_CUSTOM_PRESET_ID, "Custom OpenAI-compatible", null)
@@ -276,7 +354,10 @@ private fun AddProviderDialog(
                 }
                 if (kind != null) {
                     Text(
-                        "${selectedPreset?.protocolLabel ?: "OpenAI-compatible"} · foreground requests only · no provider is made default",
+                        when {
+                            isLocalEndpoint -> "Trusted local HTTPS endpoint · foreground requests only · no discovery or network scan"
+                            else -> "${selectedPreset?.protocolLabel ?: "OpenAI-compatible"} · foreground requests only · no provider is made default"
+                        },
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.secondary
                     )
@@ -292,7 +373,15 @@ private fun AddProviderDialog(
                             value = endpoint,
                             onValueChange = { endpoint = it },
                             label = { Text("HTTPS base URL") },
-                            supportingText = { Text("Review this endpoint before saving. Device-local and LAN HTTP servers require a later explicit trust mode.") },
+                            supportingText = {
+                                Text(
+                                    when (trustMode) {
+                                        ProviderEndpointTrustMode.LOCAL_LOOPBACK_HTTPS -> "Exact local host only: localhost, 127.0.0.1 or ::1. HTTP is blocked."
+                                        ProviderEndpointTrustMode.LOCAL_LAN_HTTPS -> "RFC1918 IPv4 only (10/8, 172.16/12, 192.168/16). HTTP is blocked."
+                                        ProviderEndpointTrustMode.REMOTE_HTTPS -> "Review this remote HTTPS endpoint before saving."
+                                    }
+                                )
+                            },
                             singleLine = true,
                             modifier = Modifier.fillMaxWidth().testTag("input_provider_endpoint")
                         )
@@ -323,18 +412,45 @@ private fun AddProviderDialog(
                             modifier = Modifier.fillMaxWidth().testTag("provider_capability_${capability.name.lowercase()}")
                         )
                     }
-                    Text(
-                        "The API key is written directly to the encrypted local vault and is never shown again. It is not sent until you start a foreground request.",
-                        style = MaterialTheme.typography.bodySmall
-                    )
-                    OutlinedTextField(
-                        value = apiKey,
-                        onValueChange = { apiKey = it },
-                        label = { Text("API key") },
-                        singleLine = true,
-                        visualTransformation = PasswordVisualTransformation(),
-                        modifier = Modifier.fillMaxWidth().testTag("input_provider_api_key")
-                    )
+                    if (isLocalEndpoint) {
+                        FilterChip(
+                            selected = authMode == ProviderAccountAuthMode.NONE,
+                            onClick = {
+                                authMode = if (authMode == ProviderAccountAuthMode.NONE) {
+                                    ProviderAccountAuthMode.API_KEY
+                                } else {
+                                    apiKey = ""
+                                    ProviderAccountAuthMode.NONE
+                                }
+                            },
+                            label = { Text("This local server requires no API key") },
+                            modifier = Modifier.fillMaxWidth().testTag("local_no_auth_selector")
+                        )
+                        Text(
+                            "IVAI will not create, store or send a placeholder token when no API key is selected.",
+                            style = MaterialTheme.typography.bodySmall
+                        )
+                        FilterChip(
+                            selected = localTrustConfirmed,
+                            onClick = { localTrustConfirmed = !localTrustConfirmed },
+                            label = { Text("I trust this exact HTTPS local endpoint and understand messages go directly to it") },
+                            modifier = Modifier.fillMaxWidth().testTag("local_endpoint_trust_confirmation")
+                        )
+                    }
+                    if (authMode == ProviderAccountAuthMode.API_KEY) {
+                        Text(
+                            "The API key is written directly to the encrypted local vault and is never shown again. It is not sent until you start a foreground request.",
+                            style = MaterialTheme.typography.bodySmall
+                        )
+                        OutlinedTextField(
+                            value = apiKey,
+                            onValueChange = { apiKey = it },
+                            label = { Text("API key") },
+                            singleLine = true,
+                            visualTransformation = PasswordVisualTransformation(),
+                            modifier = Modifier.fillMaxWidth().testTag("input_provider_api_key")
+                        )
+                    }
                 }
                 validationError?.let { Text(it, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall) }
             }
@@ -348,14 +464,26 @@ private fun AddProviderDialog(
                     accountName.isBlank() -> validationError = "An account label is required."
                     modelId.isBlank() -> validationError = "A model ID selected by you is required."
                     capabilities.isEmpty() -> validationError = "Choose at least one declared model capability."
-                    apiKey.isBlank() -> validationError = "An API key is required."
+                    isLocalEndpoint && !localTrustConfirmed -> validationError = "Confirm that you trust this exact local HTTPS endpoint."
+                    authMode == ProviderAccountAuthMode.API_KEY && apiKey.isBlank() -> validationError = "An API key is required."
                     else -> {
-                        onSave(kind, displayName, endpoint.takeIf { requiresEndpoint }, accountName, modelId, capabilities, apiKey)
+                        onSave(
+                            kind,
+                            displayName,
+                            endpoint.takeIf { requiresEndpoint },
+                            accountName,
+                            modelId,
+                            capabilities,
+                            trustMode,
+                            localTrustConfirmed,
+                            authMode,
+                            apiKey.takeIf { authMode == ProviderAccountAuthMode.API_KEY }
+                        )
                         apiKey = ""
                     }
                 }
-            }) { Text("Save encrypted credential") }
+            }) { Text(if (isLocalEndpoint) "Save trusted local endpoint" else "Save encrypted credential") }
         },
-        dismissButton = { TextButton(onClick = { apiKey = ""; onDismiss() }) { Text("Cancel") } }
+        dismissButton = { TextButton(onClick = { apiKey = ""; localTrustConfirmed = false; onDismiss() }) { Text("Cancel") } }
     )
 }

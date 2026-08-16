@@ -103,7 +103,9 @@ data class ProviderConnectionEntity(
     @ColumnInfo(name = "base_url") val baseUrl: String?,
     @ColumnInfo(name = "is_enabled") val isEnabled: Boolean,
     @ColumnInfo(name = "created_at_epoch_ms") val createdAtEpochMs: Long,
-    @ColumnInfo(name = "updated_at_epoch_ms") val updatedAtEpochMs: Long
+    @ColumnInfo(name = "updated_at_epoch_ms") val updatedAtEpochMs: Long,
+    @ColumnInfo(name = "endpoint_trust_mode", defaultValue = "'REMOTE_HTTPS'") val endpointTrustMode: String = "REMOTE_HTTPS",
+    @ColumnInfo(name = "local_trust_confirmed_at_epoch_ms") val localTrustConfirmedAtEpochMs: Long? = null
 )
 
 @Entity(
@@ -122,10 +124,12 @@ data class ProviderAccountEntity(
     @PrimaryKey val id: String,
     @ColumnInfo(name = "connection_id") val connectionId: String,
     @ColumnInfo(name = "display_name") val displayName: String,
+    /** Opaque API-key reference or non-secret `no-auth.<account-id>` marker; never plaintext credential. */
     @ColumnInfo(name = "credential_reference") val credentialReference: String,
     @ColumnInfo(name = "is_enabled") val isEnabled: Boolean,
     @ColumnInfo(name = "created_at_epoch_ms") val createdAtEpochMs: Long,
-    @ColumnInfo(name = "updated_at_epoch_ms") val updatedAtEpochMs: Long
+    @ColumnInfo(name = "updated_at_epoch_ms") val updatedAtEpochMs: Long,
+    @ColumnInfo(name = "auth_mode", defaultValue = "'API_KEY'") val authMode: String = "API_KEY"
 )
 
 @Entity(
