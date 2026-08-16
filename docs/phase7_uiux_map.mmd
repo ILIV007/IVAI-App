@@ -1,0 +1,56 @@
+flowchart TB
+    subgraph Foundation[Phase 7.0 — Foundation]
+        T[IVAI tokens\ncolor · type · spacing · shape · motion]
+        C[Accessible core components\nstate cards · context bar · status banner]
+        S[Screenshot & semantics matrix]
+        T --> C --> S
+    end
+
+    subgraph Core[Phase 7.1 — Core Experience]
+        N[Adaptive navigation\nbottom bar · rail · panes]
+        H[Chat workspace\ncontext + session drawer + composer]
+        N --> H
+    end
+
+    subgraph Connections[Phase 7.2 — User-managed Connections]
+        P[Provider setup\nfamily → trust → credential → model]
+        R[Combo builder\nordered user-defined fallback]
+        P --> R
+    end
+
+    subgraph Agent[Phase 7.3 — Bounded Agent]
+        A[Profile library]
+        W[Live run workspace\ntimeline · trace · cancel]
+        Q[Allow-once approval sheet]
+        A --> W --> Q
+    end
+
+    subgraph Finish[Phase 7.4–7.5 — Complete & Validate]
+        X[Project Hub + Settings polish]
+        U[Card sort · tree test · moderated tasks]
+        G[Accessibility + device hardening]
+        X --> U --> G
+    end
+
+    Foundation --> Core --> Connections --> Agent --> Finish
+
+    I[Non-negotiable invariants\nLocal-first · Backendless · BYOK · explicit control]
+    I -. constrains every phase .-> Foundation
+    I -.-> Core
+    I -.-> Connections
+    I -.-> Agent
+    I -.-> Finish
+
+    classDef foundation fill:#202652,stroke:#4EE8B5,color:#F8F7FF,stroke-width:2px;
+    classDef core fill:#172E40,stroke:#56E2EF,color:#F8F7FF,stroke-width:2px;
+    classDef connection fill:#37215F,stroke:#AB6AF5,color:#F8F7FF,stroke-width:2px;
+    classDef agent fill:#123F42,stroke:#4EE8B5,color:#F8F7FF,stroke-width:2px;
+    classDef finish fill:#31225F,stroke:#9F8CFF,color:#F8F7FF,stroke-width:2px;
+    classDef invariant fill:#101432,stroke:#FFB020,color:#F8F7FF,stroke-width:2px;
+
+    class T,C,S foundation;
+    class N,H core;
+    class P,R connection;
+    class A,W,Q agent;
+    class X,U,G finish;
+    class I invariant;
