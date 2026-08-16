@@ -332,8 +332,7 @@ fun AiMessageBubble(
                     modifier = Modifier.padding(horizontal = 14.dp, vertical = 12.dp)
                 ) {
                     // AI Header: Name, Model badge, Latency chip
-                    CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
-                        Row(
+                    Row(
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.SpaceBetween,
                             modifier = Modifier
@@ -473,7 +472,6 @@ fun AiMessageBubble(
                                 }
                             }
                         }
-                    }
 
                     // Message Body with rich Markdown formatting (tables, code blocks, headers, lists) and BiDi handling
                     SelectionContainer {
