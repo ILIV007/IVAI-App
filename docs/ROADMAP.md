@@ -56,18 +56,20 @@
 
 ## Phase 7 — Full UI/UX Redesign
 
-**Goal:** Complete visual and interaction redesign of all screens — Chat, Router, Agent, Provider Management, Settings, Sidebar, and onboarding — using the IVAI brand system (indigo/emerald/violet) as the design foundation. This phase delivers a polished, production-quality UI/UX that is consistent, accessible, and optimized for the Agent Harness workflow.
+**Goal:** Complete visual and interaction redesign of all screens — Chat, Router, Agent, Provider Management, Settings, Sidebar, and onboarding — using an independent IVAI design system with a calm indigo/emerald/violet atmosphere. This phase delivers a polished, production-quality UI/UX that is consistent, accessible, and optimized for the Agent Harness workflow.
+
+**Current state:** **7.0 — Design Foundation and Test Harness is complete.** The app now has shared semantic color, spacing, shape, elevation, stroke, icon-size, and motion tokens; reusable screen/header/state/target/execution primitives; light/dark Roborazzi coverage; and semantics contracts for headings, target availability and execution announcements. The VA artwork remains strictly Android launcher-icon artwork: the in-app TopBar now uses an accessible `IVAI` wordmark, and the app UI does not reuse the launcher mark.
 
 **Scope:**
 - Full redesign of all Compose screens and components with a unified design language
 - Improved empty states, onboarding, and provider setup flows
 - Consistent spacing, typography, elevation, and motion
-- Dark/light theme parity with the approved brand palette
+- Dark/light theme parity with the approved independent IVAI UI palette; the launcher artwork is not reused in product screens
 - Accessibility: TalkBack labels, touch targets, contrast, and BiDi text support
 - Screenshot/semantics baseline for all redesigned screens
 - No new provider adapters, Agent tools, or backend dependencies introduced in this phase
 
-**Gate:** All redesigned screens pass screenshot regression, accessibility semantics, and contrast checks. No behavioral regression in provider, Agent, or data layers.
+**Gate:** All redesigned screens pass screenshot regression, accessibility semantics, contrast checks, and the launcher-only boundary scan. No behavioral regression in provider, Agent, or data layers.
 
 ## Deferred after Alpha
 
