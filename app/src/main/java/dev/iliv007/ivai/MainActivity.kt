@@ -22,8 +22,6 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalLayoutDirection
-import androidx.compose.ui.unit.LayoutDirection
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import dev.iliv007.ivai.ui.components.IvaiSidebarContent
@@ -99,10 +97,10 @@ fun IvaiMainApp(
         "Configure Provider or Router to begin."
     }
 
-    // The app chrome is deliberately LTR in Alpha. Individual message components
-    // resolve BiDi direction from their own content.
-    CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
-        ModalNavigationDrawer(
+    // App chrome follows the system locale direction.
+    // Narrow LTR overrides for code blocks, timestamps, and action rows
+    // are applied locally in their own composables.
+    ModalNavigationDrawer(
             drawerState = drawerState,
             gesturesEnabled = true,
             drawerContent = {
@@ -214,5 +212,7 @@ fun IvaiMainApp(
                 }
             }
         }
+
+    // Note: global forced-LTR removed in Phase 6. Narrow LTR overrides remain in
+    // TerminalCodeBlock, MarkdownCodeBlock, and message footer rows.
     }
-}
