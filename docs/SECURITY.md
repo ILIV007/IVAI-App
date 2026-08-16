@@ -24,13 +24,13 @@ Custom OpenAI-compatible endpoints require HTTPS and a nonblank host. Network ga
 
 ## File, export, and deletion policy
 
-Projects use an app-private workspace. Export/import is schema-versioned, checksummed, validated in temporary storage, and committed only after validation. Alpha exports omit all secrets. The local data reset flow removes the local workspace, Room records, and credential material through the controlled reset boundary.
+Projects use an app-private workspace. Export/import is schema-versioned, checksummed, validated in temporary storage, and committed only after validation. Alpha exports omit all secrets. The local data reset flow removes the local workspace, Room records, and credential material through the controlled reset boundary. Agent file paths are canonicalized within the profile-assigned project; traversal, absolute paths, backslash paths, symlink escape, and arbitrary external-storage access are rejected.
 
 ## Bounded Agent policy
 
 Agent profiles must use an enabled local Direct Model with a matching connection/account/model, or an enabled Combo with at least one usable candidate. The UI presents only registry-derived targets and the runtime validates again before a run begins.
 
-Current safe tools are calculation and current time. The only mutation-capable tool writes a project file after a bounded preview and explicit **Allow once** confirmation. There is no always-allow setting. Agent runs are limited by steps, tool calls, and runtime; each step is persisted in a safe trace. Shell, Termux, unrestricted HTTP POST, unrestricted storage, Accessibility, Shizuku, MCP process execution, and background autonomy are out of Alpha scope.
+Current safe tools are calculation, current time, bounded project-file read, bounded workspace listing, and bounded literal project search. A profile explicitly enables its tools; all workspace tools are limited to that profile's selected project. File reads reject files above 64 KiB and return at most 8 KiB in memory; lists return at most 100 project-relative entries; searches inspect bounded files and return at most 20 short previews. File content and search previews are observations only and are never persisted in the Run Trace, which records only safe metadata. The only mutation-capable tool writes a project file after a bounded preview and explicit **Allow once** confirmation. There is no always-allow setting. Agent runs are limited by steps, tool calls, and runtime; each step is persisted in a safe trace. Shell, Termux, unrestricted HTTP POST, unrestricted storage, Accessibility, Shizuku, MCP process execution, and background autonomy are out of Alpha scope.
 
 Write content remains in runtime memory only. If the process dies while approval is pending, startup recovery denies the approval, fails the interrupted run safely, and records that no write was performed. A pending write is never replayed automatically after restart.
 

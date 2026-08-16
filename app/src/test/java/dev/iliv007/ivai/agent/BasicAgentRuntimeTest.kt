@@ -180,6 +180,72 @@ class BasicAgentRuntimeTest {
     }
 
     @Test
+    fun `read-only workspace tools are project-bound bounded and keep content out of trace`() = runBlocking {
+        val profile = saveProfile(
+            enabledTools = setOf(
+                AgentToolKind.READ_PROJECT_FILE,
+                AgentToolKind.LIST_WORKSPACE,
+                AgentToolKind.SEARCH_PROJECT_FILES
+            )
+        )
+        workspace.writeText("project-a", "docs/readme.md", "trace-must-not-store-this secret phrase")
+        workspace.writeText("project-a", "notes/todo.txt", "Find the secret phrase in this project")
+        val run = runtime.start(profile, "Inspect only local project files")
+
+        val read = runtime.requestTool(run, "project-a", 1, AgentToolRequest.ReadProjectFile("docs/readme.md"))
+        val listed = runtime.requestTool(run, "project-a", 2, AgentToolRequest.ListWorkspace)
+        val searched = runtime.requestTool(run, "project-a", 3, AgentToolRequest.SearchProjectFiles("secret phrase"))
+
+        assertEquals("trace-must-not-store-this secret phrase", (read as AgentToolResult.Completed).observation)
+        assertTrue((listed as AgentToolResult.Completed).observation?.contains("docs/readme.md") == true)
+        assertTrue((searched as AgentToolResult.Completed).observation?.contains("notes/todo.txt") == true)
+        val trace = repository.observeAgentRunSteps(run.id).first()
+        assertTrue(trace.any { it.stepKind == AgentToolKind.READ_PROJECT_FILE.name && it.status == "COMPLETED" })
+        assertTrue(trace.any { it.stepKind == AgentToolKind.LIST_WORKSPACE.name && it.status == "COMPLETED" })
+        assertTrue(trace.any { it.stepKind == AgentToolKind.SEARCH_PROJECT_FILES.name && it.status == "COMPLETED" })
+        assertFalse(trace.any { it.safeSummary.contains("trace-must-not-store-this") || it.safeSummary.contains("secret phrase") })
+    }
+
+    @Test
+    fun `workspace tool is rejected when disabled or aimed at another project`() = runBlocking {
+        val profile = saveProfile(enabledTools = setOf(AgentToolKind.READ_PROJECT_FILE))
+        workspace.writeText("project-a", "docs/readme.md", "private local content")
+        val run = runtime.start(profile, "Respect profile boundaries")
+
+        val wrongProject = runtime.requestTool(
+            run,
+            "project-b",
+            1,
+            AgentToolRequest.ReadProjectFile("docs/readme.md")
+        )
+        val disabled = runtime.requestTool(run, "project-a", 2, AgentToolRequest.ListWorkspace)
+
+        assertTrue(wrongProject is AgentToolResult.Rejected)
+        assertTrue(disabled is AgentToolResult.Rejected)
+        val trace = repository.observeAgentRunSteps(run.id).first()
+        assertTrue(trace.any { it.position == 1 && it.safeSummary.contains("limited to the Agent profile project") })
+        assertTrue(trace.any { it.position == 2 && it.safeSummary.contains("disabled in the Agent profile") })
+    }
+
+    @Test
+    fun `read-only workspace tools consume the same tool-call budget`() = runBlocking {
+        val profile = saveProfile(
+            maxSteps = 3,
+            maxToolCalls = 1,
+            enabledTools = setOf(AgentToolKind.READ_PROJECT_FILE, AgentToolKind.LIST_WORKSPACE)
+        )
+        workspace.writeText("project-a", "docs/readme.md", "bounded")
+        val run = runtime.start(profile, "Stay within read-only budget")
+
+        val first = runtime.requestTool(run, "project-a", 1, AgentToolRequest.ReadProjectFile("docs/readme.md"))
+        val overflow = runtime.requestTool(run, "project-a", 2, AgentToolRequest.ListWorkspace)
+
+        assertTrue(first is AgentToolResult.Completed)
+        assertTrue(overflow is AgentToolResult.Rejected)
+        assertEquals(AgentRunStatus.FAILED.name, repository.findAgentRun(run.id)?.status)
+    }
+
+    @Test
     fun `cancellation stops a pending write and invalidates its approval`() = runBlocking {
         val profile = saveProfile()
         val run = runtime.start(profile, "Wait for write approval")
@@ -200,8 +266,16 @@ class BasicAgentRuntimeTest {
         assertFalse(runCatching { workspace.readText("project-a", "notes/cancelled.md") }.isSuccess)
     }
 
-    private suspend fun saveProfile(maxSteps: Int = 6, maxToolCalls: Int = 6): AgentProfileEntity {
-        val profile = newProfile(maxSteps = maxSteps, maxToolCalls = maxToolCalls)
+    private suspend fun saveProfile(
+        maxSteps: Int = 6,
+        maxToolCalls: Int = 6,
+        enabledTools: Set<AgentToolKind> = setOf(
+            AgentToolKind.CALCULATE,
+            AgentToolKind.CURRENT_TIME,
+            AgentToolKind.WRITE_PROJECT_FILE
+        )
+    ): AgentProfileEntity {
+        val profile = newProfile(maxSteps = maxSteps, maxToolCalls = maxToolCalls, enabledTools = enabledTools)
         repository.saveAgentProfile(profile)
         return profile
     }
@@ -209,7 +283,12 @@ class BasicAgentRuntimeTest {
     private fun newProfile(
         targetId: String = "combo-a",
         maxSteps: Int = 6,
-        maxToolCalls: Int = 6
+        maxToolCalls: Int = 6,
+        enabledTools: Set<AgentToolKind> = setOf(
+            AgentToolKind.CALCULATE,
+            AgentToolKind.CURRENT_TIME,
+            AgentToolKind.WRITE_PROJECT_FILE
+        )
     ): AgentProfileEntity {
         val now = clock.getAndIncrement()
         return AgentProfileEntity(
@@ -220,7 +299,7 @@ class BasicAgentRuntimeTest {
             targetId = targetId,
             accountId = null,
             projectId = "project-a",
-            enabledToolsCsv = "CALCULATE,CURRENT_TIME,WRITE_PROJECT_FILE",
+            enabledToolsCsv = enabledTools.joinToString(",") { it.name },
             maxSteps = maxSteps,
             maxToolCalls = maxToolCalls,
             maxRuntimeMs = 60_000L,

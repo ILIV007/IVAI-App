@@ -24,6 +24,7 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
@@ -161,7 +162,7 @@ fun AgentsScreen(
         AgentProfileEditor(
             availableTargets = state.availableTargets,
             onDismiss = { profileEditorOpen = false },
-            onCreate = { name, instructions, target, projectId ->
+            onCreate = { name, instructions, target, projectId, enabledTools ->
                 onCreateAgent(
                     name,
                     instructions,
@@ -169,7 +170,7 @@ fun AgentsScreen(
                     target.targetId,
                     target.accountId,
                     projectId,
-                    setOf(AgentToolKind.CALCULATE, AgentToolKind.CURRENT_TIME, AgentToolKind.WRITE_PROJECT_FILE),
+                    enabledTools,
                     8,
                     6,
                     60_000L
@@ -333,12 +334,23 @@ private fun runStatusColor(status: AgentRunStatus): Color = when (status) {
 private fun AgentProfileEditor(
     availableTargets: List<AgentTargetOption>,
     onDismiss: () -> Unit,
-    onCreate: (String, String, AgentTargetOption, String?) -> Unit
+    onCreate: (String, String, AgentTargetOption, String?, Set<AgentToolKind>) -> Unit
 ) {
     var name by remember { mutableStateOf("") }
     var instructions by remember { mutableStateOf("") }
     var selectedTarget by remember(availableTargets) { mutableStateOf(availableTargets.firstOrNull()) }
     var projectId by remember { mutableStateOf("") }
+    var enabledTools by remember {
+        mutableStateOf(setOf(AgentToolKind.CALCULATE, AgentToolKind.CURRENT_TIME))
+    }
+    val workspaceToolSelected = enabledTools.any { tool ->
+        tool in setOf(
+            AgentToolKind.READ_PROJECT_FILE,
+            AgentToolKind.LIST_WORKSPACE,
+            AgentToolKind.SEARCH_PROJECT_FILES,
+            AgentToolKind.WRITE_PROJECT_FILE
+        )
+    }
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text("Add local Agent profile") },
@@ -365,11 +377,43 @@ private fun AgentProfileEditor(
                         }
                     }
                 }
-                OutlinedTextField(projectId, { projectId = it }, label = { Text("Project ID for writes (optional)") }, singleLine = true)
+                OutlinedTextField(
+                    projectId,
+                    { projectId = it },
+                    label = { Text("Project ID for Workspace tools") },
+                    supportingText = {
+                        Text("Required when read, list, search, or write is enabled. All file access stays inside this one project.")
+                    },
+                    singleLine = true
+                )
+                Text("Enabled local tools", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
+                AgentToolKind.entries.forEach { tool ->
+                    FilterChip(
+                        selected = tool in enabledTools,
+                        onClick = {
+                            enabledTools = if (tool in enabledTools) enabledTools - tool else enabledTools + tool
+                        },
+                        label = { Text(tool.name) },
+                        modifier = Modifier.fillMaxWidth().testTag("agent_tool_${tool.name.lowercase()}")
+                    )
+                }
+                Text(
+                    "Read-only results are bounded and remain local. Every write requires Allow once.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.secondary
+                )
             }
         },
         confirmButton = {
-            Button(onClick = { selectedTarget?.let { target -> onCreate(name, instructions, target, projectId.ifBlank { null }) } }, enabled = name.isNotBlank() && instructions.isNotBlank() && selectedTarget != null) {
+            Button(
+                onClick = {
+                    selectedTarget?.let { target ->
+                        onCreate(name, instructions, target, projectId.ifBlank { null }, enabledTools)
+                    }
+                },
+                enabled = name.isNotBlank() && instructions.isNotBlank() && selectedTarget != null &&
+                    (!workspaceToolSelected || projectId.isNotBlank())
+            ) {
                 Text("Create profile")
             }
         },

@@ -14,13 +14,26 @@ sealed interface AgentToolRequest {
         override val kind = AgentToolKind.CURRENT_TIME
     }
 
+    data class ReadProjectFile(val relativePath: String) : AgentToolRequest {
+        override val kind = AgentToolKind.READ_PROJECT_FILE
+    }
+
+    data object ListWorkspace : AgentToolRequest {
+        override val kind = AgentToolKind.LIST_WORKSPACE
+    }
+
+    data class SearchProjectFiles(val query: String) : AgentToolRequest {
+        override val kind = AgentToolKind.SEARCH_PROJECT_FILES
+    }
+
     data class WriteProjectFile(val relativePath: String, val content: String) : AgentToolRequest {
         override val kind = AgentToolKind.WRITE_PROJECT_FILE
     }
 }
 
 sealed interface AgentToolResult {
-    data class Completed(val safeSummary: String) : AgentToolResult
+    /** [observation] is returned only in-memory to the runtime caller and is never a trace payload. */
+    data class Completed(val safeSummary: String, val observation: String? = null) : AgentToolResult
     data class RequiresApproval(val targetPath: String, val preview: String) : AgentToolResult
     data class Rejected(val safeReason: String) : AgentToolResult
 }
@@ -33,6 +46,11 @@ class AgentToolRegistry(
         is AgentToolRequest.Calculate -> calculate(request.expression)
         AgentToolRequest.CurrentTime -> AgentToolResult.Completed(
             "UTC time: ${Instant.ofEpochMilli(nowEpochMs()).atOffset(ZoneOffset.UTC)}"
+        )
+        is AgentToolRequest.ReadProjectFile,
+        AgentToolRequest.ListWorkspace,
+        is AgentToolRequest.SearchProjectFiles -> AgentToolResult.Rejected(
+            "Workspace tools must be evaluated by the bounded local runtime."
         )
         is AgentToolRequest.WriteProjectFile -> {
             val path = request.relativePath.trim()

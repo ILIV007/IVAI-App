@@ -266,7 +266,7 @@ interface AgentRunStepDao {
     @Query("SELECT * FROM agent_run_steps WHERE run_id = :runId ORDER BY position ASC, id ASC")
     fun observeForRun(runId: String): Flow<List<AgentRunStepEntity>>
 
-    @Query("SELECT COUNT(*) FROM agent_run_steps WHERE run_id = :runId AND step_kind IN ('CALCULATE', 'CURRENT_TIME', 'WRITE_PROJECT_FILE')")
+    @Query("SELECT COUNT(*) FROM agent_run_steps WHERE run_id = :runId AND step_kind IN ('CALCULATE', 'CURRENT_TIME', 'READ_PROJECT_FILE', 'LIST_WORKSPACE', 'SEARCH_PROJECT_FILES', 'WRITE_PROJECT_FILE')")
     suspend fun countToolCallsForRun(runId: String): Int
 
     @Upsert

@@ -16,6 +16,7 @@
 | Chat target | Thread از Direct Model یا Combo انتخاب‌شدهٔ کاربر استفاده می‌کند. | Gemini target ثابت محصول نیست. |
 | Router/Combo | Comboهای ترتیبی، capability matching، fallback کنترل‌شده و Attempt Trace محلی وجود دارند. | Router provider جدیدی را به‌صورت ضمنی اضافه نمی‌کند. |
 | Agent profile | profile فقط Direct Model معتبر یا Combo فعال دارای candidate قابل‌استفاده می‌پذیرد. | target آزاد و نامعتبر پیش از persist و پیش از start run رد می‌شود. |
+| Agent read-only tools | profile ابزارهای read/list/search را صریحاً انتخاب می‌کند؛ runtime آنها را به project همان profile و limitهای app-private محدود می‌کند. | observation فایل فقط در حافظه است و محتوای آن وارد Run Trace نمی‌شود. |
 | Agent mutation | write در workspace خصوصی فقط پس از preview و Allow once انجام می‌شود. | always-allow و replay خودکار پس از restart وجود ندارد. |
 
 ## شواهد Provider-neutral بودن
@@ -29,7 +30,6 @@
 
 | اولویت | مورد | دلیل |
 |---|---|---|
-| P1 | Safe workspace read/list/search tools با limit و trace | تکمیل محدودهٔ read-only Agent بدون افزایش سطح mutation. |
 | P1 | RTL، accessibility، device و performance evidence | release gate رودمپ به artefact قابل‌تکرار نیاز دارد. |
 | P1 | Signed APK، SHA-256، release notes و known limitations | پیش‌نیاز انتشار GitHub Alpha است. |
 

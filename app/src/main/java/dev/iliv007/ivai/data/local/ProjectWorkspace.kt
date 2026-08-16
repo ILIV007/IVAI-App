@@ -26,6 +26,102 @@ class ProjectWorkspace(
     fun readText(projectId: String, relativePath: String): String =
         resolveProjectFile(projectId, relativePath).readText(Charsets.UTF_8)
 
+    /**
+     * Reads an app-private project file through the Agent-safe boundary. The complete content is
+     * never persisted by this method; callers receive at most [maxChars] in memory and should only
+     * persist metadata in run traces.
+     */
+    fun readTextBounded(
+        projectId: String,
+        relativePath: String,
+        maxChars: Int = DEFAULT_MAX_READ_CHARS
+    ): BoundedProjectFileRead {
+        require(maxChars in 1..DEFAULT_MAX_READ_CHARS) { "Read preview limit is invalid" }
+        val target = resolveProjectFile(projectId, relativePath)
+        require(target.isFile) { "Project file was not found" }
+        val byteCount = target.length()
+        require(byteCount <= MAX_AGENT_READ_BYTES) { "Project file exceeds the Agent read limit" }
+        val content = target.readText(Charsets.UTF_8)
+        return BoundedProjectFileRead(
+            relativePath = validateRelativePath(relativePath),
+            content = content.take(maxChars),
+            byteCount = byteCount,
+            totalCharCount = content.length,
+            isTruncated = content.length > maxChars
+        )
+    }
+
+    /** Lists a bounded, app-private project directory without exposing canonical device paths. */
+    fun listFilesBounded(
+        projectId: String,
+        maxEntries: Int = DEFAULT_MAX_LIST_ENTRIES
+    ): ProjectWorkspaceFileListing {
+        require(maxEntries in 1..DEFAULT_MAX_LIST_ENTRIES) { "Workspace list limit is invalid" }
+        val projectDirectory = projectDirectory(projectId)
+        if (!projectDirectory.exists()) return ProjectWorkspaceFileListing(emptyList(), false)
+
+        val entries = mutableListOf<ProjectWorkspaceFile>()
+        var isTruncated = false
+        for (candidate in projectDirectory.walkTopDown()) {
+            if (!candidate.isFile) continue
+            val canonicalFile = candidate.canonicalFile
+            requireInside(projectDirectory, canonicalFile)
+            if (entries.size >= maxEntries) {
+                isTruncated = true
+                break
+            }
+            entries += ProjectWorkspaceFile(
+                relativePath = validateRelativePath(canonicalFile.relativeTo(projectDirectory).invariantSeparatorsPath),
+                byteCount = canonicalFile.length()
+            )
+        }
+        return ProjectWorkspaceFileListing(entries.sortedBy { it.relativePath }, isTruncated)
+    }
+
+    /**
+     * Performs literal, case-insensitive search only inside bounded app-private text files. File
+     * previews are returned in memory for the caller; trace callers must retain summaries only.
+     */
+    fun searchTextBounded(
+        projectId: String,
+        query: String,
+        maxResults: Int = DEFAULT_MAX_SEARCH_RESULTS
+    ): ProjectWorkspaceSearchResult {
+        val normalizedQuery = query.trim()
+        require(normalizedQuery.length in 1..MAX_SEARCH_QUERY_CHARS) { "Search query is invalid" }
+        require(maxResults in 1..DEFAULT_MAX_SEARCH_RESULTS) { "Search result limit is invalid" }
+
+        val listing = listFilesBounded(projectId, DEFAULT_MAX_LIST_ENTRIES)
+        val hits = mutableListOf<ProjectWorkspaceSearchHit>()
+        var scannedFileCount = 0
+        var skippedLargeFileCount = 0
+        var isTruncated = listing.isTruncated
+        for (entry in listing.files) {
+            if (entry.byteCount > MAX_AGENT_READ_BYTES) {
+                skippedLargeFileCount += 1
+                continue
+            }
+            val read = runCatching { readTextBounded(projectId, entry.relativePath) }.getOrNull() ?: continue
+            scannedFileCount += 1
+            val matchIndex = read.content.indexOf(normalizedQuery, ignoreCase = true)
+            if (matchIndex < 0) continue
+            if (hits.size >= maxResults) {
+                isTruncated = true
+                break
+            }
+            val previewStart = (matchIndex - SEARCH_PREVIEW_CONTEXT_CHARS).coerceAtLeast(0)
+            val previewEnd = (matchIndex + normalizedQuery.length + SEARCH_PREVIEW_CONTEXT_CHARS)
+                .coerceAtMost(read.content.length)
+            hits += ProjectWorkspaceSearchHit(
+                relativePath = entry.relativePath,
+                preview = read.content.substring(previewStart, previewEnd)
+                    .replace(Regex("\\s+"), " ")
+                    .take(MAX_SEARCH_PREVIEW_CHARS)
+            )
+        }
+        return ProjectWorkspaceSearchResult(hits, scannedFileCount, skippedLargeFileCount, isTruncated)
+    }
+
     fun importFile(projectId: String, relativePath: String, source: File) {
         require(source.isFile) { "Import source must be a regular file" }
         val canonicalSource = source.canonicalFile
@@ -165,12 +261,40 @@ class ProjectWorkspace(
     }
 
     companion object {
+        const val MAX_AGENT_READ_BYTES = 64 * 1024
+        const val DEFAULT_MAX_READ_CHARS = 8 * 1024
+        const val DEFAULT_MAX_LIST_ENTRIES = 100
+        const val DEFAULT_MAX_SEARCH_RESULTS = 20
+        private const val MAX_SEARCH_QUERY_CHARS = 128
+        private const val SEARCH_PREVIEW_CONTEXT_CHARS = 96
+        private const val MAX_SEARCH_PREVIEW_CHARS = 240
         private val projectIdPattern = Regex("[a-zA-Z0-9][a-zA-Z0-9._-]{0,63}")
 
         fun appPrivate(context: Context): ProjectWorkspace =
             ProjectWorkspace(File(context.applicationContext.filesDir, "ivai/projects"))
     }
 }
+
+data class BoundedProjectFileRead(
+    val relativePath: String,
+    val content: String,
+    val byteCount: Long,
+    val totalCharCount: Int,
+    val isTruncated: Boolean
+)
+
+data class ProjectWorkspaceFile(val relativePath: String, val byteCount: Long)
+
+data class ProjectWorkspaceFileListing(val files: List<ProjectWorkspaceFile>, val isTruncated: Boolean)
+
+data class ProjectWorkspaceSearchHit(val relativePath: String, val preview: String)
+
+data class ProjectWorkspaceSearchResult(
+    val hits: List<ProjectWorkspaceSearchHit>,
+    val scannedFileCount: Int,
+    val skippedLargeFileCount: Int,
+    val isTruncated: Boolean
+)
 
 data class WorkspaceArchiveFile(
     val projectId: String,

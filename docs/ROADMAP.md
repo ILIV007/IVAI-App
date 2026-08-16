@@ -34,9 +34,11 @@
 
 ## Phase 5 — Bounded Agent
 
-**Goal:** If retained in Alpha, provide safe-read tools and at most one user-confirmed write tool with limits, trace, cancellation, and workspace isolation.
+**Goal:** Provide profile-selected safe read tools and at most one user-confirmed write tool with limits, trace, cancellation, and workspace isolation.
 
-**Gate:** No mutation happens without approval; every step is traceable; cancellation is clean.
+**Current state:** Calculation, current time, bounded project-file read, bounded workspace list, and bounded literal project search are local read-only tools. Workspace tools are confined to the profile project; observations remain in memory and traces retain only safe summaries. Project-file write remains the single mutation tool and requires preview plus Allow once.
+
+**Gate:** No mutation happens without approval; every step is traceable; cancellation is clean; profile tool policy, project confinement, bounded path/size/result behavior, and non-persistence of file observations have regression coverage.
 
 ## Phase 6 — Hardening and GitHub Alpha release
 

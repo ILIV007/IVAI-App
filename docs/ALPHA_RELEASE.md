@@ -11,7 +11,7 @@ The current repository is **not yet approved for a public GitHub Alpha release**
 | Protected CI | Secret scan and Android build/unit-test/lint green on the release commit. | Required at release time. |
 | Agent safety | Target validation, one-time approval, cancellation, budgets, restart recovery, and trace tests. | Implemented; rerun on release candidate. |
 | Provider-neutral UX | No implicit provider/target; empty states and registry-derived target selection. | Implemented; rerun UI checks on release candidate. |
-| Safe read-only Agent scope | Workspace read/list/search tools have bounded path, size, preview, trace, and test coverage, or are explicitly excluded from the release scope. | Pending scope decision/implementation. |
+| Safe read-only Agent scope | Workspace read/list/search tools have bounded path, size, preview, trace, and test coverage, or are explicitly excluded from the release scope. | Implemented in the bounded local runtime; rerun safety tests on the release candidate. |
 | RTL and accessibility | Force-RTL, mixed BiDi, TalkBack/semantics, touch-target, contrast, and screenshot evidence. | Pending. |
 | Device matrix | Fresh install, upgrade, restart, offline, and rotation checks on the agreed Android API/device matrix. | Pending. |
 | Migration/recovery | Legacy upgrade, reopen, corrupted import, delete-all-data, and local reset evidence. | Partially automated; release evidence pending. |
@@ -51,7 +51,7 @@ Release notes must include the following sections:
 
 1. **What this Alpha is:** a local-first, backendless, BYOK Android Agent Harness.
 2. **What users control:** providers, accounts, endpoints, models, Combos, execution targets, Agent profiles, and local project workspace.
-3. **Security boundaries:** secrets remain device-local; writes require Allow once; no automatic write replay after restart; no Shell, Termux, Accessibility automation, MCP server, or backend proxy.
+3. **Security boundaries:** secrets remain device-local; workspace reads, lists, and searches are confined to the profile project and bounded; writes require Allow once; no automatic write replay after restart; no Shell, Termux, Accessibility automation, MCP server, or backend proxy.
 4. **Known limitations:** all unfinished items from the gate table and any accepted product limitations.
 5. **Installation and verification:** Android compatibility, APK checksum verification, and how to report a non-sensitive issue.
 6. **Upgrade and rollback:** local-data warning, backup/export guidance, and the prior release/tag used for rollback.
