@@ -47,6 +47,7 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import dev.iliv007.ivai.provider.ProviderCapability
 import dev.iliv007.ivai.provider.ProviderKind
 import dev.iliv007.ivai.ui.theme.IvaiError
 import dev.iliv007.ivai.ui.theme.IvaiWarning
@@ -57,7 +58,7 @@ fun SettingsScreen(
     isDarkTheme: Boolean = false,
     onToggleTheme: () -> Unit = {},
     providerManagementState: ProviderManagementState = ProviderManagementState(),
-    onAddProvider: (ProviderKind, String, String?, String, String, String) -> Unit = { _, _, _, _, _, _ -> },
+    onAddProvider: (ProviderKind, String, String?, String, String, Set<ProviderCapability>, String) -> Unit = { _, _, _, _, _, _, _ -> },
     onDeleteProvider: (String) -> Unit = {},
     onSetProviderEnabled: (String, Boolean) -> Unit = { _, _ -> },
     onDismissProviderError: () -> Unit = {},
