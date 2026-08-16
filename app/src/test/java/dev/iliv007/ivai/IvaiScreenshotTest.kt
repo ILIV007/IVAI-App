@@ -30,8 +30,8 @@ class IvaiScreenshotTest {
             }
         }
 
-        composeTestRule.onNodeWithTag("ivai_brand_logo").assertIsDisplayed()
-        composeTestRule.onNodeWithContentDescription("IVAI brand logo").assertIsDisplayed()
+        composeTestRule.onNodeWithTag("ivai_wordmark").assertIsDisplayed()
+        composeTestRule.onNodeWithContentDescription("IVAI wordmark").assertIsDisplayed()
         composeTestRule.onRoot().captureRoboImage(filePath = "src/test/screenshots/ivai_main.png")
     }
 }

@@ -15,7 +15,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AutoAwesome
@@ -46,13 +45,13 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.PopupProperties
-import dev.iliv007.ivai.R
 import dev.iliv007.ivai.ui.model.UiPreviewState
 import dev.iliv007.ivai.ui.theme.CyanPrimary
 import dev.iliv007.ivai.ui.theme.IvaiError
@@ -124,24 +123,16 @@ fun IvaiTopBar(
                 Row(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Image(
-                        painter = androidx.compose.ui.res.painterResource(R.drawable.ivai_brand_reference),
-                        contentDescription = "IVAI brand logo",
-                        contentScale = ContentScale.Crop,
-                        modifier = Modifier
-                            .size(32.dp)
-                            .clip(CircleShape)
-                            .border(1.dp, MaterialTheme.colorScheme.secondary.copy(alpha = 0.55f), CircleShape)
-                            .testTag("ivai_brand_logo")
-                    )
-                    Spacer(modifier = Modifier.width(9.dp))
                     Text(
                         text = "IVAI",
                         style = MaterialTheme.typography.titleLarge.copy(
                             fontWeight = FontWeight.Black,
                             letterSpacing = 1.2.sp
                         ),
-                        color = MaterialTheme.colorScheme.onSurface
+                        color = MaterialTheme.colorScheme.onSurface,
+                        modifier = Modifier
+                            .semantics { contentDescription = "IVAI wordmark" }
+                            .testTag("ivai_wordmark")
                     )
 
                     if (subtitle != null) {

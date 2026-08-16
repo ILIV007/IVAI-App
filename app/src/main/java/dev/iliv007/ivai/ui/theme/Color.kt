@@ -37,7 +37,7 @@ val IvaiSuccessLight = Color(0xFF059669)       // Mint emerald
 // ==========================================
 // IVAI Dark Palette (Cyber Obsidian & Neon Aurora)
 // ==========================================
-val IvaiBackground = Color(0xFF101432)         // Deep indigo background from the supplied brand mark
+val IvaiBackground = Color(0xFF101432)         // Deep indigo foundation for the independent IVAI UI
 val IvaiSurface = Color(0xFF171C40)            // Rich indigo-slate surface
 val IvaiElevated = Color(0xFF202652)           // Elevated aurora container
 val IvaiSurfaceVariant = Color(0xFF2B3165)     // Interactive chip surface
@@ -65,7 +65,7 @@ val IvaiWarning = Color(0xFFFFB020)            // Amber Gold
 val IvaiSuccess = Color(0xFF00E599)            // Cyber Emerald
 
 // ==========================================
-// Modern Dynamic Gradients
+// Decorative IVAI UI gradients — never use as a state, text, or launcher-art substitute
 // ==========================================
 val IvaiPrimaryGradient = Brush.linearGradient(
     listOf(Color(0xFF4EE8B5), Color(0xFF56E2EF))
@@ -82,7 +82,7 @@ val IvaiUserBubbleGradient = Brush.linearGradient(
 val IvaiAssistantBubbleGradient = Brush.linearGradient(
     listOf(Color(0xFF131D2E), Color(0xFF0F1724))
 )
-val IvaiBrandGradient = Brush.linearGradient(
+val IvaiAccentGradient = Brush.linearGradient(
     listOf(Color(0xFF4EE8B5), Color(0xFFAB6AF5))
 )
 
