@@ -87,6 +87,9 @@ fun IvaiSidebarContent(
     onSelectProject: (String?) -> Unit = {},
     onNewChatClick: () -> Unit = {},
     onDeleteThread: (String) -> Unit = {},
+    executionStatusLabel: String = "No local execution target selected",
+    executionStatusDetail: String = "Configure Provider or Router to begin.",
+    executionTargetAvailable: Boolean = false,
     isDarkTheme: Boolean = false,
     onToggleTheme: () -> Unit = {},
     modifier: Modifier = Modifier
@@ -737,12 +740,12 @@ fun IvaiSidebarContent(
                     modifier = Modifier
                         .size(7.dp)
                         .clip(CircleShape)
-                        .background(CyanPrimary)
+                        .background(if (executionTargetAvailable) JadePrimary else MaterialTheme.colorScheme.outlineVariant)
                 )
                 Spacer(modifier = Modifier.width(6.dp))
                 Column {
                     Text(
-                        text = "Gemini 2.5 Flash • BYOK",
+                        text = executionStatusLabel,
                         style = MaterialTheme.typography.labelSmall.copy(
                             fontWeight = FontWeight.Bold,
                             fontSize = 10.sp
@@ -750,7 +753,7 @@ fun IvaiSidebarContent(
                         color = MaterialTheme.colorScheme.onSurface
                     )
                     Text(
-                        text = "Router: Dynamic Latency • 42ms",
+                        text = executionStatusDetail,
                         style = MaterialTheme.typography.labelSmall.copy(
                             fontSize = 8.5.sp
                         ),

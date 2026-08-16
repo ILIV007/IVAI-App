@@ -83,6 +83,22 @@ fun IvaiMainApp(
         scope.launch { drawerState.close() }
     }
 
+    val enabledComboCount = routerManagementState.combos.count { it.enabled }
+    val enabledConnectionCount = providerManagementState.connections.count { it.enabled }
+    val executionTargetAvailable = enabledComboCount > 0 || enabledConnectionCount > 0
+    val executionStatusLabel = when {
+        enabledComboCount > 0 -> "$enabledComboCount local Combo${if (enabledComboCount == 1) "" else "s"} ready"
+        enabledConnectionCount > 0 -> "$enabledConnectionCount local provider connection${if (enabledConnectionCount == 1) "" else "s"} ready"
+        else -> "No local execution target selected"
+    }
+    val executionStatusDetail = routerManagementState.latestAttempts.firstOrNull()?.let { attempt ->
+        "Last router attempt: ${attempt.outcome.name}"
+    } ?: if (executionTargetAvailable) {
+        "Choose a model or Combo for each chat."
+    } else {
+        "Configure Provider or Router to begin."
+    }
+
     // The app chrome is deliberately LTR in Alpha. Individual message components
     // resolve BiDi direction from their own content.
     CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
@@ -110,6 +126,9 @@ fun IvaiMainApp(
                         closeDrawer()
                     },
                     onDeleteThread = resolvedViewModel::deleteThread,
+                    executionStatusLabel = executionStatusLabel,
+                    executionStatusDetail = executionStatusDetail,
+                    executionTargetAvailable = executionTargetAvailable,
                     isDarkTheme = isDarkTheme,
                     onToggleTheme = onToggleTheme
                 )
