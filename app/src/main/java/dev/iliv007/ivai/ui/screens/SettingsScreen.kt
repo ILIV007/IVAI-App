@@ -76,6 +76,7 @@ fun SettingsScreen(
     onSetProviderEnabled: (String, Boolean) -> Unit = { _, _ -> },
     onDismissProviderError: () -> Unit = {},
     onDeleteAllLocalData: () -> Unit = {},
+    onOpenConnections: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     LazyColumn(
@@ -172,13 +173,51 @@ fun SettingsScreen(
         }
 
         item {
-            ProviderManagementSection(
-                state = providerManagementState,
-                onAddProvider = onAddProvider,
-                onDeleteProvider = onDeleteProvider,
-                onSetProviderEnabled = onSetProviderEnabled,
-                onDismissError = onDismissProviderError
-            )
+            Surface(
+                color = MaterialTheme.colorScheme.surface,
+                shape = RoundedCornerShape(14.dp),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(14.dp))
+                    .testTag("settings_connections_shortcut")
+            ) {
+                Row(
+                    modifier = Modifier.padding(16.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(36.dp)
+                            .clip(RoundedCornerShape(8.dp))
+                            .background(MaterialTheme.colorScheme.secondaryContainer),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Key,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.onSecondaryContainer,
+                            modifier = Modifier.size(18.dp)
+                        )
+                    }
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = "Connections & Combos",
+                            style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Bold),
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+                        Text(
+                            text = "Manage user-controlled providers, HTTPS trust, credentials, declared models and ordered Combos.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                    OutlinedButton(
+                        onClick = onOpenConnections,
+                        modifier = Modifier.testTag("button_open_connections_from_settings")
+                    ) { Text("Open") }
+                }
+            }
         }
 
         // Section: Security & Privacy Invariants

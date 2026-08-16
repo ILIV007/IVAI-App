@@ -109,7 +109,7 @@ fun IvaiMainApp(
                     providerManagementState = providerManagementState,
                     onSelectComboTarget = resolvedViewModel::selectComboTarget,
                     onSelectDirectTarget = resolvedViewModel::selectDirectTarget,
-                    onOpenConnections = { resolvedViewModel.selectDestination(NavDestination.SETTINGS) },
+                    onOpenConnections = { resolvedViewModel.selectDestination(NavDestination.ROUTER) },
                     modifier = Modifier.fillMaxSize()
                 )
                 NavDestination.AGENTS -> AgentsScreen(
@@ -125,6 +125,10 @@ fun IvaiMainApp(
                 NavDestination.ROUTER -> RouterScreen(
                     state = routerManagementState,
                     providers = providerManagementState,
+                    onAddProvider = resolvedViewModel::addProviderConnection,
+                    onDeleteProvider = resolvedViewModel::deleteProviderConnection,
+                    onSetProviderEnabled = resolvedViewModel::setProviderConnectionEnabled,
+                    onDismissProviderError = resolvedViewModel::clearProviderOperationError,
                     onCreateCombo = resolvedViewModel::createRouterCombo,
                     onDismissError = resolvedViewModel::clearRouterOperationError
                 )
@@ -136,7 +140,8 @@ fun IvaiMainApp(
                     onDeleteProvider = resolvedViewModel::deleteProviderConnection,
                     onSetProviderEnabled = resolvedViewModel::setProviderConnectionEnabled,
                     onDismissProviderError = resolvedViewModel::clearProviderOperationError,
-                    onDeleteAllLocalData = resolvedViewModel::deleteAllLocalData
+                    onDeleteAllLocalData = resolvedViewModel::deleteAllLocalData,
+                    onOpenConnections = { resolvedViewModel.selectDestination(NavDestination.ROUTER) }
                 )
             }
         }

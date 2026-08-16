@@ -86,12 +86,15 @@ class ExampleRobolectricTest {
         // Navigate to Connections through the destination control.
         composeTestRule.onNodeWithTag("nav_item_router").performClick()
         composeTestRule.waitForIdle()
-        composeTestRule.onNodeWithTag("router_notice_banner").assertExists()
+        composeTestRule.onNodeWithTag("connections_hub").assertExists()
 
         // Navigate to Settings through the destination control.
         composeTestRule.onNodeWithTag("nav_item_settings").performClick()
         composeTestRule.waitForIdle()
-        composeTestRule.onNodeWithTag("settings_provider_management").assertExists()
+        composeTestRule.onNodeWithTag("settings_connections_shortcut").assertExists()
+        composeTestRule.onNodeWithTag("button_open_connections_from_settings").performClick()
+        composeTestRule.waitForIdle()
+        composeTestRule.onNodeWithTag("connections_hub").assertExists()
 
         // Return to Chat through the destination control.
         composeTestRule.onNodeWithTag("nav_item_chats").performClick()
