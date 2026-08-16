@@ -1,6 +1,8 @@
 package dev.iliv007.ivai.ui.screens
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -22,9 +24,11 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExposedDropdownMenuBox
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.MenuAnchorType
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
@@ -43,14 +47,16 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
+import dev.iliv007.ivai.provider.ProviderCapability
 import dev.iliv007.ivai.provider.ProviderKind
+import dev.iliv007.ivai.provider.ProviderPresetCatalog
 import dev.iliv007.ivai.ui.viewmodel.ProviderConnectionCard
 import dev.iliv007.ivai.ui.viewmodel.ProviderManagementState
 
 @Composable
 fun ProviderManagementSection(
     state: ProviderManagementState,
-    onAddProvider: (ProviderKind, String, String?, String, String, String) -> Unit,
+    onAddProvider: (ProviderKind, String, String?, String, String, Set<ProviderCapability>, String) -> Unit,
     onDeleteProvider: (String) -> Unit,
     onSetProviderEnabled: (String, Boolean) -> Unit,
     onDismissError: () -> Unit,
@@ -94,7 +100,7 @@ fun ProviderManagementSection(
 
                 if (state.connections.isEmpty()) {
                     Text(
-                        text = "No local provider connections yet. Add Gemini, OpenRouter, or a custom OpenAI-compatible endpoint.",
+                        text = "No local provider connections yet. Choose a user-managed preset or configure a custom HTTPS OpenAI-compatible endpoint.",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -130,8 +136,8 @@ fun ProviderManagementSection(
     if (showAddDialog) {
         AddProviderDialog(
             onDismiss = { showAddDialog = false },
-            onSave = { kind, name, endpoint, account, model, secret ->
-                onAddProvider(kind, name, endpoint, account, model, secret)
+            onSave = { kind, name, endpoint, account, model, capabilities, secret ->
+                onAddProvider(kind, name, endpoint, account, model, capabilities, secret)
                 showAddDialog = false
             }
         )
@@ -156,7 +162,7 @@ private fun ProviderConnectionCardItem(
                 Column(modifier = Modifier.padding(end = 8.dp)) {
                     Text(connection.displayName, style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold))
                     Text(
-                        text = connection.kind.label() + connection.baseUrlLabel?.let { " · $it" }.orEmpty(),
+                        text = connection.kind.displayLabel() + connection.baseUrlLabel?.let { " · $it" }.orEmpty(),
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -188,72 +194,163 @@ private fun ProviderConnectionCardItem(
     }
 }
 
+private fun ProviderKind.displayLabel(): String = when (this) {
+    ProviderKind.GEMINI -> "Google Gemini"
+    ProviderKind.OPENROUTER -> "OpenRouter"
+    ProviderKind.CUSTOM_OPENAI_COMPATIBLE -> "OpenAI-compatible"
+}
+
+private const val ADVANCED_CUSTOM_PRESET_ID = "advanced-custom"
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun AddProviderDialog(
     onDismiss: () -> Unit,
-    onSave: (ProviderKind, String, String?, String, String, String) -> Unit
+    onSave: (ProviderKind, String, String?, String, String, Set<ProviderCapability>, String) -> Unit
 ) {
-    var kind by remember { mutableStateOf(ProviderKind.GEMINI) }
-    var kindMenuOpen by remember { mutableStateOf(false) }
+    var selectedPresetId by remember { mutableStateOf<String?>(null) }
+    var presetMenuOpen by remember { mutableStateOf(false) }
     var displayName by remember { mutableStateOf("") }
     var endpoint by remember { mutableStateOf("") }
-    var accountName by remember { mutableStateOf("Default") }
+    var accountName by remember { mutableStateOf("") }
     var modelId by remember { mutableStateOf("") }
     var apiKey by remember { mutableStateOf("") }
+    var capabilities by remember { mutableStateOf(setOf(ProviderCapability.TEXT, ProviderCapability.STREAMING)) }
     var validationError by remember { mutableStateOf<String?>(null) }
+    val selectedPreset = selectedPresetId?.let(ProviderPresetCatalog::find)
+    val isAdvancedCustom = selectedPresetId == ADVANCED_CUSTOM_PRESET_ID
+    val kind = selectedPreset?.kind ?: if (isAdvancedCustom) ProviderKind.CUSTOM_OPENAI_COMPATIBLE else null
+    val requiresEndpoint = kind == ProviderKind.CUSTOM_OPENAI_COMPATIBLE
+
+    fun selectPreset(id: String, name: String, baseUrl: String?) {
+        selectedPresetId = id
+        displayName = name
+        endpoint = baseUrl.orEmpty()
+        accountName = ""
+        modelId = ""
+        apiKey = ""
+        capabilities = setOf(ProviderCapability.TEXT, ProviderCapability.STREAMING)
+        validationError = null
+    }
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Add local provider") },
+        title = { Text("Add user-managed provider") },
         text = {
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text("The API key is sent directly to the encrypted vault and cannot be viewed after saving.", style = MaterialTheme.typography.bodySmall)
-                ExposedDropdownMenuBox(expanded = kindMenuOpen, onExpandedChange = { kindMenuOpen = it }) {
+            Column(
+                modifier = Modifier.verticalScroll(rememberScrollState()),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                Text(
+                    "Choose a preset or advanced custom endpoint. IVAI never creates a provider, tests a connection, or selects a model automatically.",
+                    style = MaterialTheme.typography.bodySmall
+                )
+                ExposedDropdownMenuBox(expanded = presetMenuOpen, onExpandedChange = { presetMenuOpen = it }) {
                     OutlinedTextField(
-                        value = kind.label(),
+                        value = selectedPreset?.displayName ?: if (isAdvancedCustom) "Advanced custom endpoint" else "Choose provider preset",
                         onValueChange = {},
                         readOnly = true,
-                        label = { Text("Provider type") },
-                        trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(kindMenuOpen) },
-                        modifier = Modifier.menuAnchor().fillMaxWidth()
+                        label = { Text("Connection family") },
+                        supportingText = { Text("Cloud presets use the installed provider protocol; local servers are not enabled in this Alpha flow.") },
+                        trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(presetMenuOpen) },
+                        modifier = Modifier.menuAnchor(MenuAnchorType.PrimaryNotEditable, enabled = true).fillMaxWidth().testTag("provider_preset_selector")
                     )
-                    ExposedDropdownMenu(expanded = kindMenuOpen, onDismissRequest = { kindMenuOpen = false }) {
-                        ProviderKind.entries.forEach { candidate ->
-                            DropdownMenuItem(text = { Text(candidate.label()) }, onClick = {
-                                kind = candidate
-                                kindMenuOpen = false
-                            })
+                    ExposedDropdownMenu(expanded = presetMenuOpen, onDismissRequest = { presetMenuOpen = false }) {
+                        ProviderPresetCatalog.all.forEach { preset ->
+                            DropdownMenuItem(
+                                text = { Text("${preset.displayName} · ${preset.protocolLabel}") },
+                                onClick = {
+                                    selectPreset(preset.id, preset.displayName, preset.suggestedBaseUrl)
+                                    presetMenuOpen = false
+                                }
+                            )
                         }
+                        DropdownMenuItem(
+                            text = { Text("Advanced custom OpenAI-compatible") },
+                            onClick = {
+                                selectPreset(ADVANCED_CUSTOM_PRESET_ID, "Custom OpenAI-compatible", null)
+                                presetMenuOpen = false
+                            }
+                        )
                     }
                 }
-                OutlinedTextField(value = displayName, onValueChange = { displayName = it }, label = { Text("Connection name") }, singleLine = true, modifier = Modifier.fillMaxWidth())
-                if (kind == ProviderKind.CUSTOM_OPENAI_COMPATIBLE) {
-                    OutlinedTextField(value = endpoint, onValueChange = { endpoint = it }, label = { Text("HTTPS base URL") }, singleLine = true, modifier = Modifier.fillMaxWidth())
+                if (kind != null) {
+                    Text(
+                        "${selectedPreset?.protocolLabel ?: "OpenAI-compatible"} · foreground requests only · no provider is made default",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.secondary
+                    )
+                    OutlinedTextField(
+                        value = displayName,
+                        onValueChange = { displayName = it },
+                        label = { Text("Connection name") },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                    if (requiresEndpoint) {
+                        OutlinedTextField(
+                            value = endpoint,
+                            onValueChange = { endpoint = it },
+                            label = { Text("HTTPS base URL") },
+                            supportingText = { Text("Review this endpoint before saving. Device-local and LAN HTTP servers require a later explicit trust mode.") },
+                            singleLine = true,
+                            modifier = Modifier.fillMaxWidth().testTag("input_provider_endpoint")
+                        )
+                    }
+                    OutlinedTextField(
+                        value = accountName,
+                        onValueChange = { accountName = it },
+                        label = { Text("Account label") },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                    OutlinedTextField(
+                        value = modelId,
+                        onValueChange = { modelId = it },
+                        label = { Text("Model ID selected by you") },
+                        supportingText = { Text("Model discovery is a separate user-initiated action; no model is assumed by the preset.") },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth().testTag("input_provider_model_id")
+                    )
+                    Text("Declared model capabilities", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
+                    ProviderCapability.entries.forEach { capability ->
+                        FilterChip(
+                            selected = capability in capabilities,
+                            onClick = {
+                                capabilities = if (capability in capabilities) capabilities - capability else capabilities + capability
+                            },
+                            label = { Text(capability.name) },
+                            modifier = Modifier.fillMaxWidth().testTag("provider_capability_${capability.name.lowercase()}")
+                        )
+                    }
+                    Text(
+                        "The API key is written directly to the encrypted local vault and is never shown again. It is not sent until you start a foreground request.",
+                        style = MaterialTheme.typography.bodySmall
+                    )
+                    OutlinedTextField(
+                        value = apiKey,
+                        onValueChange = { apiKey = it },
+                        label = { Text("API key") },
+                        singleLine = true,
+                        visualTransformation = PasswordVisualTransformation(),
+                        modifier = Modifier.fillMaxWidth().testTag("input_provider_api_key")
+                    )
                 }
-                OutlinedTextField(value = accountName, onValueChange = { accountName = it }, label = { Text("Account label") }, singleLine = true, modifier = Modifier.fillMaxWidth())
-                OutlinedTextField(value = modelId, onValueChange = { modelId = it }, label = { Text("Manual model ID") }, singleLine = true, modifier = Modifier.fillMaxWidth())
-                OutlinedTextField(
-                    value = apiKey,
-                    onValueChange = { apiKey = it },
-                    label = { Text("API key") },
-                    singleLine = true,
-                    visualTransformation = PasswordVisualTransformation(),
-                    modifier = Modifier.fillMaxWidth().testTag("input_provider_api_key")
-                )
                 validationError?.let { Text(it, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall) }
             }
         },
         confirmButton = {
             Button(onClick = {
                 when {
+                    kind == null -> validationError = "Choose a provider preset or advanced custom endpoint."
                     displayName.isBlank() -> validationError = "A connection name is required."
+                    requiresEndpoint && endpoint.isBlank() -> validationError = "A custom HTTPS endpoint is required."
                     accountName.isBlank() -> validationError = "An account label is required."
-                    modelId.isBlank() -> validationError = "A manual model ID is required."
+                    modelId.isBlank() -> validationError = "A model ID selected by you is required."
+                    capabilities.isEmpty() -> validationError = "Choose at least one declared model capability."
                     apiKey.isBlank() -> validationError = "An API key is required."
-                    kind == ProviderKind.CUSTOM_OPENAI_COMPATIBLE && endpoint.isBlank() -> validationError = "A custom HTTPS endpoint is required."
                     else -> {
-                        onSave(kind, displayName, endpoint.takeIf { kind == ProviderKind.CUSTOM_OPENAI_COMPATIBLE }, accountName, modelId, apiKey)
+                        onSave(kind, displayName, endpoint.takeIf { requiresEndpoint }, accountName, modelId, capabilities, apiKey)
                         apiKey = ""
                     }
                 }
@@ -261,10 +358,4 @@ private fun AddProviderDialog(
         },
         dismissButton = { TextButton(onClick = { apiKey = ""; onDismiss() }) { Text("Cancel") } }
     )
-}
-
-private fun ProviderKind.label(): String = when (this) {
-    ProviderKind.GEMINI -> "Google Gemini"
-    ProviderKind.OPENROUTER -> "OpenRouter"
-    ProviderKind.CUSTOM_OPENAI_COMPATIBLE -> "Custom OpenAI-compatible"
 }

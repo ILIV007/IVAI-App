@@ -22,7 +22,8 @@ Compose UI
 | `LocalWorkspaceRepository` | Transactional local persistence, registry validation, Router references, Agent target validation, and recovery state. | Room stores credential references, not secret values. |
 | `ProjectWorkspace` | App-private project-file isolation with canonical relative-path validation and bounded read/list/search primitives. | No unrestricted external-storage or Shell file access; Agent file operations cannot escape the profile project. |
 | `EncryptedSecretVault` | Encrypted credential storage through a per-reference Android Keystore key. | Secrets are excluded from Room, traces, exports, and UI state. |
-| Provider adapters | Gemini, OpenRouter, and Custom OpenAI-compatible foreground request implementations. | A user-managed enabled connection/account/model is required before use. |
+| Provider preset catalog | Local, reviewable metadata for Gemini, OpenRouter, OpenAI, Groq, Mistral, Together, DeepSeek, Fireworks and xAI setup. | A preset provides no secret, model selection, connection, discovery or automatic network operation; cloud protocol mappings reuse installed adapters. |
+| Provider adapters | Gemini, OpenRouter, and Custom OpenAI-compatible foreground request implementations. | A user-managed enabled connection/account/model is required before use. Local-server endpoint transport is intentionally not implemented until its separate trust mode is reviewed. |
 | `SequentialRouter` | Capability-aware ordered Combo resolution, controlled fallback, and attempt trace. | No hidden fallback provider is injected. |
 | `BasicAgentRuntime` | Bounded local runs, safe tools, approval-first writes, limits, cancellation, and trace. | No always-allow write, automatic post-restart write, Shell, Termux, MCP, or background autonomy. |
 
@@ -42,4 +43,4 @@ Write content is deliberately held only in runtime memory. If Android terminates
 
 ## Architectural constraints
 
-Do not store secrets in `BuildConfig`, source code, plaintext preferences, Room plaintext, exported diagnostics, default backups, traces, or screenshots. Do not make Compose screens call a provider directly. Do not add an IVAI backend proxy to avoid local security design. Any future provider, network behavior, Agent tool, file capability, migration, or release change requires a focused review and validation evidence.
+Do not store secrets in `BuildConfig`, source code, plaintext preferences, Room plaintext, exported diagnostics, default backups, traces, or screenshots. Do not make Compose screens call a provider directly. Do not add an IVAI backend proxy to avoid local security design. Remote custom endpoints remain HTTPS-only. Support for a device-local or private-LAN model server requires a separate persisted trust mode, narrow Android cleartext allowlist, user warning and confirmation UX, credential-less policy, foreground-only discovery, and device validation; it must never be enabled as an implicit exception. Any future provider, network behavior, Agent tool, file capability, migration, or release change requires a focused review and validation evidence.

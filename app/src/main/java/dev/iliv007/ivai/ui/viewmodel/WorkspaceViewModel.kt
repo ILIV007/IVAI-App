@@ -21,6 +21,7 @@ import dev.iliv007.ivai.data.local.ProviderModelEntity
 import dev.iliv007.ivai.data.local.RouterComboEntity
 import dev.iliv007.ivai.data.local.RouterComboEntryEntity
 import dev.iliv007.ivai.provider.ChatProvider
+import dev.iliv007.ivai.provider.ProviderCapability
 import dev.iliv007.ivai.provider.ProviderKind
 import dev.iliv007.ivai.router.RouterAttemptOutcome
 import dev.iliv007.ivai.router.RouterChatSession
@@ -385,6 +386,7 @@ class WorkspaceViewModel(
         customBaseUrl: String?,
         accountDisplayName: String,
         manualModelId: String,
+        modelCapabilities: Set<ProviderCapability>,
         rawSecret: String
     ) {
         val repository = workspaceRepository ?: return
@@ -394,6 +396,7 @@ class WorkspaceViewModel(
         val reference = "provider.${kind.name.lowercase().replace('_', '.')}.${now}"
         viewModelScope.launch {
             runCatching {
+                require(modelCapabilities.isNotEmpty()) { "Choose at least one model capability." }
                 repository.saveProviderConnection(
                     ProviderConnectionEntity(
                         id = safeId,
@@ -422,7 +425,7 @@ class WorkspaceViewModel(
                         connectionId = safeId,
                         providerModelId = manualModelId.trim(),
                         displayName = manualModelId.trim(),
-                        capabilitiesCsv = "TEXT,STREAMING",
+                        capabilitiesCsv = modelCapabilities.joinToString(",") { it.name },
                         isManual = true,
                         isSelectable = true,
                         updatedAtEpochMs = now

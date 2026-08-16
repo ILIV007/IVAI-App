@@ -8,6 +8,66 @@ enum class ProviderKind(val adapterId: ProviderId) {
     GEMINI(ProviderId("gemini"))
 }
 
+/**
+ * Local, non-secret setup metadata. A preset never creates a connection, chooses a model,
+ * performs discovery, or sends a request; the user must still review and save every value.
+ */
+data class ProviderPreset(
+    val id: String,
+    val displayName: String,
+    val kind: ProviderKind,
+    val suggestedBaseUrl: String?,
+    val documentationUrl: String,
+    val protocolLabel: String,
+    val credentialRequired: Boolean = true
+) {
+    init {
+        require(id.matches(Regex("[a-z][a-z0-9-]{0,63}"))) { "Invalid provider preset ID" }
+        require(displayName.isNotBlank()) { "Provider preset name must not be blank" }
+        require(documentationUrl.startsWith("https://")) { "Provider preset documentation URL must use HTTPS" }
+        if (suggestedBaseUrl != null) ProviderEndpointPolicy.requireAllowedRemoteEndpoint(suggestedBaseUrl)
+        require(kind == ProviderKind.CUSTOM_OPENAI_COMPATIBLE || suggestedBaseUrl == null) {
+            "Managed provider presets must not override their adapter base URL"
+        }
+    }
+}
+
+/**
+ * A deliberately small, reviewable catalog for the installed provider protocols. Cloud presets map
+ * to the existing OpenAI-compatible adapter; adding a catalog row does not add an adapter, a key,
+ * an implied network call, or a default provider. Local server presets are intentionally excluded
+ * until explicit local-endpoint trust and Android cleartext policy are implemented.
+ */
+object ProviderPresetCatalog {
+    val all: List<ProviderPreset> = listOf(
+        ProviderPreset("gemini", "Google Gemini", ProviderKind.GEMINI, null, "https://ai.google.dev/gemini-api/docs", "Gemini API"),
+        ProviderPreset("openrouter", "OpenRouter", ProviderKind.OPENROUTER, null, "https://openrouter.ai/docs", "OpenRouter API"),
+        cloudOpenAiCompatible("openai", "OpenAI", "https://api.openai.com/v1", "https://platform.openai.com/docs/api-reference"),
+        cloudOpenAiCompatible("groq", "Groq", "https://api.groq.com/openai/v1", "https://console.groq.com/docs/openai"),
+        cloudOpenAiCompatible("mistral", "Mistral AI", "https://api.mistral.ai/v1", "https://docs.mistral.ai/resources/migration-guides"),
+        cloudOpenAiCompatible("together", "Together AI", "https://api.together.ai/v1", "https://docs.together.ai/docs/inference/openai-compatibility"),
+        cloudOpenAiCompatible("deepseek", "DeepSeek", "https://api.deepseek.com", "https://api-docs.deepseek.com/"),
+        cloudOpenAiCompatible("fireworks", "Fireworks AI", "https://api.fireworks.ai/inference/v1", "https://docs.fireworks.ai/tools-sdks/openai-compatibility"),
+        cloudOpenAiCompatible("xai", "xAI", "https://api.x.ai/v1", "https://docs.x.ai/developers/quickstart")
+    )
+
+    fun find(id: String): ProviderPreset? = all.firstOrNull { it.id == id }
+
+    private fun cloudOpenAiCompatible(
+        id: String,
+        displayName: String,
+        baseUrl: String,
+        documentationUrl: String
+    ) = ProviderPreset(
+        id = id,
+        displayName = displayName,
+        kind = ProviderKind.CUSTOM_OPENAI_COMPATIBLE,
+        suggestedBaseUrl = baseUrl,
+        documentationUrl = documentationUrl,
+        protocolLabel = "OpenAI-compatible"
+    )
+}
+
 /** Non-secret, persisted description of a user-controlled provider connection. */
 data class ProviderConnectionDescriptor(
     val id: String,

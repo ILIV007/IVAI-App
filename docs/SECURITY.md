@@ -20,7 +20,9 @@ Any schema, export/import, backup/restore, or local-file boundary change require
 
 Network traffic occurs only for a user-initiated foreground provider operation. Provider adapters are resolved from an enabled user-managed connection, account, and selectable model, or from an enabled Combo; the Router does not inject an implicit fallback provider. Gemini is a proof adapter, not a required application provider.
 
-Custom OpenAI-compatible endpoints require HTTPS and a nonblank host. Network gates must not log Authorization headers, raw API keys, prompt/response content by default, raw model reasoning, or unredacted secrets. The current adapter set is Gemini, OpenRouter, and Custom OpenAI-compatible.
+Custom OpenAI-compatible endpoints require HTTPS and a nonblank host. The local preset catalog may prefill reviewable, non-secret cloud endpoint metadata for supported protocols, but it never creates a connection, chooses a model, contacts a provider, or stores a credential. Network gates must not log Authorization headers, raw API keys, prompt/response content by default, raw model reasoning, or unredacted secrets. The current adapter set is Gemini, OpenRouter, and Custom OpenAI-compatible.
+
+Loopback, private-LAN and all HTTP model-server endpoints remain blocked. Enabling a user-operated Ollama, LM Studio, vLLM or other local server requires a separate security-reviewed trust mode with a narrow Android cleartext allowlist, explicit destination warning and confirmation, a credential-less account policy, foreground-only user-initiated discovery, cancellation/timeout behavior, and device evidence. It must not broaden remote endpoint policy or introduce background network discovery.
 
 ## File, export, and deletion policy
 

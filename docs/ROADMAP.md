@@ -28,9 +28,11 @@
 
 ## Phase 4 — Provider expansion and Router
 
-**Goal:** User-managed provider connections and accounts; OpenRouter and Custom OpenAI-compatible adapters alongside Gemini; manual/discovered models; a capability-aware Combo model; sequential fallback; account health; and attempt trace.
+**Goal:** User-managed provider connections and accounts; OpenRouter and Custom OpenAI-compatible adapters alongside Gemini; explicit cloud provider presets; manual/discovered models; a capability-aware Combo model; sequential fallback; account health; and attempt trace.
 
-**Gate:** Auth, timeout, 429, offline, cancellation, and fallback scenarios are verified without duplicate side effects.
+**Current state:** Gemini, OpenRouter and generic Custom OpenAI-compatible adapters are installed. A local, non-secret cloud preset catalog supports guided setup for OpenAI, Groq, Mistral, Together, DeepSeek, Fireworks and xAI without selecting a provider, model or credential automatically. Device-local and private-LAN model endpoints remain intentionally blocked pending their own trust mode, narrow Android cleartext policy, warning UX and device evidence.
+
+**Gate:** Auth, timeout, 429, offline, cancellation, and fallback scenarios are verified without duplicate side effects. Local endpoint connectivity is not part of this gate until its dedicated threat model and acceptance criteria are approved.
 
 ## Phase 5 — Bounded Agent
 
