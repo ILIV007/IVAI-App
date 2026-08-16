@@ -1,9 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <color name="ivai_splash_background">#101432</color>
-    <color name="ivai_splash_accent">#4EE8B5</color>
-    <color name="ivai_splash_violet">#AB6AF5</color>
+    <!-- ivai_system_bar is referenced by themes.xml for window/system-bar chrome -->
     <color name="ivai_system_bar">#101432</color>
-    <color name="black">#FF000000</color>
-    <color name="white">#FFFFFFFF</color>
 </resources>
