@@ -16,6 +16,8 @@ import dev.iliv007.ivai.ui.model.ChatThread
 import dev.iliv007.ivai.ui.model.MessageSender
 import dev.iliv007.ivai.ui.model.UiPreviewState
 import dev.iliv007.ivai.ui.screens.ChatsScreen
+import dev.iliv007.ivai.ui.viewmodel.RouterComboCard
+import dev.iliv007.ivai.ui.viewmodel.RouterManagementState
 import dev.iliv007.ivai.ui.theme.IvaiTheme
 import org.junit.Assert.assertEquals
 import org.junit.Rule
@@ -111,6 +113,111 @@ class ChatFoundationTest {
         composeTestRule.onNodeWithContentDescription("Stop streaming").assertIsDisplayed()
         composeTestRule.onRoot().captureRoboImage(filePath = "build/roborazzi/phase71_chat_streaming_dark.png")
     }
+
+    @Test
+    fun compact_no_thread_state_is_recordable() {
+        composeTestRule.setContent {
+            IvaiTheme(darkTheme = true) {
+                ChatsScreen(previewState = UiPreviewState.NORMAL, onResetState = {})
+            }
+        }
+
+        composeTestRule.onNodeWithTag("chat_onboarding_no_thread").assertIsDisplayed()
+        composeTestRule.onRoot().captureRoboImage(filePath = "build/roborazzi/phase71_chat_compact_no_thread_dark.png")
+    }
+
+    @Test
+    fun compact_no_connection_state_is_recordable() {
+        composeTestRule.setContent {
+            IvaiTheme(darkTheme = true) {
+                ChatsScreen(
+                    previewState = UiPreviewState.NORMAL,
+                    onResetState = {},
+                    threads = listOf(chatThread(modelOrCombo = "No execution target selected")),
+                    selectedThreadId = "thread-1"
+                )
+            }
+        }
+
+        composeTestRule.onNodeWithTag("chat_onboarding_no_connection").assertIsDisplayed()
+        composeTestRule.onRoot().captureRoboImage(filePath = "build/roborazzi/phase71_chat_compact_no_connection_dark.png")
+    }
+
+    @Test
+    fun compact_target_selection_state_is_recordable() {
+        composeTestRule.setContent {
+            IvaiTheme(darkTheme = true) {
+                ChatsScreen(
+                    previewState = UiPreviewState.NORMAL,
+                    onResetState = {},
+                    threads = listOf(chatThread(modelOrCombo = "No execution target selected")),
+                    selectedThreadId = "thread-1",
+                    routerManagementState = configuredResearchComboState()
+                )
+            }
+        }
+
+        composeTestRule.onNodeWithTag("chat_onboarding_no_target").assertIsDisplayed()
+        composeTestRule.onRoot().captureRoboImage(filePath = "build/roborazzi/phase71_chat_compact_choose_target_dark.png")
+    }
+
+    @Test
+    fun compact_target_ready_stopped_state_is_recordable() {
+        composeTestRule.setContent {
+            IvaiTheme(darkTheme = true) {
+                ChatsScreen(
+                    previewState = UiPreviewState.NORMAL,
+                    onResetState = {},
+                    threads = listOf(chatThread(modelOrCombo = "Research Combo")),
+                    selectedThreadId = "thread-1",
+                    isStreaming = false,
+                    routerManagementState = configuredResearchComboState()
+                )
+            }
+        }
+
+        composeTestRule.onNodeWithTag("chat_onboarding_ready").assertIsDisplayed()
+        composeTestRule.onNodeWithContentDescription("Send message").assertIsDisplayed()
+        composeTestRule.onRoot().captureRoboImage(filePath = "build/roborazzi/phase71_chat_compact_stopped_dark.png")
+    }
+
+    @Test
+    fun empty_preview_state_is_recordable() {
+        composeTestRule.setContent {
+            IvaiTheme(darkTheme = true) {
+                ChatsScreen(previewState = UiPreviewState.EMPTY, onResetState = {})
+            }
+        }
+
+        composeTestRule.onNodeWithTag("chat_preview_state").assertIsDisplayed()
+        composeTestRule.onNodeWithText("No messages in this conversation").assertIsDisplayed()
+        composeTestRule.onRoot().captureRoboImage(filePath = "build/roborazzi/phase71_chat_empty_dark.png")
+    }
+
+    @Test
+    fun error_preview_state_is_recordable() {
+        composeTestRule.setContent {
+            IvaiTheme(darkTheme = true) {
+                ChatsScreen(previewState = UiPreviewState.ERROR, onResetState = {})
+            }
+        }
+
+        composeTestRule.onNodeWithTag("chat_preview_state").assertIsDisplayed()
+        composeTestRule.onNodeWithText("Provider stream interrupted").assertIsDisplayed()
+        composeTestRule.onRoot().captureRoboImage(filePath = "build/roborazzi/phase71_chat_error_dark.png")
+    }
+
+    private fun configuredResearchComboState() = RouterManagementState(
+        combos = listOf(
+            RouterComboCard(
+                comboId = "research-combo",
+                displayName = "Research Combo",
+                description = "Explicit local fallback",
+                enabled = true,
+                entries = emptyList()
+            )
+        )
+    )
 
     private fun chatThread(
         modelOrCombo: String,
