@@ -1,6 +1,9 @@
 package dev.iliv007.ivai
 
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.onNodeWithContentDescription
+import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onRoot
 import com.github.takahirom.roborazzi.RobolectricDeviceQualifiers
 import com.github.takahirom.roborazzi.captureRoboImage
@@ -27,6 +30,8 @@ class IvaiScreenshotTest {
             }
         }
 
+        composeTestRule.onNodeWithTag("ivai_brand_logo").assertIsDisplayed()
+        composeTestRule.onNodeWithContentDescription("IVAI brand logo").assertIsDisplayed()
         composeTestRule.onRoot().captureRoboImage(filePath = "src/test/screenshots/ivai_main.png")
     }
 }

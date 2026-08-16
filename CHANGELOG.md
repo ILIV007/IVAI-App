@@ -16,7 +16,8 @@ All notable repository changes are documented here. IVAI has **not** published a
 - Legacy Room v1-to-v5 upgrade and reopen coverage, including safe defaults for persisted endpoint trust and authentication mode.
 - Explicit local HTTPS trust mode for Custom OpenAI-compatible loopback and RFC1918 IPv4 endpoints, with persisted user confirmation, API-key/no-auth account choice, Router eligibility, and foreground streaming transport.
 - Provider-neutral Sidebar execution status derived from local registry/router state.
-- GitHub Alpha release checklist and updated product, architecture, security, and provider-harness documentation.
+- GitHub Alpha release checklist, Phase 6 hardening readiness audit, and updated product, architecture, security, and provider-harness documentation.
+- Approved VA visual identity across adaptive/legacy launcher icons, platform launch bars, Compose palettes, and the accessible in-app TopBar logo.
 
 ### Security
 
@@ -28,6 +29,11 @@ All notable repository changes are documented here. IVAI has **not** published a
 - No always-allow Agent write behavior and no replay of pending writes after process death; profile policy and project binding are enforced before every Agent tool execution.
 - Read/list/search are app-private and bounded; their observations remain in memory and file content never enters persisted Run Trace.
 - Shell, Termux, Shizuku, Accessibility automation, unrestricted storage, unrestricted HTTP POST tools, MCP process/server execution, and background autonomy remain outside Alpha scope.
+
+### Accessibility and visual verification
+
+- Main-screen visual regression coverage now asserts that the visible VA mark has the expected semantic description before the Roborazzi capture.
+- Light/dark semantic primary, secondary and tertiary color pairs have been reviewed for AA contrast; Force-RTL, TalkBack, touch-target and physical-device visual evidence remain pending.
 
 ### Pending before a public GitHub Alpha release
 

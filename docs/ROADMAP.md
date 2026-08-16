@@ -30,9 +30,9 @@
 
 **Goal:** User-managed provider connections and accounts; OpenRouter and Custom OpenAI-compatible adapters alongside Gemini; explicit cloud provider presets; manual/discovered models; a capability-aware Combo model; sequential fallback; account health; and attempt trace.
 
-**Current state:** Gemini, OpenRouter and generic Custom OpenAI-compatible adapters are installed. A local, non-secret cloud preset catalog supports guided setup for OpenAI, Groq, Mistral, Together, DeepSeek, Fireworks and xAI without selecting a provider, model or credential automatically. Device-local and private-LAN model endpoints remain intentionally blocked pending their own trust mode, narrow Android cleartext policy, warning UX and device evidence.
+**Current state:** Gemini, OpenRouter and generic Custom OpenAI-compatible adapters are installed. A local, non-secret cloud preset catalog supports guided setup for OpenAI, Groq, Mistral, Together, DeepSeek, Fireworks and xAI without selecting a provider, model or credential automatically. Custom OpenAI-compatible local servers may be configured only through an explicit persisted **HTTPS** loopback or RFC1918 IPv4 trust mode, user confirmation, and API-key/no-auth selection. HTTP, `.local`/mDNS discovery, scanning and cleartext opt-ins remain intentionally blocked.
 
-**Gate:** Auth, timeout, 429, offline, cancellation, and fallback scenarios are verified without duplicate side effects. Local endpoint connectivity is not part of this gate until its dedicated threat model and acceptance criteria are approved.
+**Gate:** Auth, timeout, 429, offline, cancellation, and fallback scenarios are verified without duplicate side effects. The local HTTPS trust mode has a dedicated threat model plus unit/migration/transport coverage; physical-device cancellation, timeout and mixed-network evidence remain Phase 6 hardening requirements.
 
 ## Phase 5 — Bounded Agent
 
