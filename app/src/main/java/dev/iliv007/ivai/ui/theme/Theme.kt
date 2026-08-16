@@ -7,8 +7,6 @@ import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.compositionLocalOf
-import androidx.compose.ui.platform.LocalLayoutDirection
-import androidx.compose.ui.unit.LayoutDirection
 
 val LocalDarkTheme = compositionLocalOf { false }
 val LocalToggleTheme = compositionLocalOf<() -> Unit> { {} }
@@ -72,7 +70,6 @@ fun IvaiTheme(
     val colorScheme = if (darkTheme) IvaiDarkColorScheme else IvaiLightColorScheme
 
     CompositionLocalProvider(
-        LocalLayoutDirection provides LayoutDirection.Ltr,
         LocalDarkTheme provides darkTheme,
         LocalToggleTheme provides onToggleTheme
     ) {

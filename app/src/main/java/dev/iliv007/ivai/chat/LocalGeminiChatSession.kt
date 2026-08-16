@@ -14,7 +14,12 @@ import dev.iliv007.ivai.ui.model.MessageSender
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
 
-/** Foreground chat use case. Partial streamed output remains in memory until a terminal success. */
+/**
+ * Foreground chat use case — kept for reference only.
+ * This class is no longer instantiated; it will be removed in Phase 7 UI/UX Redesign.
+ * New code must use [LocalProviderChatSession] with the provider-neutral registry.
+ */
+@Deprecated("No longer used. Will be removed in Phase 7.")
 class LocalGeminiChatSession(
     private val provider: ChatProvider,
     private val workspace: LocalWorkspaceRepository,

@@ -46,7 +46,28 @@
 
 **Goal:** Security review, device/RTL/accessibility matrix, recovery validation, signed APK, checksum, release notes, and GitHub release.
 
-**Gate:** All P0 checks are green and known limitations are documented.
+**Scope:** This phase does not add new providers, Agent tools, or UI screens. It closes evidence gaps only:
+1. Remove global forced-LTR behavior; retain narrow LTR only for code/protocol blocks; capture Force-RTL, mixed BiDi, and TalkBack/semantics screenshots.
+2. Physical-device matrix: fresh install, upgrade, restart, rotation, offline, HTTPS loopback/LAN cancellation/timeout.
+3. Migration/recovery evidence: legacy upgrade, reopen, corrupted import, delete-all-data.
+4. Owner-approved release signing, reproducible build, SHA-256, annotated tag, and reviewed release notes.
+
+**Gate:** All P0 checks are green, known limitations are documented, and the owner approves the signed artifact.
+
+## Phase 7 — Full UI/UX Redesign
+
+**Goal:** Complete visual and interaction redesign of all screens — Chat, Router, Agent, Provider Management, Settings, Sidebar, and onboarding — using the IVAI brand system (indigo/emerald/violet) as the design foundation. This phase delivers a polished, production-quality UI/UX that is consistent, accessible, and optimized for the Agent Harness workflow.
+
+**Scope:**
+- Full redesign of all Compose screens and components with a unified design language
+- Improved empty states, onboarding, and provider setup flows
+- Consistent spacing, typography, elevation, and motion
+- Dark/light theme parity with the approved brand palette
+- Accessibility: TalkBack labels, touch targets, contrast, and BiDi text support
+- Screenshot/semantics baseline for all redesigned screens
+- No new provider adapters, Agent tools, or backend dependencies introduced in this phase
+
+**Gate:** All redesigned screens pass screenshot regression, accessibility semantics, and contrast checks. No behavioral regression in provider, Agent, or data layers.
 
 ## Deferred after Alpha
 

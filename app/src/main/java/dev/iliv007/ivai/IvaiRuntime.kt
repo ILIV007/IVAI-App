@@ -4,7 +4,6 @@ import android.content.Context
 import androidx.datastore.preferences.core.PreferenceDataStoreFactory
 import dev.iliv007.ivai.agent.AgentToolRegistry
 import dev.iliv007.ivai.agent.BasicAgentRuntime
-import dev.iliv007.ivai.chat.LocalGeminiChatSession
 import dev.iliv007.ivai.chat.LocalProviderChatSession
 import dev.iliv007.ivai.data.local.IvaiDatabase
 import dev.iliv007.ivai.data.local.LocalDataResetter
@@ -81,11 +80,4 @@ class IvaiRuntime(context: Context) {
         }
     }
 
-    /**
-     * Compatibility bridge for the pre-registry chat UI. It is removed when Provider Management
-     * replaces the fixed Gemini selection; new code must use [providerAdapters] and
-     * [providerChatSession].
-     */
-    @Deprecated("Use providerAdapters with providerChatSession")
-    val geminiChatSession = LocalGeminiChatSession(geminiProvider, workspaceRepository)
 }
