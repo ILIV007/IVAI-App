@@ -6,6 +6,11 @@ import dev.iliv007.ivai.data.local.AgentProfileEntity
 import dev.iliv007.ivai.data.local.IvaiDatabase
 import dev.iliv007.ivai.data.local.LocalWorkspaceRepository
 import dev.iliv007.ivai.data.local.ProjectWorkspace
+import dev.iliv007.ivai.data.local.ProviderAccountEntity
+import dev.iliv007.ivai.data.local.ProviderConnectionEntity
+import dev.iliv007.ivai.data.local.ProviderModelEntity
+import dev.iliv007.ivai.data.local.RouterComboEntity
+import dev.iliv007.ivai.data.local.RouterComboEntryEntity
 import dev.iliv007.ivai.data.local.WorkspaceProjectEntity
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
@@ -48,6 +53,7 @@ class BasicAgentRuntimeTest {
                     updatedAtEpochMs = clock.get()
                 )
             )
+            saveTargetRegistry()
         }
         workspaceRoot = Files.createTempDirectory("ivai-agent-test").toFile()
         workspace = ProjectWorkspace(workspaceRoot)
@@ -108,6 +114,29 @@ class BasicAgentRuntimeTest {
     }
 
     @Test
+    fun `invalid agent targets are rejected before profile persistence`() = runBlocking {
+        val invalid = newProfile(targetId = "missing-combo")
+
+        val result = runCatching { repository.saveAgentProfile(invalid) }
+
+        assertTrue(result.isFailure)
+        assertTrue(result.exceptionOrNull()?.message?.contains("Unknown Agent Combo target") == true)
+        assertEquals(null, repository.findAgentProfile(invalid.id))
+    }
+
+    @Test
+    fun `runtime rejects legacy profile with an invalid target before starting a run`() = runBlocking {
+        val legacyInvalid = newProfile(targetId = "removed-combo")
+        database.agentProfileDao().upsert(legacyInvalid)
+
+        val result = runCatching { runtime.start(legacyInvalid, "Do not start") }
+
+        assertTrue(result.isFailure)
+        assertTrue(result.exceptionOrNull()?.message?.contains("Unknown Agent Combo target") == true)
+        assertEquals(null, repository.findAgentRun("run-${clock.get()}"))
+    }
+
+    @Test
     fun `step budget overflow fails the run before tool evaluation`() = runBlocking {
         val profile = saveProfile(maxSteps = 1, maxToolCalls = 1)
         val run = runtime.start(profile, "Stay within budget")
@@ -117,6 +146,37 @@ class BasicAgentRuntimeTest {
         assertTrue(result is AgentToolResult.Rejected)
         assertEquals(AgentRunStatus.FAILED.name, repository.findAgentRun(run.id)?.status)
         assertTrue(repository.observeAgentRunSteps(run.id).first().any { it.status == AgentRunStatus.FAILED.name })
+    }
+
+    @Test
+    fun `process death recovery expires pending write approval without writing a file`() = runBlocking {
+        val profile = saveProfile()
+        val run = runtime.start(profile, "Wait for a write approval")
+        runtime.requestTool(
+            run,
+            projectId = "project-a",
+            position = 1,
+            request = AgentToolRequest.WriteProjectFile("notes/restart.md", "must not be replayed")
+        )
+        val approval = repository.observeAgentApprovals(run.id).first().single()
+
+        val restartedRuntime = BasicAgentRuntime(
+            repository = repository,
+            projectWorkspace = workspace,
+            tools = AgentToolRegistry { clock.get() },
+            nowEpochMs = { clock.getAndIncrement() }
+        )
+        assertEquals(1, restartedRuntime.recoverAfterProcessDeath())
+
+        assertEquals(ApprovalStatus.DENIED.name, repository.findAgentApproval(approval.id)?.status)
+        assertEquals(AgentRunStatus.FAILED.name, repository.findAgentRun(run.id)?.status)
+        assertTrue(
+            repository.observeAgentRunSteps(run.id).first().any { step ->
+                step.safeSummary.contains("no write was performed")
+            }
+        )
+        assertFalse(runCatching { workspace.readText("project-a", "notes/restart.md") }.isSuccess)
+        assertTrue(restartedRuntime.resolveWriteApproval(approval.id, allowOnce = true) is AgentToolResult.Rejected)
     }
 
     @Test
@@ -141,13 +201,23 @@ class BasicAgentRuntimeTest {
     }
 
     private suspend fun saveProfile(maxSteps: Int = 6, maxToolCalls: Int = 6): AgentProfileEntity {
+        val profile = newProfile(maxSteps = maxSteps, maxToolCalls = maxToolCalls)
+        repository.saveAgentProfile(profile)
+        return profile
+    }
+
+    private fun newProfile(
+        targetId: String = "combo-a",
+        maxSteps: Int = 6,
+        maxToolCalls: Int = 6
+    ): AgentProfileEntity {
         val now = clock.getAndIncrement()
-        val profile = AgentProfileEntity(
+        return AgentProfileEntity(
             id = "agent-$now",
             name = "Local analyst",
             instructions = "Use only bounded local tools.",
             targetKind = "COMBO",
-            targetId = "user-configured-combo",
+            targetId = targetId,
             accountId = null,
             projectId = "project-a",
             enabledToolsCsv = "CALCULATE,CURRENT_TIME,WRITE_PROJECT_FILE",
@@ -158,7 +228,22 @@ class BasicAgentRuntimeTest {
             createdAtEpochMs = now,
             updatedAtEpochMs = now
         )
-        repository.saveAgentProfile(profile)
-        return profile
+    }
+
+    private suspend fun saveTargetRegistry() {
+        val now = clock.get()
+        repository.saveProviderConnection(
+            ProviderConnectionEntity("connection-a", "CUSTOM_OPENAI_COMPATIBLE", "Local target", "https://api.example.test/v1", true, now, now)
+        )
+        repository.saveProviderAccount(
+            ProviderAccountEntity("account-a", "connection-a", "BYOK account", "provider.connection-a.account-a", true, now, now)
+        )
+        repository.saveProviderModel(
+            ProviderModelEntity("model-a", "connection-a", "model-a", "Selectable model", "TEXT,STREAMING", true, true, now)
+        )
+        repository.saveRouterCombo(
+            RouterComboEntity("combo-a", "Configured combo", "Valid local target", true, now, now),
+            listOf(RouterComboEntryEntity("entry-a", "combo-a", 0, "connection-a", "account-a", "model-a", true))
+        )
     }
 }

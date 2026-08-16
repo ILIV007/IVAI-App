@@ -87,6 +87,7 @@ class WorkspaceViewModel(
     private val selectedWorkspaceThreadId = MutableStateFlow(_uiState.value.selectedThreadId.ifBlank { null })
 
     init {
+        recoverInterruptedAgentApprovals()
         observeWorkspace()
         observeSelectedWorkspaceMessages()
         observeProviderRegistry()
@@ -781,25 +782,78 @@ class WorkspaceViewModel(
         }
     }
 
+    private fun recoverInterruptedAgentApprovals() {
+        val runtime = agentRuntime ?: return
+        viewModelScope.launch {
+            runCatching { runtime.recoverAfterProcessDeath() }
+                .onFailure { failure ->
+                    _agentManagementState.update {
+                        it.copy(operationError = failure.message ?: "Interrupted Agent approvals could not be recovered safely.")
+                    }
+                }
+        }
+    }
+
     @OptIn(ExperimentalCoroutinesApi::class)
     private fun observeAgentManagement() {
         val repository = workspaceRepository ?: return
         val traceFlow = selectedAgentRunId.flatMapLatest { runId ->
             runId?.let(repository::observeAgentRunSteps) ?: flowOf(emptyList())
         }
+        val targetOptionsFlow = combine(repository.observeProviderRegistry(), repository.observeRouter()) { registry, router ->
+            val connections = registry.connections.associateBy { it.id }
+            val accounts = registry.accounts.associateBy { it.id }
+            val models = registry.models.associateBy { it.id }
+            val directTargets = registry.models.flatMap { model ->
+                val connection = connections[model.connectionId]
+                if (connection == null || !connection.isEnabled || !model.isSelectable) {
+                    emptyList()
+                } else {
+                    registry.accounts.filter { account ->
+                        account.isEnabled && account.connectionId == connection.id
+                    }.map { account ->
+                        AgentTargetOption(
+                            targetKind = "DIRECT_MODEL",
+                            targetId = model.id,
+                            accountId = account.id,
+                            label = "Direct model: ${connection.displayName} / ${account.displayName} / ${model.displayName}"
+                        )
+                    }
+                }
+            }
+            val comboTargets = router.combos.filter { combo ->
+                combo.isEnabled && router.entries.filter { it.comboId == combo.id && it.isEnabled }.any { entry ->
+                    val connection = connections[entry.connectionId]
+                    val account = accounts[entry.accountId]
+                    val model = models[entry.modelId]
+                    connection?.isEnabled == true && account?.isEnabled == true && model?.isSelectable == true &&
+                        account.connectionId == connection.id && model.connectionId == connection.id
+                }
+            }.map { combo ->
+                AgentTargetOption(
+                    targetKind = "COMBO",
+                    targetId = combo.id,
+                    accountId = null,
+                    label = "Combo: ${combo.displayName}"
+                )
+            }
+            (directTargets + comboTargets).sortedBy { it.label }
+        }
         viewModelScope.launch {
             combine(
                 repository.observeAgentProfiles(),
                 repository.observeAllAgentRuns(),
                 repository.observePendingAgentApprovals(),
-                traceFlow
-            ) { profiles, runs, approvals, trace ->
+                traceFlow,
+                targetOptionsFlow
+            ) { profiles, runs, approvals, trace, availableTargets ->
                 val desiredRunId = selectedAgentRunId.value
                     ?.takeIf { selectedId -> runs.any { it.id == selectedId } }
                     ?: runs.firstOrNull()?.id
                 if (desiredRunId != selectedAgentRunId.value) selectedAgentRunId.value = desiredRunId
                 val profileById = profiles.associateBy { it.id }
                 AgentManagementState(
+                    availableTargets = availableTargets,
                     profiles = profiles.map { profile ->
                         AgentProfileCard(
                             profileId = profile.id,

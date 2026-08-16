@@ -49,6 +49,7 @@ import dev.iliv007.ivai.ui.viewmodel.AgentManagementState
 import dev.iliv007.ivai.ui.viewmodel.AgentProfileCard
 import dev.iliv007.ivai.ui.viewmodel.AgentRunCard
 import dev.iliv007.ivai.ui.viewmodel.AgentRunTraceStepCard
+import dev.iliv007.ivai.ui.viewmodel.AgentTargetOption
 
 /** Local Agent Alpha surface. All content is rendered from Room-backed state. */
 @Composable
@@ -158,14 +159,15 @@ fun AgentsScreen(
 
     if (profileEditorOpen) {
         AgentProfileEditor(
+            availableTargets = state.availableTargets,
             onDismiss = { profileEditorOpen = false },
-            onCreate = { name, instructions, targetKind, targetId, accountId, projectId ->
+            onCreate = { name, instructions, target, projectId ->
                 onCreateAgent(
                     name,
                     instructions,
-                    targetKind,
-                    targetId,
-                    accountId,
+                    target.targetKind,
+                    target.targetId,
+                    target.accountId,
                     projectId,
                     setOf(AgentToolKind.CALCULATE, AgentToolKind.CURRENT_TIME, AgentToolKind.WRITE_PROJECT_FILE),
                     8,
@@ -329,31 +331,45 @@ private fun runStatusColor(status: AgentRunStatus): Color = when (status) {
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun AgentProfileEditor(
+    availableTargets: List<AgentTargetOption>,
     onDismiss: () -> Unit,
-    onCreate: (String, String, String, String, String?, String?) -> Unit
+    onCreate: (String, String, AgentTargetOption, String?) -> Unit
 ) {
     var name by remember { mutableStateOf("") }
     var instructions by remember { mutableStateOf("") }
-    var targetKind by remember { mutableStateOf("") }
-    var targetId by remember { mutableStateOf("") }
-    var accountId by remember { mutableStateOf("") }
+    var selectedTarget by remember(availableTargets) { mutableStateOf(availableTargets.firstOrNull()) }
     var projectId by remember { mutableStateOf("") }
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text("Add local Agent profile") },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text("A target must be an ID you explicitly configured in Provider or Router management. No default provider is selected.", style = MaterialTheme.typography.bodySmall)
+                Text("Select a target already configured in local Provider or Router management. IVAI will not add a default provider.", style = MaterialTheme.typography.bodySmall)
                 OutlinedTextField(name, { name = it }, label = { Text("Profile name") }, singleLine = true)
                 OutlinedTextField(instructions, { instructions = it }, label = { Text("Instructions") })
-                OutlinedTextField(targetKind, { targetKind = it }, label = { Text("Target kind (DIRECT_MODEL or COMBO)") }, singleLine = true)
-                OutlinedTextField(targetId, { targetId = it }, label = { Text("Configured target ID") }, singleLine = true)
-                OutlinedTextField(accountId, { accountId = it }, label = { Text("Account ID (optional)") }, singleLine = true)
+                Text("Execution target", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
+                if (availableTargets.isEmpty()) {
+                    Text(
+                        "No enabled local Direct Model or Combo is available. Configure one first.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.error
+                    )
+                } else {
+                    availableTargets.forEach { target ->
+                        OutlinedButton(
+                            onClick = { selectedTarget = target },
+                            modifier = Modifier.fillMaxWidth(),
+                            enabled = true
+                        ) {
+                            Text(if (target == selectedTarget) "Selected: ${target.label}" else target.label)
+                        }
+                    }
+                }
                 OutlinedTextField(projectId, { projectId = it }, label = { Text("Project ID for writes (optional)") }, singleLine = true)
             }
         },
         confirmButton = {
-            Button(onClick = { onCreate(name, instructions, targetKind, targetId, accountId.ifBlank { null }, projectId.ifBlank { null }) }, enabled = name.isNotBlank() && instructions.isNotBlank() && targetKind.isNotBlank() && targetId.isNotBlank()) {
+            Button(onClick = { selectedTarget?.let { target -> onCreate(name, instructions, target, projectId.ifBlank { null }) } }, enabled = name.isNotBlank() && instructions.isNotBlank() && selectedTarget != null) {
                 Text("Create profile")
             }
         },

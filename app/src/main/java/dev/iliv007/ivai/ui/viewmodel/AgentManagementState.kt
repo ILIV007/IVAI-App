@@ -5,12 +5,20 @@ import dev.iliv007.ivai.agent.AgentToolKind
 import dev.iliv007.ivai.agent.ApprovalStatus
 
 data class AgentManagementState(
+    val availableTargets: List<AgentTargetOption> = emptyList(),
     val profiles: List<AgentProfileCard> = emptyList(),
     val activeRuns: List<AgentRunCard> = emptyList(),
     val pendingApprovals: List<AgentApprovalCard> = emptyList(),
     val selectedRunId: String? = null,
     val selectedRunTrace: List<AgentRunTraceStepCard> = emptyList(),
     val operationError: String? = null
+)
+
+data class AgentTargetOption(
+    val targetKind: String,
+    val targetId: String,
+    val accountId: String?,
+    val label: String
 )
 
 data class AgentProfileCard(
