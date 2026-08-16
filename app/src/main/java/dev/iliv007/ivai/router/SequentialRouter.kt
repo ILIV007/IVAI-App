@@ -4,7 +4,10 @@ import dev.iliv007.ivai.data.local.ProviderAccountEntity
 import dev.iliv007.ivai.data.local.ProviderConnectionEntity
 import dev.iliv007.ivai.data.local.ProviderModelEntity
 import dev.iliv007.ivai.data.local.RouterComboEntryEntity
+import dev.iliv007.ivai.provider.ProviderAccountAuthMode
 import dev.iliv007.ivai.provider.ProviderCapability
+import dev.iliv007.ivai.provider.ProviderEndpointTrustMode
+import dev.iliv007.ivai.provider.noAuthCredentialMarker
 
 /** Read-only local catalog used by the foreground router; it never contains a secret value. */
 data class RouterCatalog(
@@ -59,7 +62,7 @@ class SequentialRouter {
             ?: return null
         val account = catalog.accounts.firstOrNull {
             it.id == entry.accountId && it.connectionId == connection.id && it.isEnabled &&
-                it.credentialReference in catalog.credentialPresent
+                isUsableAccount(it, connection, catalog)
         } ?: return null
         val model = catalog.models.firstOrNull {
             it.id == entry.modelId && it.connectionId == connection.id && it.isSelectable
@@ -77,5 +80,15 @@ class SequentialRouter {
             position = entry.position,
             capabilities = capabilities
         )
+    }
+
+    private fun isUsableAccount(
+        account: ProviderAccountEntity,
+        connection: ProviderConnectionEntity,
+        catalog: RouterCatalog
+    ): Boolean = when (ProviderAccountAuthMode.valueOf(account.authMode)) {
+        ProviderAccountAuthMode.API_KEY -> account.credentialReference in catalog.credentialPresent
+        ProviderAccountAuthMode.NONE -> account.credentialReference == noAuthCredentialMarker(account.id) &&
+            ProviderEndpointTrustMode.valueOf(connection.endpointTrustMode) != ProviderEndpointTrustMode.REMOTE_HTTPS
     }
 }

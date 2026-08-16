@@ -55,13 +55,17 @@ data class ProviderModelDescriptor(
 }
 
 data class ProviderChatRequest(
-    val credentialReference: CredentialReference,
+    val credentialReference: CredentialReference?,
+    val authMode: ProviderAccountAuthMode = ProviderAccountAuthMode.API_KEY,
     val modelId: String,
     val messages: List<ProviderMessage>,
     val requiredCapabilities: Set<ProviderCapability> = setOf(ProviderCapability.TEXT),
     val attemptId: String
 ) {
     init {
+        require((authMode == ProviderAccountAuthMode.API_KEY) == (credentialReference != null)) {
+            "API-key requests require a credential reference; no-auth requests must not carry one"
+        }
         require(modelId.isNotBlank()) { "Manual model ID must not be blank" }
         require(messages.isNotEmpty()) { "A provider request needs at least one message" }
         require(attemptId.matches(Regex("[A-Za-z0-9._-]{1,128}"))) { "Invalid opaque attempt ID" }
@@ -128,8 +132,9 @@ data class ProviderConnectionValidation(
 }
 
 /**
- * Provider adapters receive no raw credential. A future Network Gate resolves the reference from
- * [dev.iliv007.ivai.security.EncryptedSecretVault] immediately before constructing an HTTP call.
+ * Provider adapters receive no raw credential. For API-key requests, the Network Gate resolves the
+ * reference from [dev.iliv007.ivai.security.EncryptedSecretVault] immediately before constructing
+ * an HTTP call. Explicit no-auth local requests carry no reference and no Authorization header.
  */
 interface ChatProvider {
     val providerId: ProviderId

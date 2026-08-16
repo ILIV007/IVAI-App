@@ -90,10 +90,10 @@ Every change that adds a provider, network behavior, persistent data, file acces
 | Governance and protected CI | Complete |
 | Local data, encrypted credential boundary, and workspace isolation | Complete with ongoing hardening |
 | Provider registry, explicit cloud preset catalog, adapters, direct target and Combo router | Complete for current Alpha scope; no provider or model is selected automatically |
-| Local model server endpoints (Ollama, LM Studio, vLLM, user-managed LAN) | Blocked pending dedicated endpoint trust mode, Android cleartext allowlist, warning UX and device evidence |
+| User-operated local model server endpoints (Ollama, LM Studio, vLLM, compatible OpenAI-style servers) | Available only as an explicit, user-confirmed **HTTPS** loopback or RFC1918 IPv4 connection; the user chooses endpoint, model and API-key/no-auth mode. HTTP, `.local` discovery, scanning and bundled inference remain out of scope. |
 | Bounded Agent with explicit profile tool policy, one-time write approval, trace, budget, cancellation, target validation, and restart recovery | Complete for current Basic Agent scope |
 | Safe read/list/search Agent tools | Complete for Alpha scope: app-private, project-bound, bounded, and not persisted in Run Trace |
-| Migration and recovery coverage | Complete through Room v4 |
+| Migration and recovery coverage | Complete through Room v5, including persisted endpoint trust and account authentication mode defaults |
 | Full RTL, accessibility, device, performance, and release evidence | Planned before a public Alpha release |
 
 ## License

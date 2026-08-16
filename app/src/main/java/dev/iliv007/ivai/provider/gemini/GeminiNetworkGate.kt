@@ -54,7 +54,8 @@ class GeminiNetworkGate(
     }
 
     fun stream(request: ProviderChatRequest): Flow<ProviderStreamEvent> = flow {
-        val credential = vault.read(request.credentialReference.value)
+        val reference = request.credentialReference
+        val credential = reference?.let { vault.read(it.value) }
         if (credential.isNullOrBlank()) {
             emit(
                 ProviderStreamEvent.Failed(

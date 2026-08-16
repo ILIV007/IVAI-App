@@ -80,7 +80,7 @@ class RouterChatSessionTest {
         val session = RouterChatSession(
             workspace = repository,
             router = SequentialRouter(),
-            providerResolver = { kind, _ -> if (kind == ProviderKind.GEMINI) retryableFailureProvider else succeedingProvider },
+            providerResolver = { kind, _, _ -> if (kind == ProviderKind.GEMINI) retryableFailureProvider else succeedingProvider },
             nowEpochMs = { 100L }
         )
 

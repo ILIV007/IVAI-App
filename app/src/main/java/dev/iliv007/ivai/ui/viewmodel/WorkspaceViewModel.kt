@@ -21,8 +21,11 @@ import dev.iliv007.ivai.data.local.ProviderModelEntity
 import dev.iliv007.ivai.data.local.RouterComboEntity
 import dev.iliv007.ivai.data.local.RouterComboEntryEntity
 import dev.iliv007.ivai.provider.ChatProvider
+import dev.iliv007.ivai.provider.ProviderAccountAuthMode
 import dev.iliv007.ivai.provider.ProviderCapability
+import dev.iliv007.ivai.provider.ProviderEndpointTrustMode
 import dev.iliv007.ivai.provider.ProviderKind
+import dev.iliv007.ivai.provider.noAuthCredentialMarker
 import dev.iliv007.ivai.router.RouterAttemptOutcome
 import dev.iliv007.ivai.router.RouterChatSession
 import dev.iliv007.ivai.router.RouterCatalog
@@ -387,16 +390,39 @@ class WorkspaceViewModel(
         accountDisplayName: String,
         manualModelId: String,
         modelCapabilities: Set<ProviderCapability>,
-        rawSecret: String
+        endpointTrustMode: ProviderEndpointTrustMode = ProviderEndpointTrustMode.REMOTE_HTTPS,
+        localTrustConfirmed: Boolean = false,
+        authMode: ProviderAccountAuthMode = ProviderAccountAuthMode.API_KEY,
+        rawSecret: String? = null
     ) {
         val repository = workspaceRepository ?: return
         val vault = secretVault ?: return
         val now = System.currentTimeMillis()
         val safeId = "provider-${kind.name.lowercase().replace('_', '-')}-${now}"
-        val reference = "provider.${kind.name.lowercase().replace('_', '.')}.${now}"
+        val accountId = "$safeId-account"
+        val apiKeyReference = "provider.${kind.name.lowercase().replace('_', '.')}.${now}"
+        val credentialReference = when (authMode) {
+            ProviderAccountAuthMode.API_KEY -> apiKeyReference
+            ProviderAccountAuthMode.NONE -> noAuthCredentialMarker(accountId)
+        }
         viewModelScope.launch {
+            var storedReference: String? = null
             runCatching {
                 require(modelCapabilities.isNotEmpty()) { "Choose at least one model capability." }
+                require((endpointTrustMode != ProviderEndpointTrustMode.REMOTE_HTTPS) == localTrustConfirmed) {
+                    "Local endpoint trust confirmation must match the selected endpoint mode."
+                }
+                when (authMode) {
+                    ProviderAccountAuthMode.API_KEY -> {
+                        val secret = requireNotNull(rawSecret).trim()
+                        require(secret.isNotBlank()) { "An API key is required for this account." }
+                        vault.store(apiKeyReference, secret)
+                        storedReference = apiKeyReference
+                    }
+                    ProviderAccountAuthMode.NONE -> require(rawSecret.isNullOrBlank()) {
+                        "No-auth accounts must not retain an API key."
+                    }
+                }
                 repository.saveProviderConnection(
                     ProviderConnectionEntity(
                         id = safeId,
@@ -405,18 +431,21 @@ class WorkspaceViewModel(
                         baseUrl = customBaseUrl?.trim()?.takeIf(String::isNotBlank),
                         isEnabled = true,
                         createdAtEpochMs = now,
-                        updatedAtEpochMs = now
+                        updatedAtEpochMs = now,
+                        endpointTrustMode = endpointTrustMode.name,
+                        localTrustConfirmedAtEpochMs = now.takeIf { localTrustConfirmed }
                     )
                 )
                 repository.saveProviderAccount(
                     ProviderAccountEntity(
-                        id = "$safeId-account",
+                        id = accountId,
                         connectionId = safeId,
                         displayName = accountDisplayName.trim(),
-                        credentialReference = reference,
+                        credentialReference = credentialReference,
                         isEnabled = true,
                         createdAtEpochMs = now,
-                        updatedAtEpochMs = now
+                        updatedAtEpochMs = now,
+                        authMode = authMode.name
                     )
                 )
                 repository.saveProviderModel(
@@ -431,8 +460,8 @@ class WorkspaceViewModel(
                         updatedAtEpochMs = now
                     )
                 )
-                vault.store(reference, rawSecret)
             }.onFailure { failure ->
+                storedReference?.let { reference -> runCatching { vault.clear(reference) } }
                 _providerManagementState.update { it.copy(operationError = failure.message ?: "Provider could not be saved.") }
             }
         }
@@ -457,7 +486,8 @@ class WorkspaceViewModel(
             .firstOrNull { it.connectionId == connectionId }?.accounts.orEmpty()
         viewModelScope.launch {
             runCatching {
-                accounts.forEach { vault.clear(it.credentialReference) }
+                accounts.filter { it.authMode == ProviderAccountAuthMode.API_KEY }
+                    .forEach { vault.clear(it.credentialReference) }
                 repository.deleteProviderConnection(connectionId)
             }.onFailure { failure ->
                 _providerManagementState.update { it.copy(operationError = failure.message ?: "Provider could not be removed.") }
@@ -703,7 +733,9 @@ class WorkspaceViewModel(
         val vault = secretVault ?: return
         viewModelScope.launch {
             repository.observeProviderRegistry().flatMapLatest { snapshot ->
-                val statusFlows = snapshot.accounts.map { vault.observeStatus(it.credentialReference) }
+                val statusFlows = snapshot.accounts
+                    .filter { ProviderAccountAuthMode.valueOf(it.authMode) == ProviderAccountAuthMode.API_KEY }
+                    .map { vault.observeStatus(it.credentialReference) }
                 if (statusFlows.isEmpty()) flowOf(snapshot to emptyMap())
                 else combine(statusFlows) { statuses ->
                     snapshot to statuses.associate { it.reference to it.exists }
@@ -716,14 +748,18 @@ class WorkspaceViewModel(
                             kind = ProviderKind.valueOf(connection.providerKind),
                             displayName = connection.displayName,
                             baseUrlLabel = connection.baseUrl,
+                            endpointTrustMode = ProviderEndpointTrustMode.valueOf(connection.endpointTrustMode),
+                            localTrustConfirmed = connection.localTrustConfirmedAtEpochMs != null,
                             enabled = connection.isEnabled,
                             accounts = snapshot.accounts.filter { it.connectionId == connection.id }.map { account ->
                                 ProviderAccountCard(
                                     accountId = account.id,
                                     displayName = account.displayName,
                                     credentialReference = account.credentialReference,
+                                    authMode = ProviderAccountAuthMode.valueOf(account.authMode),
                                     enabled = account.isEnabled,
-                                    credentialStored = statusByReference[account.credentialReference] == true
+                                    credentialStored = ProviderAccountAuthMode.valueOf(account.authMode) == ProviderAccountAuthMode.NONE ||
+                                        statusByReference[account.credentialReference] == true
                                 )
                             },
                             manualModels = snapshot.models.filter { it.connectionId == connection.id }.map { model ->

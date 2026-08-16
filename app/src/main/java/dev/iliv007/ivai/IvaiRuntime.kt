@@ -13,6 +13,7 @@ import dev.iliv007.ivai.data.local.ProjectWorkspace
 import dev.iliv007.ivai.provider.ChatProvider
 import dev.iliv007.ivai.provider.ProviderAdapterRegistry
 import dev.iliv007.ivai.provider.ProviderKind
+import dev.iliv007.ivai.provider.ProviderEndpointTrustMode
 import dev.iliv007.ivai.provider.gemini.GeminiChatProvider
 import dev.iliv007.ivai.provider.openai.CustomOpenAiChatProvider
 import dev.iliv007.ivai.provider.openai.OpenRouterChatProvider
@@ -62,12 +63,22 @@ class IvaiRuntime(context: Context) {
     )
 
     /** Resolves a foreground adapter from user-owned connection metadata without exposing secrets. */
-    fun resolveProvider(kind: ProviderKind, baseUrl: String?): ChatProvider = when (kind) {
+    fun resolveProvider(
+        kind: ProviderKind,
+        baseUrl: String?,
+        trustMode: ProviderEndpointTrustMode = ProviderEndpointTrustMode.REMOTE_HTTPS
+    ): ChatProvider = when (kind) {
         ProviderKind.CUSTOM_OPENAI_COMPATIBLE -> CustomOpenAiChatProvider(
             baseUrl = requireNotNull(baseUrl) { "Custom provider endpoint is required" },
+            trustMode = trustMode,
             vault = secretVault
         )
-        else -> providerAdapters.requireAdapter(kind)
+        else -> {
+            require(trustMode == ProviderEndpointTrustMode.REMOTE_HTTPS) {
+                "Managed provider adapters do not support local endpoint trust modes"
+            }
+            providerAdapters.requireAdapter(kind)
+        }
     }
 
     /**

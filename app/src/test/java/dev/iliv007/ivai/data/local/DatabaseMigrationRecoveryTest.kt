@@ -21,7 +21,7 @@ class DatabaseMigrationRecoveryTest {
     @Test
     fun `legacy version one database upgrades through all migrations and recovers workspace data`() = runBlocking {
         val context = ApplicationProvider.getApplicationContext<Context>()
-        val databaseName = "migration-v1-to-v4-${System.nanoTime()}.db"
+        val databaseName = "migration-v1-to-v5-${System.nanoTime()}.db"
         context.deleteDatabase(databaseName)
         createVersionOneDatabase(context, databaseName)
 
@@ -29,12 +29,13 @@ class DatabaseMigrationRecoveryTest {
             .addMigrations(
                 IvaiDatabase.MIGRATION_1_2,
                 IvaiDatabase.MIGRATION_2_3,
-                IvaiDatabase.MIGRATION_3_4
+                IvaiDatabase.MIGRATION_3_4,
+                IvaiDatabase.MIGRATION_4_5
             )
             .allowMainThreadQueries()
             .build()
         try {
-            assertEquals(4, upgraded.openHelper.writableDatabase.version)
+            assertEquals(5, upgraded.openHelper.writableDatabase.version)
             assertEquals("Legacy project", upgraded.projectDao().findById("legacy-project")?.name)
             assertEquals("legacy-project", upgraded.threadDao().findById("legacy-thread")?.projectId)
             assertEquals(
@@ -42,8 +43,8 @@ class DatabaseMigrationRecoveryTest {
                 upgraded.messageDao().listForThread("legacy-thread").single().text
             )
 
-            // Opening the database validates Room's complete v4 schema. Querying the new DAO also
-            // proves that Agent tables are available after the 3 -> 4 migration.
+            // Opening the database validates Room's complete v5 schema. Querying the new DAO also
+            // proves that Agent tables and provider trust/auth columns are available after upgrade.
             assertTrue(upgraded.agentProfileDao().observeAll().first().isEmpty())
         } finally {
             upgraded.close()
@@ -53,7 +54,8 @@ class DatabaseMigrationRecoveryTest {
             .addMigrations(
                 IvaiDatabase.MIGRATION_1_2,
                 IvaiDatabase.MIGRATION_2_3,
-                IvaiDatabase.MIGRATION_3_4
+                IvaiDatabase.MIGRATION_3_4,
+                IvaiDatabase.MIGRATION_4_5
             )
             .allowMainThreadQueries()
             .build()

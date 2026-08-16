@@ -3,8 +3,11 @@ package dev.iliv007.ivai.provider.openai
 import dev.iliv007.ivai.provider.ChatProvider
 import dev.iliv007.ivai.provider.CredentialReference
 import dev.iliv007.ivai.provider.NormalizedProviderError
+import dev.iliv007.ivai.provider.ProviderAccountAuthMode
 import dev.iliv007.ivai.provider.ProviderChatRequest
 import dev.iliv007.ivai.provider.ProviderConnectionValidation
+import dev.iliv007.ivai.provider.ProviderEndpointPolicy
+import dev.iliv007.ivai.provider.ProviderEndpointTrustMode
 import dev.iliv007.ivai.provider.ProviderErrorKind
 import dev.iliv007.ivai.provider.ProviderId
 import dev.iliv007.ivai.provider.ProviderModelDescriptor
@@ -38,14 +41,14 @@ import kotlinx.coroutines.withContext
 class OpenAiCompatibleNetworkGate(
     private val providerId: ProviderId,
     private val baseUrl: String,
+    private val trustMode: ProviderEndpointTrustMode = ProviderEndpointTrustMode.REMOTE_HTTPS,
     private val vault: EncryptedSecretVault,
     private val transport: OpenAiCompatibleHttpTransport = HttpUrlConnectionOpenAiCompatibleTransport(),
     private val diagnostics: SafeNetworkDiagnostics = SafeNetworkDiagnostics.None,
     private val nowEpochMs: () -> Long = System::currentTimeMillis
 ) {
     init {
-        val uri = URI(baseUrl)
-        require(uri.scheme == "https" && !uri.host.isNullOrBlank()) { "OpenAI-compatible base URL must be HTTPS" }
+        ProviderEndpointPolicy.requireAllowedEndpoint(baseUrl, trustMode)
     }
 
     suspend fun validateStoredCredential(reference: CredentialReference): ProviderConnectionValidation {
@@ -65,13 +68,17 @@ class OpenAiCompatibleNetworkGate(
     }
 
     fun stream(request: ProviderChatRequest): Flow<ProviderStreamEvent> = flow {
-        val credential = vault.read(request.credentialReference.value)
-        if (credential.isNullOrBlank()) {
-            emit(ProviderStreamEvent.Failed(NormalizedProviderError(
-                kind = ProviderErrorKind.AUTHENTICATION,
-                safeMessage = "No usable credential is stored for this provider."
-            )))
-            return@flow
+        val credential = when (request.authMode) {
+            ProviderAccountAuthMode.API_KEY -> vault.read(requireNotNull(request.credentialReference).value)
+                .takeIf { !it.isNullOrBlank() }
+                ?: run {
+                    emit(ProviderStreamEvent.Failed(NormalizedProviderError(
+                        kind = ProviderErrorKind.AUTHENTICATION,
+                        safeMessage = "No usable credential is stored for this provider."
+                    )))
+                    return@flow
+                }
+            ProviderAccountAuthMode.NONE -> null
         }
 
         val startedAt = nowEpochMs()
@@ -173,7 +180,12 @@ class OpenAiCompatibleNetworkGate(
 
 class OpenRouterChatProvider(
     vault: EncryptedSecretVault,
-    gate: OpenAiCompatibleNetworkGate = OpenAiCompatibleNetworkGate(ID, BASE_URL, vault)
+    gate: OpenAiCompatibleNetworkGate = OpenAiCompatibleNetworkGate(
+        ID,
+        BASE_URL,
+        ProviderEndpointTrustMode.REMOTE_HTTPS,
+        vault
+    )
 ) : ChatProvider {
     override val providerId: ProviderId = ID
     private val networkGate = gate
@@ -189,8 +201,9 @@ class OpenRouterChatProvider(
 
 class CustomOpenAiChatProvider(
     baseUrl: String,
+    trustMode: ProviderEndpointTrustMode,
     vault: EncryptedSecretVault,
-    gate: OpenAiCompatibleNetworkGate = OpenAiCompatibleNetworkGate(ID, baseUrl, vault)
+    gate: OpenAiCompatibleNetworkGate = OpenAiCompatibleNetworkGate(ID, baseUrl, trustMode, vault)
 ) : ChatProvider {
     override val providerId: ProviderId = ID
     private val networkGate = gate
@@ -224,7 +237,7 @@ internal class OpenAiCompatibleSseReader(private val reader: BufferedReader) {
 
 interface OpenAiCompatibleHttpTransport {
     @Throws(IOException::class)
-    fun open(url: String, bearerToken: String, requestBody: String): OpenAiCompatibleHttpExchange
+    fun open(url: String, bearerToken: String?, requestBody: String): OpenAiCompatibleHttpExchange
 }
 
 interface OpenAiCompatibleHttpExchange : Closeable {
@@ -233,7 +246,7 @@ interface OpenAiCompatibleHttpExchange : Closeable {
 }
 
 class HttpUrlConnectionOpenAiCompatibleTransport : OpenAiCompatibleHttpTransport {
-    override fun open(url: String, bearerToken: String, requestBody: String): OpenAiCompatibleHttpExchange {
+    override fun open(url: String, bearerToken: String?, requestBody: String): OpenAiCompatibleHttpExchange {
         val connection = (URL(url).openConnection() as HttpURLConnection).apply {
             requestMethod = "POST"
             connectTimeout = 20_000
@@ -241,7 +254,7 @@ class HttpUrlConnectionOpenAiCompatibleTransport : OpenAiCompatibleHttpTransport
             doOutput = true
             setRequestProperty("Content-Type", "application/json; charset=utf-8")
             setRequestProperty("Accept", "text/event-stream")
-            setRequestProperty("Authorization", "Bearer $bearerToken")
+            bearerToken?.let { setRequestProperty("Authorization", "Bearer $it") }
         }
         connection.outputStream.bufferedWriter(Charsets.UTF_8).use { it.write(requestBody) }
         return HttpUrlConnectionOpenAiCompatibleExchange(connection)

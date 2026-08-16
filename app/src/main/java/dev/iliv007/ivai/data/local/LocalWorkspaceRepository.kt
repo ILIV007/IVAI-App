@@ -2,6 +2,9 @@ package dev.iliv007.ivai.data.local
 
 import androidx.room.withTransaction
 import dev.iliv007.ivai.provider.CredentialReference
+import dev.iliv007.ivai.provider.ProviderAccountAuthMode
+import dev.iliv007.ivai.provider.ProviderEndpointTrustMode
+import dev.iliv007.ivai.provider.noAuthCredentialMarker
 import dev.iliv007.ivai.provider.ManualProviderModel
 import dev.iliv007.ivai.provider.ProviderAccountDescriptor
 import dev.iliv007.ivai.provider.ProviderCapability
@@ -276,7 +279,12 @@ class LocalWorkspaceRepository(
         val connection = providerConnectionDao.findById(connectionId) ?: return false
         val account = providerAccountDao.findById(accountId) ?: return false
         val model = providerModelDao.findById(modelId) ?: return false
-        return connection.isEnabled && account.isEnabled && model.isSelectable &&
+        val accountReady = when (ProviderAccountAuthMode.valueOf(account.authMode)) {
+            ProviderAccountAuthMode.API_KEY -> account.credentialReference.isNotBlank()
+            ProviderAccountAuthMode.NONE -> account.credentialReference == noAuthCredentialMarker(account.id) &&
+                ProviderEndpointTrustMode.valueOf(connection.endpointTrustMode) != ProviderEndpointTrustMode.REMOTE_HTTPS
+        }
+        return connection.isEnabled && account.isEnabled && accountReady && model.isSelectable &&
             account.connectionId == connection.id && model.connectionId == connection.id
     }
 
@@ -307,18 +315,35 @@ class LocalWorkspaceRepository(
             kind = ProviderKind.valueOf(connection.providerKind),
             displayName = connection.displayName,
             baseUrl = connection.baseUrl,
+            endpointTrustMode = ProviderEndpointTrustMode.valueOf(connection.endpointTrustMode),
+            localTrustConfirmedAtEpochMs = connection.localTrustConfirmedAtEpochMs,
             enabled = connection.isEnabled
         )
         providerConnectionDao.upsert(connection)
     }
 
     suspend fun saveProviderAccount(account: ProviderAccountEntity) {
-        require(providerConnectionDao.findById(account.connectionId) != null) { "Unknown provider connection" }
+        val connection = requireNotNull(providerConnectionDao.findById(account.connectionId)) { "Unknown provider connection" }
+        val trustMode = ProviderEndpointTrustMode.valueOf(connection.endpointTrustMode)
+        val authMode = ProviderAccountAuthMode.valueOf(account.authMode)
+        val credentialReference = when (authMode) {
+            ProviderAccountAuthMode.API_KEY -> CredentialReference(account.credentialReference)
+            ProviderAccountAuthMode.NONE -> {
+                require(account.credentialReference == noAuthCredentialMarker(account.id)) {
+                    "No-auth accounts must use their non-secret credential marker"
+                }
+                require(trustMode != ProviderEndpointTrustMode.REMOTE_HTTPS) {
+                    "No-auth accounts are allowed only for an explicit local endpoint trust mode"
+                }
+                null
+            }
+        }
         ProviderAccountDescriptor(
             id = account.id,
             connectionId = account.connectionId,
             displayName = account.displayName,
-            credentialReference = CredentialReference(account.credentialReference),
+            credentialReference = credentialReference,
+            authMode = authMode,
             enabled = account.isEnabled
         )
         providerAccountDao.upsert(account)

@@ -25,7 +25,7 @@ import androidx.sqlite.db.SupportSQLiteDatabase
         AgentRunStepEntity::class,
         AgentApprovalEntity::class
     ],
-    version = 4,
+    version = 5,
     exportSchema = true
 )
 abstract class IvaiDatabase : RoomDatabase() {
@@ -53,7 +53,20 @@ abstract class IvaiDatabase : RoomDatabase() {
                 context.applicationContext,
                 IvaiDatabase::class.java,
                 DATABASE_NAME
-            ).addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4).build()
+            ).addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5).build()
+
+        /**
+         * Existing provider connections retain remote HTTPS/API-key behavior. No local endpoint,
+         * no-auth account, network call, or secret is created during upgrade.
+         */
+        val MIGRATION_4_5 = object : Migration(4, 5) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE `provider_connections` ADD COLUMN `endpoint_trust_mode` TEXT NOT NULL DEFAULT 'REMOTE_HTTPS'")
+                db.execSQL("ALTER TABLE `provider_connections` ADD COLUMN `local_trust_confirmed_at_epoch_ms` INTEGER")
+                db.execSQL("ALTER TABLE `provider_accounts` ADD COLUMN `auth_mode` TEXT NOT NULL DEFAULT 'API_KEY'")
+                db.execSQL("CREATE UNIQUE INDEX IF NOT EXISTS `index_provider_accounts_credential_reference` ON `provider_accounts` (`credential_reference`)")
+            }
+        }
 
         val MIGRATION_3_4 = object : Migration(3, 4) {
             override fun migrate(db: SupportSQLiteDatabase) {
