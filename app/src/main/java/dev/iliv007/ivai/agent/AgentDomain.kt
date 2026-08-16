@@ -15,6 +15,7 @@ enum class AgentToolKind(val requiresApproval: Boolean) {
     CURRENT_TIME(false),
     READ_PROJECT_FILE(false),
     LIST_WORKSPACE(false),
+    SEARCH_PROJECT_FILES(false),
     WRITE_PROJECT_FILE(true)
 }
 

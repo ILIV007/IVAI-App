@@ -66,8 +66,21 @@ class BasicAgentRuntime(
 
         val limitError = validateRequestBudget(currentRun, profile, position)
         if (limitError != null) return limitError
+        val policyError = validateToolPolicy(profile, projectId, request)
+        if (policyError != null) {
+            return rejectAndTrace(currentRun, position, request.kind, policyError)
+        }
 
-        val result = tools.evaluate(request)
+        val result = runCatching {
+            when (request) {
+                is AgentToolRequest.ReadProjectFile -> executeReadProjectFile(projectId.orEmpty(), request)
+                AgentToolRequest.ListWorkspace -> executeListWorkspace(projectId.orEmpty())
+                is AgentToolRequest.SearchProjectFiles -> executeSearchProjectFiles(projectId.orEmpty(), request)
+                else -> tools.evaluate(request)
+            }
+        }.getOrElse {
+            AgentToolResult.Rejected("Workspace tool could not be completed safely.")
+        }
         val now = nowEpochMs()
         when (result) {
             is AgentToolResult.Completed -> repository.saveAgentRunStep(
@@ -248,6 +261,82 @@ class BasicAgentRuntime(
         return AgentToolResult.Rejected(safeError)
     }
 
+    private fun validateToolPolicy(
+        profile: AgentProfileEntity,
+        projectId: String?,
+        request: AgentToolRequest
+    ): String? {
+        val enabledTools = profile.enabledToolsCsv.split(',')
+            .mapNotNull { serialized -> runCatching { AgentToolKind.valueOf(serialized.trim()) }.getOrNull() }
+            .toSet()
+        if (request.kind !in enabledTools) return "This tool is disabled in the Agent profile."
+
+        if (request.kind in WORKSPACE_TOOL_KINDS) {
+            val assignedProjectId = profile.projectId
+                ?: return "This workspace tool requires a project assigned to the Agent profile."
+            if (projectId != assignedProjectId) {
+                return "This workspace tool is limited to the Agent profile project."
+            }
+        }
+        return null
+    }
+
+    private fun executeReadProjectFile(
+        projectId: String,
+        request: AgentToolRequest.ReadProjectFile
+    ): AgentToolResult.Completed {
+        val read = projectWorkspace.readTextBounded(projectId, request.relativePath)
+        return AgentToolResult.Completed(
+            safeSummary = "Read ${read.relativePath}: ${read.byteCount} bytes${if (read.isTruncated) "; preview truncated" else ""}.",
+            observation = read.content
+        )
+    }
+
+    private fun executeListWorkspace(projectId: String): AgentToolResult.Completed {
+        val listing = projectWorkspace.listFilesBounded(projectId)
+        val observation = listing.files.joinToString("\\n") { file -> "${file.relativePath} (${file.byteCount} bytes)" }
+        return AgentToolResult.Completed(
+            safeSummary = "Listed ${listing.files.size} project files${if (listing.isTruncated) "; listing truncated" else ""}.",
+            observation = observation
+        )
+    }
+
+    private fun executeSearchProjectFiles(
+        projectId: String,
+        request: AgentToolRequest.SearchProjectFiles
+    ): AgentToolResult.Completed {
+        val search = projectWorkspace.searchTextBounded(projectId, request.query)
+        val observation = search.hits.joinToString("\\n\\n") { hit -> "${hit.relativePath}: ${hit.preview}" }
+        return AgentToolResult.Completed(
+            safeSummary = "Search found ${search.hits.size} matches across ${search.scannedFileCount} bounded files" +
+                "${if (search.skippedLargeFileCount > 0) "; skipped ${search.skippedLargeFileCount} oversized files" else ""}" +
+                "${if (search.isTruncated) "; results truncated" else ""}.",
+            observation = observation
+        )
+    }
+
+    private suspend fun rejectAndTrace(
+        run: AgentRunEntity,
+        position: Int,
+        kind: AgentToolKind,
+        safeReason: String
+    ): AgentToolResult.Rejected {
+        val now = nowEpochMs()
+        repository.saveAgentRunStep(
+            AgentRunStepEntity(
+                id = "${run.id}-step-$position",
+                runId = run.id,
+                position = position,
+                stepKind = kind.name,
+                status = "REJECTED",
+                safeSummary = safeReason,
+                createdAtEpochMs = now,
+                completedAtEpochMs = now
+            )
+        )
+        return AgentToolResult.Rejected(safeReason)
+    }
+
     private suspend fun validateRequestBudget(
         run: AgentRunEntity,
         profile: AgentProfileEntity,
@@ -301,6 +390,12 @@ class BasicAgentRuntime(
     private data class PendingWrite(val projectId: String, val relativePath: String, val content: String)
 
     private companion object {
+        val WORKSPACE_TOOL_KINDS = setOf(
+            AgentToolKind.READ_PROJECT_FILE,
+            AgentToolKind.LIST_WORKSPACE,
+            AgentToolKind.SEARCH_PROJECT_FILES,
+            AgentToolKind.WRITE_PROJECT_FILE
+        )
         val TERMINAL_STATUSES = setOf(
             AgentRunStatus.COMPLETED.name,
             AgentRunStatus.CANCELLED.name,

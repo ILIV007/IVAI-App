@@ -20,7 +20,7 @@ Compose UI
 | Compose UI | Renders Room-backed workspace, provider, router, and Agent state; sends user actions to the ViewModel. | UI never receives or stores plaintext credentials. |
 | `WorkspaceViewModel` | Coordinates local state flows, explicit foreground actions, and safe user-visible errors. | It does not select an implicit provider or execute shell/background automation. |
 | `LocalWorkspaceRepository` | Transactional local persistence, registry validation, Router references, Agent target validation, and recovery state. | Room stores credential references, not secret values. |
-| `ProjectWorkspace` | App-private project-file isolation with relative-path validation. | No unrestricted external-storage or Shell file access. |
+| `ProjectWorkspace` | App-private project-file isolation with canonical relative-path validation and bounded read/list/search primitives. | No unrestricted external-storage or Shell file access; Agent file operations cannot escape the profile project. |
 | `EncryptedSecretVault` | Encrypted credential storage through a per-reference Android Keystore key. | Secrets are excluded from Room, traces, exports, and UI state. |
 | Provider adapters | Gemini, OpenRouter, and Custom OpenAI-compatible foreground request implementations. | A user-managed enabled connection/account/model is required before use. |
 | `SequentialRouter` | Capability-aware ordered Combo resolution, controlled fallback, and attempt trace. | No hidden fallback provider is injected. |
@@ -35,6 +35,8 @@ Project deletion unassigns related threads; thread deletion cascades messages. R
 ## Agent integrity and restart policy
 
 An Agent profile must reference an enabled Direct Model with a matching enabled account/connection, or an enabled Combo containing at least one usable enabled candidate. The UI presents only such locally derived choices, and the runtime validates again before starting a run to prevent stale or externally inserted profiles from executing.
+
+Agent profiles explicitly select enabled tools. The runtime enforces that policy before evaluation and binds every workspace read, list, search, or write to the profile-assigned project. Read/list/search observations remain in memory for the immediate caller; the persisted Run Trace stores only safe metadata such as tool kind, bounded counts, and truncation state, never file content or raw model reasoning.
 
 Write content is deliberately held only in runtime memory. If Android terminates the process while an approval is pending, recovery denies the approval, fails the awaiting run safely, and records that no write was performed. This prevents replay of a mutation whose exact payload was not persisted.
 

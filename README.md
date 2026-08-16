@@ -90,9 +90,9 @@ Every change that adds a provider, network behavior, persistent data, file acces
 | Governance and protected CI | Complete |
 | Local data, encrypted credential boundary, and workspace isolation | Complete with ongoing hardening |
 | Provider registry, adapters, direct target and Combo router | Complete for Alpha scope |
-| Bounded Agent with one-time write approval, trace, budget, cancellation, target validation, and restart recovery | Complete for current Basic Agent scope |
+| Bounded Agent with explicit profile tool policy, one-time write approval, trace, budget, cancellation, target validation, and restart recovery | Complete for current Basic Agent scope |
+| Safe read/list/search Agent tools | Complete for Alpha scope: app-private, project-bound, bounded, and not persisted in Run Trace |
 | Migration and recovery coverage | Complete through Room v4 |
-| Safe read/list/search Agent tools | Planned |
 | Full RTL, accessibility, device, performance, and release evidence | Planned before a public Alpha release |
 
 ## License
