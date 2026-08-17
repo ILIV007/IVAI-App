@@ -81,7 +81,7 @@ class ExampleRobolectricTest {
         // Navigate to Workspace through the destination control.
         composeTestRule.onNodeWithTag("nav_item_projects").performClick()
         composeTestRule.waitForIdle()
-        composeTestRule.onNodeWithTag("projects_notice_banner").assertExists()
+        composeTestRule.onNodeWithTag("projects_screen").assertExists()
 
         // Navigate to Connections through the destination control.
         composeTestRule.onNodeWithTag("nav_item_router").performClick()
