@@ -104,10 +104,11 @@ For TalkBack, inspect both linear swipe navigation and exploration by touch, che
 
 | Evidence | Repository location | Status at protocol creation |
 |---|---|---|
-| Automated regression and scan output | `docs/PHASE7_5_HARDENING_AUDIT.md` | To be created after low-risk hardening review. |
-| Participant outcomes and findings | `docs/PHASE7_UIUX_VALIDATION.md` | Template to be created; no participant results fabricated. |
+| Automated regression and scan output | `docs/PHASE7_5_HARDENING_AUDIT.md` | Deterministic hardening is recorded; rerun on final candidate. |
+| Controlled build and facilitator material | `docs/PHASE7_5_FIELD_KIT.md` and `scripts/prepare_phase75_research_build.sh` | Prepared; no participant or device outcome is recorded. |
+| Participant outcomes and findings | `docs/PHASE7_UIUX_VALIDATION.md` | Template is ready; no participant results fabricated. |
 | Device/accessibility matrix | `docs/PHASE7_UIUX_VALIDATION.md` | Pending access to physical devices and voluntary participants. |
-| Local no-backup hardening evidence | `docs/PHASE7_5_HARDENING_AUDIT.md` and tests/lint | Pending focused implementation/review. |
+| Local no-backup hardening evidence | `docs/PHASE7_5_HARDENING_AUDIT.md` and tests/lint | Implemented and regression-protected; rerun on final candidate. |
 | Alpha release decision | `docs/ALPHA_RELEASE.md` | Remains **not approved** until all P0 gates and owner approval are satisfied. |
 
 Phase 7.5 can be marked complete only after actual, de-identified study findings and physical-device evidence are recorded, all P0/P1 findings are closed, the full regression gate is green, and no Local-first/Backendless/BYOK invariant regresses. Preparing this protocol alone is not completion.
