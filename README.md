@@ -4,7 +4,7 @@
 
 IVAI is an Android harness for configuring, routing, and running bounded AI-agent workflows using connections and credentials that remain under the user's control. The user owns the provider connection, account, endpoint, model, capability metadata, ordered fallback Combo, chat execution target, Agent profile, and project workspace. The app creates no central IVAI account, mandatory backend, telemetry service, or implicit provider configuration.
 
-The Android launcher and in-app top bar use the supplied **VA** brand mark. Its visual system pairs an indigo ground with emerald/aqua and aurora-violet accents; this presentation layer does not alter provider selection, local data ownership, or any execution boundary.
+The supplied **VA** brand mark is reserved for the Android launcher only. The product UI uses an independent IVAI wordmark and an indigo ground with emerald/aqua and aurora-violet accents; this presentation layer does not alter provider selection, local data ownership, or any execution boundary.
 
 ## Product principles
 
