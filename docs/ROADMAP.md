@@ -75,6 +75,26 @@
 
 **Gate:** All redesigned screens pass screenshot regression, accessibility semantics, contrast checks, and the launcher-only boundary scan. No behavioral regression in provider, Agent, or data layers.
 
+## Phase 8 — Extensible Capabilities: Skills and MCP
+
+**Goal:** Prepare IVAI for user-owned, local Skill workflows and carefully scoped MCP capability connections without weakening Local-first, Backendless, BYOK, explicit target selection, app-private project boundaries, or one-time consent.
+
+**Current state:** **Planned; no runtime implementation is approved or present.** The architectural decision record is in [Future Architecture — Skills and MCP](SKILLS_MCP_FUTURE_ARCHITECTURE.md), and the initial screen/consent blueprint is in [Skills and MCP — Initial UX Blueprint](SKILLS_MCP_UI_BLUEPRINT.md). Skills are planned as local declarative workflow definitions; MCP server profiles are planned as user-managed, disabled-by-default capability connections. Neither is a new Provider, Agent target, automatic router, marketplace, process runner, backend, or telemetry channel.
+
+**Subphase sequence:**
+1. **8.0 — Capability architecture decision:** terminology, trust tiers, permission vocabulary, threat model, UX acceptance matrix, and prototype only.
+2. **8.1 — Local Skill registry:** app-private declarative local Skill definitions and library UI; no network, remote catalog, MCP, scheduler, or executable code.
+3. **8.2 — Skill-to-Agent binding:** explicit local Skill binding through Agent final review; no automatic target/provider/capability change.
+4. **8.3 — MCP profile foundation:** disabled-by-default local metadata and vault references; no connection attempt.
+5. **8.4 — HTTPS foreground MCP handshake:** one user-started, exact-server Streamable HTTP compatibility/initialization flow; no discovery, background reconnect, fallback, or stdio.
+6. **8.5 — Capability allowlist and safe reads:** exact resource/prompt/read-only tool grants for one Agent/Skill/project with redacted consent/trace.
+7. **8.6 — One-time external mutation:** one narrowly declared mutation-like tool invocation with preflight and Allow once; no permanent grant/retry.
+8. **8.7 — OAuth/authorization support:** user-mediated authorization, PKCE/issuer/resource validation, vault storage, revoke and expiry coverage.
+9. **8.8 — Interoperability review:** optional Skills over MCP/extensions behind an explicit experimental flag after specification maturity and threat review.
+10. **8.9 — Deferred execution threat model:** decision record for tasks, background activity, triggers, scheduling, or long-running operations before any runtime work.
+
+**Gate:** Every subphase requires a focused threat model, deterministic tests, redaction/migration/revocation coverage, semantic and visual review, architecture scans, protected CI, and relevant physical-device evidence. A Skill never grants authority by itself; an MCP server declaration is untrusted; no user data or tool is exposed/invoked without explicit, user-visible consent. Current Phase 7.5 research/device evidence and first Alpha signing/release gates remain prerequisites before Phase 8 implementation begins.
+
 ## Deferred after Alpha
 
-Google Drive backup, local-model inference, MCP, voice, Termux/Shell, Shizuku, Accessibility automation, race/council routing, smart routing, multi-device sync, and Google Play distribution require separate decisions and threat models.
+Google Drive backup, local-model inference, voice, Termux/Shell, Shizuku, Accessibility automation, race/council routing, smart routing, multi-device sync, Google Play distribution, MCP stdio/process hosting, remote Skill marketplaces, dynamic code loading, MCP Apps, background Agent/MCP execution, webhooks, polling, scheduling, and persistent reconnect require separate decisions and threat models. HTTP, `.local`/mDNS discovery, LAN scans, automatic endpoint discovery, wildcard server trust, global tool grants, automatic OAuth scope escalation, and permanent external mutation approval remain rejected unless a future named phase reverses the decision with explicit evidence.
