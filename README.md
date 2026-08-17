@@ -1,6 +1,6 @@
 # IVAI — Local-first BYOK Agent Harness for Android
 
-> **Alpha status:** The repository is buildable and continuously validated, but a public GitHub Alpha release has not been created yet. IVAI is intentionally local-first, backendless, and BYOK; it is **not** a Gemini-first client or a hosted agent service.
+> **Alpha status:** The repository is buildable and continuously validated, but a public GitHub Alpha release has not been created yet. IVAI is intentionally local-first, backendless, and BYOK; it is **not** a Gemini-first client or a hosted agent service. The current release decision, exact gates, and deterministic audit are documented in the [Release Readiness Checklist](docs/RELEASE_READINESS_CHECKLIST.md) and [Release Readiness Audit](docs/RELEASE_READINESS_AUDIT_2026-08-17.md).
 
 IVAI is an Android harness for configuring, routing, and running bounded AI-agent workflows using connections and credentials that remain under the user's control. The user owns the provider connection, account, endpoint, model, capability metadata, ordered fallback Combo, chat execution target, Agent profile, and project workspace. The app creates no central IVAI account, mandatory backend, telemetry service, or implicit provider configuration.
 
@@ -97,7 +97,7 @@ Every change that adds a provider, network behavior, persistent data, file acces
 | Safe read/list/search Agent tools | Complete for Alpha scope: app-private, project-bound, bounded, and not persisted in Run Trace |
 | Migration and recovery coverage | Complete through Room v5, including persisted endpoint trust and account authentication mode defaults |
 | Phase 7.5 deterministic hardening | Complete in [PR #37](https://github.com/ILIV007/IVAI-App/pull/37): explicit no-backup/no-transfer rules and regression coverage are on `main` |
-| Voluntary UX research, physical-device RTL/accessibility/network evidence, and signed Alpha release | Pending before a public Alpha release; no participant or device result is claimed without evidence |
+| Voluntary UX research, physical-device RTL/accessibility/network evidence, and signed Alpha release | Pending before a public Alpha release; no participant or device result is claimed without evidence. See the [Release Readiness Checklist](docs/RELEASE_READINESS_CHECKLIST.md) and [Release Readiness Audit](docs/RELEASE_READINESS_AUDIT_2026-08-17.md). |
 
 ## License
 

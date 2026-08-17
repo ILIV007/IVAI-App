@@ -4,7 +4,7 @@ This document governs the first public GitHub Alpha release of IVAI. A debug APK
 
 ## Release decision
 
-The current repository is **not yet approved for a public GitHub Alpha release**. The implementation is buildable and protected by CI, but the remaining hardening and evidence items below must be closed or explicitly accepted by the repository owner before creating a tag, GitHub Release, or downloadable APK.
+The current repository is **not yet approved for a public GitHub Alpha release**. The implementation is buildable and protected by CI, but the remaining hardening and evidence items below must be closed or explicitly accepted by the repository owner before creating a tag, GitHub Release, or downloadable APK. The complete gate definitions are maintained in the [Release Readiness Checklist](RELEASE_READINESS_CHECKLIST.md), and the latest deterministic decision is recorded in the [Release Readiness Audit](RELEASE_READINESS_AUDIT_2026-08-17.md).
 
 | Gate | Required evidence | Current status |
 |---|---|---|
