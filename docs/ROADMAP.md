@@ -54,6 +54,8 @@
 
 **Gate:** All P0 checks are green, known limitations are documented, and the owner approves the signed artifact.
 
+**Current deterministic follow-up:** **Phase 6.1 — Launcher Monochrome Hardening** is implemented on a focused branch and pending review/CI. It adds a distinct, launcher-only monochrome vector to both Android adaptive-icon entries, removes the `MonochromeLauncherIcon` lint finding, and protects the wiring with a resource regression test. It does not alter the approved VA artwork or product UI and does not substitute for OEM launcher/device evidence, signing, checksum, or Alpha approval. See [Phase 6.1 brief](PHASE6_1_LAUNCHER_MONOCHROME_BRIEF.md) and [report](PHASE6_1_LAUNCHER_MONOCHROME_REPORT.md).
+
 ## Phase 7 — Full UI/UX Redesign
 
 **Goal:** Complete visual and interaction redesign of all screens — Chat, Router, Agent, Provider Management, Settings, Sidebar, and onboarding — using an independent IVAI design system with a calm indigo/emerald/violet atmosphere. This phase delivers a polished, production-quality UI/UX that is consistent, accessible, and optimized for the Agent Harness workflow.
