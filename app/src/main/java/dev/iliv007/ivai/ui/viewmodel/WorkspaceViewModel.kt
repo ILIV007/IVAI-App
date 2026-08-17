@@ -337,7 +337,12 @@ class WorkspaceViewModel(
                 attemptId = attemptId
             ).collect { event ->
                 when (event) {
-                    is ProviderStreamEvent.Started -> appendUserMessage(threadId, text, persistLocally = false)
+                    is ProviderStreamEvent.Started -> appendUserMessage(
+                        threadId = threadId,
+                        rawText = text,
+                        persistLocally = false,
+                        messageId = "msg-${event.attemptId}-user"
+                    )
                     is ProviderStreamEvent.Delta -> {
                         assistantText += event.text
                         val current = _uiState.value.threads.find { it.id == threadId } ?: return@collect
@@ -359,18 +364,23 @@ class WorkspaceViewModel(
         _uiState.update { it.copy(isStreaming = false) }
     }
 
-    fun appendUserMessage(threadId: String, rawText: String, persistLocally: Boolean = true) {
+    fun appendUserMessage(
+        threadId: String,
+        rawText: String,
+        persistLocally: Boolean = true,
+        messageId: String? = null
+    ) {
         val text = rawText.trim()
         if (text.isBlank()) return
         val createdAt = System.currentTimeMillis()
         val message = ChatMessage(
-            id = "msg-$createdAt",
+            id = messageId ?: "msg-$createdAt",
             sender = MessageSender.USER,
             text = text,
             timestamp = "Now"
         )
         val currentThread = _uiState.value.threads.find { it.id == threadId } ?: return
-        updateThreadMessages(threadId, currentThread.messages + message)
+        updateThreadMessages(threadId, currentThread.messages.filterNot { it.id == message.id } + message)
         if (persistLocally) {
             val repository = workspaceRepository ?: return
             viewModelScope.launch {
