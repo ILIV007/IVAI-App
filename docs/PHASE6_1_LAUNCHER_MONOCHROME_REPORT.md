@@ -1,8 +1,8 @@
 # Phase 6.1 — Launcher Monochrome Hardening Report
 
-> **Status:** Implemented on `feat/phase61-launcher-monochrome-hardening`; pending independent review, GitHub CI, and protected merge.
+> **Status:** Complete in [PR #39](https://github.com/ILIV007/IVAI-App/pull/39), squash-merged to `main` as `08115c9`.
 >
-> **Base:** `62beef3` (`main`). This focused increment follows the P1 launcher finding in [Phase 6 Hardening Audit](PHASE6_HARDENING_AUDIT.md) and is intentionally independent of the open global-review PR.
+> **Base:** `62beef3` (`main`). This focused increment closes the P1 launcher finding in [Phase 6 Hardening Audit](PHASE6_HARDENING_AUDIT.md) and was independently reviewed and validated before protected merge.
 
 ## Outcome
 
