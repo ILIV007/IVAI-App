@@ -61,6 +61,7 @@ import androidx.compose.ui.text.style.TextDirection
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import dev.iliv007.ivai.ui.theme.rememberIvaiTerminalControlColors
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
@@ -685,6 +686,7 @@ fun MarkdownCodeBlockView(
     val context = LocalContext.current
     var isCodeCopied by remember { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
+    val terminalControls = rememberIvaiTerminalControlColors()
 
     CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
         Surface(
@@ -707,11 +709,11 @@ fun MarkdownCodeBlockView(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        Box(modifier = Modifier.size(8.dp).clip(CircleShape).background(Color(0xFFFF5F56)))
+                        Box(modifier = Modifier.size(8.dp).clip(CircleShape).background(terminalControls.close))
                         Spacer(modifier = Modifier.width(4.dp))
-                        Box(modifier = Modifier.size(8.dp).clip(CircleShape).background(Color(0xFFFFBD2E)))
+                        Box(modifier = Modifier.size(8.dp).clip(CircleShape).background(terminalControls.minimize))
                         Spacer(modifier = Modifier.width(4.dp))
-                        Box(modifier = Modifier.size(8.dp).clip(CircleShape).background(Color(0xFF27C93F)))
+                        Box(modifier = Modifier.size(8.dp).clip(CircleShape).background(terminalControls.maximize))
                         Spacer(modifier = Modifier.width(8.dp))
                         Text(
                             text = if (language.isNotBlank()) language.uppercase() else "CODE",

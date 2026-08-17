@@ -85,6 +85,14 @@ data class IvaiSemanticColors(
     val stateInfo: Color
 )
 
+/** Decorative terminal controls mapped to semantic roles in both themes. */
+@Immutable
+data class IvaiTerminalControlColors(
+    val close: Color,
+    val minimize: Color,
+    val maximize: Color
+)
+
 /**
  * Maps the approved light/dark palette to roles used by future IVAI UI primitives.
  * Product screens must consume these roles or [MaterialTheme.colorScheme], not raw hex values.
@@ -110,6 +118,17 @@ fun rememberIvaiSemanticColors(): IvaiSemanticColors {
         stateWarning = if (darkTheme) IvaiWarning else IvaiWarningLight,
         stateError = colors.error,
         stateInfo = colors.tertiary
+    )
+}
+
+@Composable
+fun rememberIvaiTerminalControlColors(): IvaiTerminalControlColors {
+    val colors = MaterialTheme.colorScheme
+    val semantic = rememberIvaiSemanticColors()
+    return IvaiTerminalControlColors(
+        close = colors.error,
+        minimize = semantic.stateWarning,
+        maximize = semantic.stateSuccess
     )
 }
 

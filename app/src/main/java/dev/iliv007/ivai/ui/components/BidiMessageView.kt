@@ -49,7 +49,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLayoutDirection
@@ -61,6 +60,8 @@ import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import dev.iliv007.ivai.ui.model.ChatMessage
+import dev.iliv007.ivai.ui.theme.IvaiDecorativeGradients
+import dev.iliv007.ivai.ui.theme.rememberIvaiTerminalControlColors
 import dev.iliv007.ivai.ui.model.MessageSender
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -132,17 +133,10 @@ fun UserMessageBubble(
             Box(
                 modifier = Modifier
                     .clip(userBubbleShape)
-                    .background(
-                        Brush.linearGradient(
-                            listOf(
-                                Color(0xFF059669), // Emerald
-                                Color(0xFF0284C7)  // Deep Sky Cyan
-                            )
-                        )
-                    )
+                    .background(IvaiDecorativeGradients.accent())
                     .border(
                         1.dp,
-                        Color(0xFF38F9B6).copy(alpha = 0.4f),
+                        MaterialTheme.colorScheme.primary.copy(alpha = 0.4f),
                         userBubbleShape
                     )
                     .testTag("message_bubble_${message.id}")
@@ -611,6 +605,7 @@ fun TerminalCodeBlock(
     val context = LocalContext.current
     var isCodeCopied by remember { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
+    val terminalControls = rememberIvaiTerminalControlColors()
 
     CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
         Box(
@@ -633,21 +628,21 @@ fun TerminalCodeBlock(
                             modifier = Modifier
                                 .size(8.dp)
                                 .clip(CircleShape)
-                                .background(Color(0xFFFF5F56))
+                                .background(terminalControls.close)
                         )
                         Spacer(modifier = Modifier.width(5.dp))
                         Box(
                             modifier = Modifier
                                 .size(8.dp)
                                 .clip(CircleShape)
-                                .background(Color(0xFFFFBD2E))
+                                .background(terminalControls.minimize)
                         )
                         Spacer(modifier = Modifier.width(5.dp))
                         Box(
                             modifier = Modifier
                                 .size(8.dp)
                                 .clip(CircleShape)
-                                .background(Color(0xFF27C93F))
+                                .background(terminalControls.maximize)
                         )
                         Spacer(modifier = Modifier.width(8.dp))
                         Text(
