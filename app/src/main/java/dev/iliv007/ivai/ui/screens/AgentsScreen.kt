@@ -1,12 +1,9 @@
 package dev.iliv007.ivai.ui.screens
 
-import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
@@ -14,7 +11,6 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Cancel
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.PlayArrow
@@ -23,14 +19,13 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.Icon
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FilterChip
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -40,19 +35,33 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import dev.iliv007.ivai.agent.AgentRunStatus
 import dev.iliv007.ivai.agent.AgentToolKind
+import dev.iliv007.ivai.ui.components.IvaiExecutionState
+import dev.iliv007.ivai.ui.components.IvaiExecutionStatusBanner
+import dev.iliv007.ivai.ui.components.IvaiPageHeader
+import dev.iliv007.ivai.ui.components.IvaiScreenScaffold
+import dev.iliv007.ivai.ui.components.IvaiStateCard
+import dev.iliv007.ivai.ui.components.IvaiStateTone
+import dev.iliv007.ivai.ui.theme.IvaiShapeTokens
+import dev.iliv007.ivai.ui.theme.IvaiSpacing
 import dev.iliv007.ivai.ui.viewmodel.AgentApprovalCard
 import dev.iliv007.ivai.ui.viewmodel.AgentManagementState
 import dev.iliv007.ivai.ui.viewmodel.AgentProfileCard
 import dev.iliv007.ivai.ui.viewmodel.AgentRunCard
 import dev.iliv007.ivai.ui.viewmodel.AgentRunTraceStepCard
-import dev.iliv007.ivai.ui.viewmodel.AgentTargetOption
 
-/** Local Agent Alpha surface. All content is rendered from Room-backed state. */
+/**
+ * Phase 7.3 local Agent workspace. It only rearranges existing Room-backed UI state and callbacks;
+ * Agent tools, limits, approval rules, persistence and runtime execution remain unchanged.
+ */
+private data class ApprovalOutcome(val targetPath: String, val allowedOnce: Boolean)
+
 @Composable
 fun AgentsScreen(
     state: AgentManagementState,
@@ -73,93 +82,109 @@ fun AgentsScreen(
     onCancelRun: (runId: String) -> Unit,
     onResolveApproval: (approvalId: String, allowOnce: Boolean) -> Unit,
     onDismissError: () -> Unit,
+    onOpenConnections: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     var profileEditorOpen by remember { mutableStateOf(false) }
     var startProfile by remember { mutableStateOf<AgentProfileCard?>(null) }
     var approvalToReview by remember { mutableStateOf<AgentApprovalCard?>(null) }
+    var lastApprovalOutcome by remember { mutableStateOf<ApprovalOutcome?>(null) }
+    val selectedRun = state.activeRuns.firstOrNull { it.runId == state.selectedRunId }
 
-    LazyColumn(
-        modifier = modifier
-            .fillMaxSize()
-            .background(MaterialTheme.colorScheme.background)
-            .padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp)
-    ) {
-        item {
-            SecurityNotice()
-        }
-        item {
-            SectionHeader("Agent profiles") {
-                Button(onClick = { profileEditorOpen = true }, modifier = Modifier.testTag("add_agent_profile")) {
-                    Icon(Icons.Default.Add, contentDescription = null)
-                    Spacer(Modifier.width(6.dp))
-                    Text("Add profile")
+    IvaiScreenScaffold(modifier = modifier, testTag = "agent_workspace_screen") {
+        LazyColumn(
+            modifier = Modifier.padding(IvaiSpacing.Small),
+            verticalArrangement = Arrangement.spacedBy(IvaiSpacing.Medium)
+        ) {
+            item { AgentSafetyNotice() }
+            item {
+                AgentProfileLibrary(
+                    profiles = state.profiles,
+                    availableTargets = state.availableTargets,
+                    onAddProfile = { profileEditorOpen = true },
+                    onStartProfile = { startProfile = it },
+                    onOpenConnections = onOpenConnections,
+                    modifier = Modifier.testTag("agent_profile_library")
+                )
+            }
+            item {
+                IvaiPageHeader(
+                    title = "Local run workspace",
+                    subtitle = "Runs and trace stay on this device. Select a run to inspect its safe local trace.",
+                    testTag = "agent_runs_header"
+                )
+            }
+            if (state.activeRuns.isEmpty()) {
+                item {
+                    IvaiStateCard(
+                        title = "No local runs yet",
+                        message = "Start a run from an enabled profile. IVAI will use only that profile’s explicit target and limits.",
+                        tone = IvaiStateTone.NEUTRAL,
+                        testTag = "agent_runs_empty"
+                    )
+                }
+            } else {
+                items(state.activeRuns, key = { it.runId }) { run ->
+                    AgentRunCardView(
+                        run = run,
+                        selected = run.runId == state.selectedRunId,
+                        onSelect = { onSelectRun(run.runId) },
+                        onCancel = { onCancelRun(run.runId) }
+                    )
                 }
             }
-        }
-        if (state.profiles.isEmpty()) {
+            selectedRun?.let { run ->
+                item {
+                    AgentRunWorkspace(
+                        run = run,
+                        trace = state.selectedRunTrace,
+                        onCancel = { onCancelRun(run.runId) }
+                    )
+                }
+            }
             item {
-                EmptyCard("No local Agent profiles exist. Add one with an explicit provider or Combo target.")
-            }
-        } else {
-            items(state.profiles, key = { it.profileId }) { profile ->
-                AgentProfileCardView(
-                    profile = profile,
-                    onStart = { startProfile = profile }
+                IvaiPageHeader(
+                    title = "Write approvals",
+                    subtitle = "A project-file write never proceeds without a visible preview and one-time decision.",
+                    testTag = "agent_approvals_header"
                 )
             }
-        }
-
-        item { SectionHeader("Runs and visible trace") }
-        if (state.activeRuns.isEmpty()) {
-            item { EmptyCard("No Agent runs have been started on this device.") }
-        } else {
-            items(state.activeRuns, key = { it.runId }) { run ->
-                AgentRunCardView(
-                    run = run,
-                    selected = run.runId == state.selectedRunId,
-                    onSelect = { onSelectRun(run.runId) },
-                    onCancel = { onCancelRun(run.runId) }
-                )
+            lastApprovalOutcome?.let { outcome ->
+                item {
+                    IvaiStateCard(
+                        title = if (outcome.allowedOnce) "Write approved once" else "Write denied",
+                        message = if (outcome.allowedOnce) {
+                            "The reviewed write for ${outcome.targetPath} was approved once. No permission was remembered."
+                        } else {
+                            "The reviewed write for ${outcome.targetPath} was denied. The file remains unchanged."
+                        },
+                        tone = if (outcome.allowedOnce) IvaiStateTone.SUCCESS else IvaiStateTone.WARNING,
+                        testTag = "agent_approval_resolved"
+                    )
+                }
             }
-        }
-        if (state.selectedRunId != null) {
-            item { Text("Run trace", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold) }
-            if (state.selectedRunTrace.isEmpty()) {
-                item { EmptyCard("This run has no persisted trace steps yet.") }
+            if (state.pendingApprovals.isEmpty()) {
+                item {
+                    IvaiStateCard(
+                        title = "No approval is waiting",
+                        message = "There are no pending local file modifications.",
+                        tone = IvaiStateTone.NEUTRAL,
+                        testTag = "agent_approvals_empty"
+                    )
+                }
             } else {
-                items(state.selectedRunTrace, key = { it.stepId }) { step -> TraceStepCard(step) }
-            }
-        }
-
-        item { SectionHeader("Pending write approvals") }
-        if (state.pendingApprovals.isEmpty()) {
-            item { EmptyCard("No file modifications are awaiting approval.") }
-        } else {
-            items(state.pendingApprovals, key = { it.approvalId }) { approval ->
-                Card(
-                    modifier = Modifier.fillMaxWidth().testTag("agent_approval_${approval.approvalId}"),
-                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer)
-                ) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth().padding(14.dp),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Column(modifier = Modifier.weight(1f)) {
-                            Text("Write requires review", fontWeight = FontWeight.Bold)
-                            Text(approval.targetPath, fontFamily = FontFamily.Monospace, style = MaterialTheme.typography.bodySmall)
-                        }
-                        Button(onClick = { approvalToReview = approval }) { Text("Review") }
-                    }
+                items(state.pendingApprovals, key = { it.approvalId }) { approval ->
+                    ApprovalPreviewCard(approval = approval, onReview = {
+                        lastApprovalOutcome = null
+                        approvalToReview = approval
+                    })
                 }
             }
         }
     }
 
     if (profileEditorOpen) {
-        AgentProfileEditor(
+        AgentProfileEditorSheet(
             availableTargets = state.availableTargets,
             onDismiss = { profileEditorOpen = false },
             onCreate = { name, instructions, target, projectId, enabledTools ->
@@ -190,92 +215,30 @@ fun AgentsScreen(
         )
     }
     approvalToReview?.let { approval ->
-        WriteApprovalDialog(
+        WriteApprovalSheet(
             approval = approval,
             onDismiss = { approvalToReview = null },
             onResolve = { allowOnce ->
+                lastApprovalOutcome = ApprovalOutcome(approval.targetPath, allowOnce)
                 onResolveApproval(approval.approvalId, allowOnce)
                 approvalToReview = null
             }
         )
     }
     state.operationError?.let { error ->
-        AlertDialog(
-            onDismissRequest = onDismissError,
-            title = { Text("Local Agent operation") },
-            text = { Text(error) },
-            confirmButton = { TextButton(onClick = onDismissError) { Text("Dismiss") } }
-        )
+        AgentRecoveryDialog(error = error, onDismiss = onDismissError)
     }
 }
 
 @Composable
-private fun SecurityNotice() {
-    Card(
-        modifier = Modifier.fillMaxWidth().testTag("agent_notice_banner"),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer)
-    ) {
-        Row(modifier = Modifier.padding(16.dp), verticalAlignment = Alignment.Top) {
-            Icon(Icons.Default.Security, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
-            Spacer(Modifier.width(12.dp))
-            Column {
-                Text("Bounded local Agent", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-                Text(
-                    "Runs are step-, tool-call-, and time-limited. File writes require an explicit, one-time review. No shell, external storage, or automatic network action is available.",
-                    style = MaterialTheme.typography.bodySmall
-                )
-            }
-        }
-    }
-}
-
-@Composable
-private fun SectionHeader(title: String, action: @Composable (() -> Unit)? = null) {
-    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-        Text(title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-        action?.invoke()
-    }
-}
-
-@Composable
-private fun EmptyCard(message: String) {
-    Card(modifier = Modifier.fillMaxWidth()) {
-        Text(message, modifier = Modifier.padding(16.dp), style = MaterialTheme.typography.bodyMedium)
-    }
-}
-
-@Composable
-private fun AgentProfileCardView(profile: AgentProfileCard, onStart: () -> Unit) {
-    Card(
-        modifier = Modifier.fillMaxWidth().testTag("agent_card_${profile.profileId}"),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
-    ) {
-        Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(profile.name, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
-                    Text(profile.targetLabel, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.primary)
-                }
-                Text("${profile.maxSteps} steps", style = MaterialTheme.typography.labelMedium, fontFamily = FontFamily.Monospace)
-            }
-            Text(profile.instructions, style = MaterialTheme.typography.bodySmall)
-            Text(
-                "Tools: ${profile.enabledTools.joinToString { it.name }} • ${profile.maxToolCalls} calls • ${profile.maxRuntimeMs / 1_000}s",
-                style = MaterialTheme.typography.labelSmall,
-                fontFamily = FontFamily.Monospace
-            )
-            Text(
-                "Write tool: approval required every time",
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.secondary
-            )
-            Button(onClick = onStart, enabled = profile.enabled) {
-                Icon(Icons.Default.PlayArrow, contentDescription = null)
-                Spacer(Modifier.width(6.dp))
-                Text("Start local run")
-            }
-        }
-    }
+private fun AgentSafetyNotice() {
+    IvaiStateCard(
+        title = "Bounded local Agent",
+        message = "Runs are step-, tool-call-, and time-limited. File writes require an explicit, one-time review. No shell, external storage, background work or automatic network action is available.",
+        tone = IvaiStateTone.INFO,
+        icon = Icons.Default.Security,
+        testTag = "agent_notice_banner"
+    )
 }
 
 @Composable
@@ -284,22 +247,38 @@ private fun AgentRunCardView(run: AgentRunCard, selected: Boolean, onSelect: () 
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .border(if (selected) 1.dp else 0.dp, MaterialTheme.colorScheme.primary, RoundedCornerShape(12.dp))
             .testTag("agent_run_${run.runId}")
+            .semantics { contentDescription = "Run ${run.agentName}, ${run.status.name.lowercase()}" },
+        shape = RoundedCornerShape(IvaiShapeTokens.Card),
+        colors = CardDefaults.cardColors(
+            containerColor = if (selected) MaterialTheme.colorScheme.secondaryContainer else MaterialTheme.colorScheme.surfaceContainer
+        )
     ) {
-        Column(modifier = Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+        Column(
+            modifier = Modifier.padding(IvaiSpacing.Small),
+            verticalArrangement = Arrangement.spacedBy(IvaiSpacing.XSmall)
+        ) {
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                Text(run.agentName, fontWeight = FontWeight.Bold)
-                Text(run.status.name, color = runStatusColor(run.status), fontFamily = FontFamily.Monospace, style = MaterialTheme.typography.labelSmall)
+                Text(run.agentName, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
+                Text(
+                    run.status.name.replace('_', ' '),
+                    color = runStatusColor(run.status),
+                    fontFamily = FontFamily.Monospace,
+                    style = MaterialTheme.typography.labelSmall
+                )
             }
             Text(run.goal, style = MaterialTheme.typography.bodySmall)
-            run.safeErrorMessage?.let { Text(it, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.labelSmall) }
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                OutlinedButton(onClick = onSelect) { Text(if (selected) "Trace selected" else "View trace") }
-                if (!terminal) {
-                    OutlinedButton(onClick = onCancel) {
+            run.safeErrorMessage?.let {
+                Text(it, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.labelSmall)
+            }
+            Row(horizontalArrangement = Arrangement.spacedBy(IvaiSpacing.XSmall)) {
+                OutlinedButton(onClick = onSelect, modifier = Modifier.testTag("button_select_agent_run_${run.runId}")) {
+                    Text(if (selected) "Trace selected" else "View trace")
+                }
+                if (!terminal && !selected) {
+                    OutlinedButton(onClick = onCancel, modifier = Modifier.testTag("button_cancel_agent_run_${run.runId}")) {
                         Icon(Icons.Default.Cancel, contentDescription = null)
-                        Spacer(Modifier.width(4.dp))
+                        Spacer(Modifier.width(IvaiSpacing.XxxSmall))
                         Text("Cancel")
                     }
                 }
@@ -309,9 +288,97 @@ private fun AgentRunCardView(run: AgentRunCard, selected: Boolean, onSelect: () 
 }
 
 @Composable
+private fun AgentRunWorkspace(
+    run: AgentRunCard,
+    trace: List<AgentRunTraceStepCard>,
+    onCancel: () -> Unit
+) {
+    val terminal = run.status in setOf(AgentRunStatus.COMPLETED, AgentRunStatus.CANCELLED, AgentRunStatus.FAILED)
+    Column(
+        modifier = Modifier.testTag("agent_run_workspace_${run.runId}"),
+        verticalArrangement = Arrangement.spacedBy(IvaiSpacing.Small)
+    ) {
+        IvaiPageHeader(
+            title = "Live local run",
+            subtitle = "${run.agentName} · ${run.goal}",
+            testTag = "agent_run_workspace_header"
+        )
+        IvaiExecutionStatusBanner(
+            state = run.status.toIvaiExecutionState(),
+            targetLabel = run.agentName,
+            detail = run.workspaceDetail(),
+            announceChange = run.status in setOf(
+                AgentRunStatus.AWAITING_APPROVAL,
+                AgentRunStatus.COMPLETED,
+                AgentRunStatus.CANCELLED,
+                AgentRunStatus.FAILED
+            ),
+            action = if (terminal) null else {
+                {
+                    OutlinedButton(
+                        onClick = onCancel,
+                        modifier = Modifier.testTag("button_workspace_cancel_${run.runId}")
+                    ) {
+                        Icon(Icons.Default.Cancel, contentDescription = null)
+                        Spacer(Modifier.width(IvaiSpacing.XxxSmall))
+                        Text("Cancel")
+                    }
+                }
+            },
+            testTag = "agent_run_status_${run.runId}"
+        )
+        run.safeErrorMessage?.let { message ->
+            IvaiStateCard(
+                title = "Run needs attention",
+                message = message,
+                tone = IvaiStateTone.ERROR,
+                testTag = "agent_run_error_${run.runId}"
+            )
+        }
+        IvaiPageHeader(
+            title = "Timeline and safe trace",
+            subtitle = "Each item is a persisted local summary. Hidden reasoning is not displayed.",
+            testTag = "agent_trace_header"
+        )
+        if (trace.isEmpty()) {
+            IvaiStateCard(
+                title = "Trace will appear here",
+                message = "This selected run has no persisted trace step yet.",
+                tone = IvaiStateTone.INFO,
+                testTag = "agent_trace_empty"
+            )
+        } else {
+            trace.forEach { step -> TraceStepCard(step) }
+        }
+    }
+}
+
+private fun AgentRunStatus.toIvaiExecutionState(): IvaiExecutionState = when (this) {
+    AgentRunStatus.DRAFT -> IvaiExecutionState.READY
+    AgentRunStatus.RUNNING -> IvaiExecutionState.STREAMING
+    AgentRunStatus.AWAITING_APPROVAL -> IvaiExecutionState.AWAITING_APPROVAL
+    AgentRunStatus.COMPLETED -> IvaiExecutionState.COMPLETED
+    AgentRunStatus.CANCELLED -> IvaiExecutionState.STOPPED
+    AgentRunStatus.PAUSED_ERROR, AgentRunStatus.FAILED -> IvaiExecutionState.FAILED
+}
+
+private fun AgentRunCard.workspaceDetail(): String = when (status) {
+    AgentRunStatus.DRAFT -> "Ready to start with this profile’s explicit local target."
+    AgentRunStatus.RUNNING -> "Working within this profile’s fixed local bounds."
+    AgentRunStatus.AWAITING_APPROVAL -> "A file write is paused until you review and decide once."
+    AgentRunStatus.PAUSED_ERROR, AgentRunStatus.FAILED -> safeErrorMessage ?: "The run stopped without changing your target or permissions."
+    AgentRunStatus.COMPLETED -> "The local run completed."
+    AgentRunStatus.CANCELLED -> "The local run was cancelled."
+}
+
+@Composable
 private fun TraceStepCard(step: AgentRunTraceStepCard) {
-    Card(modifier = Modifier.fillMaxWidth().testTag("trace_step_${step.stepId}")) {
-        Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+    Card(
+        modifier = Modifier.fillMaxWidth().testTag("trace_step_${step.stepId}"),
+        shape = RoundedCornerShape(IvaiShapeTokens.Card),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer)
+    ) {
+        Column(modifier = Modifier.padding(IvaiSpacing.Small), verticalArrangement = Arrangement.spacedBy(IvaiSpacing.XxxSmall)) {
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                 Text("${step.position}. ${step.stepKind}", fontFamily = FontFamily.Monospace, fontWeight = FontWeight.Bold)
                 Text(step.status, style = MaterialTheme.typography.labelSmall, fontFamily = FontFamily.Monospace)
@@ -322,103 +389,24 @@ private fun TraceStepCard(step: AgentRunTraceStepCard) {
 }
 
 @Composable
-private fun runStatusColor(status: AgentRunStatus): Color = when (status) {
-    AgentRunStatus.FAILED, AgentRunStatus.CANCELLED -> MaterialTheme.colorScheme.error
-    AgentRunStatus.AWAITING_APPROVAL -> MaterialTheme.colorScheme.secondary
-    AgentRunStatus.COMPLETED -> MaterialTheme.colorScheme.primary
-    else -> MaterialTheme.colorScheme.onSurface
-}
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-private fun AgentProfileEditor(
-    availableTargets: List<AgentTargetOption>,
-    onDismiss: () -> Unit,
-    onCreate: (String, String, AgentTargetOption, String?, Set<AgentToolKind>) -> Unit
-) {
-    var name by remember { mutableStateOf("") }
-    var instructions by remember { mutableStateOf("") }
-    var selectedTarget by remember(availableTargets) { mutableStateOf(availableTargets.firstOrNull()) }
-    var projectId by remember { mutableStateOf("") }
-    var enabledTools by remember {
-        mutableStateOf(setOf(AgentToolKind.CALCULATE, AgentToolKind.CURRENT_TIME))
-    }
-    val workspaceToolSelected = enabledTools.any { tool ->
-        tool in setOf(
-            AgentToolKind.READ_PROJECT_FILE,
-            AgentToolKind.LIST_WORKSPACE,
-            AgentToolKind.SEARCH_PROJECT_FILES,
-            AgentToolKind.WRITE_PROJECT_FILE
-        )
-    }
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text("Add local Agent profile") },
-        text = {
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text("Select a target already configured in local Provider or Router management. IVAI will not add a default provider.", style = MaterialTheme.typography.bodySmall)
-                OutlinedTextField(name, { name = it }, label = { Text("Profile name") }, singleLine = true)
-                OutlinedTextField(instructions, { instructions = it }, label = { Text("Instructions") })
-                Text("Execution target", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
-                if (availableTargets.isEmpty()) {
-                    Text(
-                        "No enabled local Direct Model or Combo is available. Configure one first.",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.error
-                    )
-                } else {
-                    availableTargets.forEach { target ->
-                        OutlinedButton(
-                            onClick = { selectedTarget = target },
-                            modifier = Modifier.fillMaxWidth(),
-                            enabled = true
-                        ) {
-                            Text(if (target == selectedTarget) "Selected: ${target.label}" else target.label)
-                        }
-                    }
-                }
-                OutlinedTextField(
-                    projectId,
-                    { projectId = it },
-                    label = { Text("Project ID for Workspace tools") },
-                    supportingText = {
-                        Text("Required when read, list, search, or write is enabled. All file access stays inside this one project.")
-                    },
-                    singleLine = true
-                )
-                Text("Enabled local tools", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
-                AgentToolKind.entries.forEach { tool ->
-                    FilterChip(
-                        selected = tool in enabledTools,
-                        onClick = {
-                            enabledTools = if (tool in enabledTools) enabledTools - tool else enabledTools + tool
-                        },
-                        label = { Text(tool.name) },
-                        modifier = Modifier.fillMaxWidth().testTag("agent_tool_${tool.name.lowercase()}")
-                    )
-                }
-                Text(
-                    "Read-only results are bounded and remain local. Every write requires Allow once.",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.secondary
-                )
+private fun ApprovalPreviewCard(approval: AgentApprovalCard, onReview: () -> Unit) {
+    Card(
+        modifier = Modifier.fillMaxWidth().testTag("agent_approval_${approval.approvalId}"),
+        shape = RoundedCornerShape(IvaiShapeTokens.Card),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer)
+    ) {
+        Row(
+            modifier = Modifier.padding(IvaiSpacing.Small),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(IvaiSpacing.Small)
+        ) {
+            Column(modifier = Modifier.weight(1f)) {
+                Text("Write requires one-time review", fontWeight = FontWeight.Bold)
+                Text(approval.targetPath, fontFamily = FontFamily.Monospace, style = MaterialTheme.typography.bodySmall)
             }
-        },
-        confirmButton = {
-            Button(
-                onClick = {
-                    selectedTarget?.let { target ->
-                        onCreate(name, instructions, target, projectId.ifBlank { null }, enabledTools)
-                    }
-                },
-                enabled = name.isNotBlank() && instructions.isNotBlank() && selectedTarget != null &&
-                    (!workspaceToolSelected || projectId.isNotBlank())
-            ) {
-                Text("Create profile")
-            }
-        },
-        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } }
-    )
+            Button(onClick = onReview, modifier = Modifier.testTag("button_review_approval_${approval.approvalId}")) { Text("Review") }
+        }
+    }
 }
 
 @Composable
@@ -428,31 +416,112 @@ private fun StartRunDialog(profile: AgentProfileCard, onDismiss: () -> Unit, onS
         onDismissRequest = onDismiss,
         title = { Text("Start ${profile.name}") },
         text = {
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Column(verticalArrangement = Arrangement.spacedBy(IvaiSpacing.XSmall)) {
                 Text("Goal and all resulting run steps stay local. The selected target remains ${profile.targetLabel}.", style = MaterialTheme.typography.bodySmall)
-                OutlinedTextField(goal, { goal = it }, label = { Text("Run goal") })
+                androidx.compose.material3.OutlinedTextField(
+                    value = goal,
+                    onValueChange = { goal = it },
+                    label = { Text("Run goal") },
+                    modifier = Modifier.fillMaxWidth().testTag("input_agent_run_goal")
+                )
             }
         },
-        confirmButton = { Button(onClick = { onStart(goal) }, enabled = goal.isNotBlank()) { Text("Start") } },
+        confirmButton = {
+            Button(onClick = { onStart(goal) }, enabled = goal.isNotBlank(), modifier = Modifier.testTag("button_confirm_start_agent_run")) {
+                Text("Start local run")
+            }
+        },
         dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } }
     )
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun WriteApprovalDialog(approval: AgentApprovalCard, onDismiss: () -> Unit, onResolve: (Boolean) -> Unit) {
+private fun WriteApprovalSheet(approval: AgentApprovalCard, onDismiss: () -> Unit, onResolve: (Boolean) -> Unit) {
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        containerColor = MaterialTheme.colorScheme.surface,
+        modifier = Modifier.testTag("agent_write_approval_sheet")
+    ) {
+        LazyColumn(
+            modifier = Modifier.padding(horizontal = IvaiSpacing.Medium, vertical = IvaiSpacing.Small),
+            verticalArrangement = Arrangement.spacedBy(IvaiSpacing.Small)
+        ) {
+            item {
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(IvaiSpacing.XSmall)) {
+                    Icon(Icons.Default.Lock, contentDescription = null, tint = MaterialTheme.colorScheme.secondary)
+                    Column {
+                        Text("Review local file write", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+                        Text("This decision applies only once.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+                }
+            }
+            item {
+                IvaiStateCard(
+                    title = "Target path",
+                    message = approval.targetPath,
+                    tone = IvaiStateTone.WARNING,
+                    testTag = "agent_approval_path_${approval.approvalId}"
+                )
+            }
+            item {
+                Text("Bounded preview", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+                Text(
+                    approval.preview,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(IvaiSpacing.XSmall)
+                        .testTag("agent_approval_preview_${approval.approvalId}"),
+                    fontFamily = FontFamily.Monospace,
+                    style = MaterialTheme.typography.bodySmall
+                )
+            }
+            item {
+                Text("Allow once writes only this reviewed preview. Deny leaves the file unchanged. IVAI never remembers this decision.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.secondary)
+            }
+            item {
+                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(IvaiSpacing.XSmall)) {
+                    TextButton(
+                        onClick = { onResolve(false) },
+                        modifier = Modifier.weight(1f).testTag("deny_${approval.approvalId}")
+                    ) { Text("Deny") }
+                    Button(
+                        onClick = { onResolve(true) },
+                        modifier = Modifier.weight(1f).testTag("allow_once_${approval.approvalId}")
+                    ) { Text("Allow once") }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun AgentRecoveryDialog(error: String, onDismiss: () -> Unit) {
     AlertDialog(
         onDismissRequest = onDismiss,
-        icon = { Icon(Icons.Default.Lock, contentDescription = null) },
-        title = { Text("Review file write") },
+        title = { Text("Local Agent needs attention") },
         text = {
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text("Target: ${approval.targetPath}", fontFamily = FontFamily.Monospace)
-                Text("Preview (max 4,000 characters)", style = MaterialTheme.typography.labelMedium)
-                Text(approval.preview, modifier = Modifier.background(MaterialTheme.colorScheme.surfaceVariant).padding(8.dp), fontFamily = FontFamily.Monospace, style = MaterialTheme.typography.bodySmall)
-                Text("Approval applies to this one write only.", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.secondary)
+            Column(verticalArrangement = Arrangement.spacedBy(IvaiSpacing.XSmall)) {
+                Text(recoveryTitle(error), style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
+                Text(error, style = MaterialTheme.typography.bodySmall)
+                Text("IVAI did not change your target, permissions or local files automatically.", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.secondary)
             }
         },
-        confirmButton = { Button(onClick = { onResolve(true) }, modifier = Modifier.testTag("allow_once_${approval.approvalId}")) { Text("Allow once") } },
-        dismissButton = { TextButton(onClick = { onResolve(false) }, modifier = Modifier.testTag("deny_${approval.approvalId}")) { Text("Deny") } }
+        confirmButton = { TextButton(onClick = onDismiss) { Text("Dismiss") } }
     )
+}
+
+private fun recoveryTitle(error: String): String = when {
+    error.contains("target", ignoreCase = true) -> "Check the selected target"
+    error.contains("cancel", ignoreCase = true) -> "Run was cancelled"
+    error.contains("step", ignoreCase = true) || error.contains("limit", ignoreCase = true) || error.contains("runtime", ignoreCase = true) -> "A local run limit was reached"
+    else -> "Local operation could not continue"
+}
+
+@Composable
+private fun runStatusColor(status: AgentRunStatus): Color = when (status) {
+    AgentRunStatus.FAILED, AgentRunStatus.CANCELLED -> MaterialTheme.colorScheme.error
+    AgentRunStatus.AWAITING_APPROVAL -> MaterialTheme.colorScheme.secondary
+    AgentRunStatus.COMPLETED -> MaterialTheme.colorScheme.primary
+    else -> MaterialTheme.colorScheme.onSurface
 }
