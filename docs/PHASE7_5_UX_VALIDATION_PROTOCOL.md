@@ -1,6 +1,6 @@
 # Phase 7.5 — UX Validation and Hardening Protocol
 
-> **Status:** In progress on `chore/phase75-ux-validation-hardening`.
+> **Status:** In progress on `main` after [PR #37](https://github.com/ILIV007/IVAI-App/pull/37).
 >
 > **Purpose:** Validate the Phase 7 information architecture and safety comprehension without adding product telemetry, analytics, session replay, a backend, background work, or a provider/runtime/data-layer change. This protocol is an evidence plan; it does **not** claim that unrun studies or physical-device checks have passed.
 

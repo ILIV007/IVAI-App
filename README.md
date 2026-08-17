@@ -96,7 +96,8 @@ Every change that adds a provider, network behavior, persistent data, file acces
 | Bounded Agent with explicit profile tool policy, one-time write approval, trace, budget, cancellation, target validation, and restart recovery | Complete for current Basic Agent scope |
 | Safe read/list/search Agent tools | Complete for Alpha scope: app-private, project-bound, bounded, and not persisted in Run Trace |
 | Migration and recovery coverage | Complete through Room v5, including persisted endpoint trust and account authentication mode defaults |
-| Full RTL, accessibility, device, performance, and release evidence | Planned before a public Alpha release |
+| Phase 7.5 deterministic hardening | Complete in [PR #37](https://github.com/ILIV007/IVAI-App/pull/37): explicit no-backup/no-transfer rules and regression coverage are on `main` |
+| Voluntary UX research, physical-device RTL/accessibility/network evidence, and signed Alpha release | Pending before a public Alpha release; no participant or device result is claimed without evidence |
 
 ## License
 

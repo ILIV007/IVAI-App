@@ -1,8 +1,8 @@
 # Phase 7.5 — Hardening Readiness Audit
 
-> **Status:** Deterministic audit complete on `chore/phase75-ux-validation-hardening`; external UX and physical-device evidence remains pending. This is **not** an Alpha release approval.
+> **Status:** Deterministic audit merged to `main` in [PR #37](https://github.com/ILIV007/IVAI-App/pull/37); external UX and physical-device evidence remains pending. This is **not** an Alpha release approval.
 >
-> **Baseline under review:** `66fbd36` (Phase 7.4 merged main), with the focused Phase 7.5 no-backup hardening change evaluated on this branch.
+> **Baseline under review:** `62beef3` (Phase 7.5 deterministic hardening merged main).
 
 ## Verified Alignment
 
@@ -22,11 +22,11 @@
 
 ## Lint and Static Quality
 
-`lintDebug` completed with **0 Error**, **0 Fatal**, and **15 Warning** findings, down from 17 on the Phase 7.4 baseline. The final clean validation run also built `assembleDebug` successfully. The redundant activity label and incomplete Android 12+ data-extraction configuration were eliminated. The adaptive icons were intentionally retained in `mipmap-anydpi-v26`: moving them into unqualified `mipmap-anydpi` created `IconXmlAndPng` resource collisions with their legacy WebP fallback files, so the resource move was reverted rather than changing launcher behavior.
+`lintDebug` completes with **0 Error**, **0 Fatal**, and **16 Warning** findings in the current environment. The extra notice since the previous audit is a remote dependency-version availability result; it does not identify a source, manifest, resource, or runtime regression. The final clean validation run also built `assembleDebug` successfully. The redundant activity label and incomplete Android 12+ data-extraction configuration were eliminated. The adaptive icons were intentionally retained in `mipmap-anydpi-v26`: moving them into unqualified `mipmap-anydpi` created `IconXmlAndPng` resource collisions with their legacy WebP fallback files, so the resource move was reverted rather than changing launcher behavior.
 
 | Remaining warning | Count | Disposition |
 |---|---:|---|
-| Gradle/AGP/AndroidX/Compose/Kotlin/Roborazzi newer-version notices | 12 | Deferred to a dedicated dependency-upgrade phase. An upgrade can change toolchain/runtime behavior and must not be combined with UX validation/hardening. |
+| Gradle/AGP/AndroidX/Compose/Kotlin/Roborazzi newer-version notices | 13 | Deferred to a dedicated dependency-upgrade phase. An upgrade can change toolchain/runtime behavior and must not be combined with UX validation/hardening. |
 | `ObsoleteSdkInt` for `mipmap-anydpi-v26` | 1 | Deferred. The qualifier preserves the current adaptive XML/legacy WebP fallback separation; a resource reorganization requires a launcher compatibility review, not a cosmetic move. |
 | `MonochromeLauncherIcon` | 2 | Deferred P1 for a future launcher-asset increment. A compliant monochrome layer needs an approved distinct monochrome asset; the existing bitmap artwork must not be repurposed or introduced into product UI. |
 
