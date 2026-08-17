@@ -8,7 +8,7 @@ All changes begin from the current `main` branch on a focused branch named with 
 
 ## Before opening a pull request
 
-Run the applicable checks with a full JDK 17+ and Android SDK configured:
+Run the applicable checks with the same full **JDK 21** and Android SDK configuration used by the protected CI workflow:
 
 ```bash
 ./gradlew clean assembleDebug

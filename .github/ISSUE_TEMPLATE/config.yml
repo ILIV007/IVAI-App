@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Security vulnerability
+    url: https://github.com/ILIV007/IVAI-App/blob/main/SECURITY.md
+    about: Do not open a public issue for a suspected vulnerability, credential exposure, or unsafe execution path. Follow the private reporting process in SECURITY.md.
+  - name: Contribution workflow
+    url: https://github.com/ILIV007/IVAI-App/blob/main/CONTRIBUTING.md
+    about: Review the focused-branch, validation, and safety-boundary requirements before opening a pull request.

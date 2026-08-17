@@ -1,0 +1,59 @@
+name: Roadmap or feature proposal
+description: Propose a scoped capability, documentation improvement, or future phase.
+title: "proposal: "
+labels:
+  - proposal
+body:
+  - type: markdown
+    attributes:
+      value: |
+        IVAI is a Local-first, Backendless, BYOK Agent Harness. Proposals must preserve explicit user control of provider, account, endpoint, model, Combo, execution target, Agent profile, local data, and write approval. Do not include credentials, personal data, prompts, or workspace files.
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem or user outcome
+      description: Describe the user problem using non-sensitive, provider-neutral language.
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed capability
+      description: State the smallest useful change and the screens or documents it would affect.
+    validations:
+      required: true
+  - type: textarea
+    id: boundaries
+    attributes:
+      label: Safety and architecture boundary
+      description: Explain how the proposal preserves Local-first, Backendless, BYOK, explicit target selection, HTTPS-only policy, and one-time write approval where relevant.
+      placeholder: "No backend, analytics, default provider/target, cleartext transport, secret storage, or automatic execution is introduced."
+    validations:
+      required: true
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Acceptance evidence
+      description: Specify tests, screenshots/semantics, physical-device evidence, migration/rollback checks, or documentation updates that would prove the change is safe.
+    validations:
+      required: true
+  - type: dropdown
+    id: phase
+    attributes:
+      label: Roadmap placement
+      options:
+        - Existing current phase
+        - New focused phase required
+        - Deferred after Alpha
+        - Unsure
+    validations:
+      required: true
+  - type: checkboxes
+    id: agreement
+    attributes:
+      label: Proposal checklist
+      options:
+        - label: I understand that this request is not approval to bypass the Roadmap or protected PR/CI workflow.
+          required: true
+        - label: I have not included a secret, credential, private file, prompt, run trace, device identifier, or other personal data.
+          required: true

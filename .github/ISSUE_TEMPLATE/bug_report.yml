@@ -1,0 +1,73 @@
+name: Bug report
+description: Report a reproducible, non-sensitive problem in IVAI.
+title: "bug: "
+labels:
+  - bug
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thank you for helping improve IVAI. Do not use this form for a suspected vulnerability, API key, credential, authorization header, personal workspace file, prompt, run trace, device identifier, or raw network log. For a security concern, follow `SECURITY.md` and report privately.
+  - type: input
+    id: version
+    attributes:
+      label: IVAI commit, build, or release
+      description: Provide the commit SHA, debug/release build identifier, or release tag.
+      placeholder: "e.g. d76b6b4"
+    validations:
+      required: true
+  - type: dropdown
+    id: area
+    attributes:
+      label: Affected area
+      options:
+        - Chat and target selection
+        - Connections, endpoint trust, or Combo
+        - Agent profile, run, trace, or approval
+        - Workspace or local data
+        - Settings, theme, RTL, or accessibility
+        - Build, test, lint, CI, or documentation
+        - Other
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+      description: Describe the expected safe and explicit behavior.
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual behavior
+      description: Use synthetic/redacted values only. Do not include any secret or personal content.
+    validations:
+      required: true
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: Minimal reproduction steps
+      description: Include only steps that can be reproduced without credentials, real provider calls, Agent writes, or personal workspace data.
+      placeholder: |
+        1. Start from a clean local state.
+        2. …
+        3. …
+    validations:
+      required: true
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment
+      description: Android version, device class (compact/medium/other), orientation, theme, font scale, Force-RTL/TalkBack state where relevant. Do not include serials or Android IDs.
+    validations:
+      required: true
+  - type: checkboxes
+    id: safety
+    attributes:
+      label: Safety confirmation
+      options:
+        - label: I have removed API keys, credentials, prompts, workspace files, run traces, device identifiers, and raw logs.
+          required: true
+        - label: This is not a suspected vulnerability or secret exposure; I will use the private process in SECURITY.md if it is.
+          required: true
