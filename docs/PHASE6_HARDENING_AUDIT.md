@@ -28,3 +28,7 @@ IVAI remains a **Local-first, Backendless, BYOK Agent Harness**. Provider connec
 ## Next phase: evidence-driven Alpha hardening
 
 The next development phase should not introduce additional providers or Agent tools. It should first define an executable device and accessibility matrix, then close the P0 evidence gaps in this order: remove only global forced-LTR behavior and capture RTL/BiDi semantics/screenshots; fresh-install/upgrade/restart/rotation evidence; foreground local HTTPS cancellation/timeout/offline evidence; and finally owner-controlled release signing and release artifacts. The public Alpha release remains blocked until the gates in [ALPHA_RELEASE.md](ALPHA_RELEASE.md) are satisfied.
+
+## Follow-up Resolution — Phase 6.1
+
+The P1 monochrome launcher finding is addressed on `feat/phase61-launcher-monochrome-hardening`, pending independent review, CI, and protected merge. The increment supplies a dedicated single-color vector resource through the `<monochrome>` layer of both adaptive launcher entries and adds a regression test for the resource wiring. The original VA bitmap, legacy icons, and all product UI remain unchanged. This closes the deterministic lint/resource gap only; themed-icon OEM rendering remains part of the physical-device matrix and does not alter the P0 Alpha release blockers above.

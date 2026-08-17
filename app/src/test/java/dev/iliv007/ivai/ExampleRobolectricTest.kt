@@ -94,6 +94,38 @@ class ExampleRobolectricTest {
     }
 
     @Test
+    fun `adaptive launcher icons expose a dedicated monochrome vector`() {
+        val context = ApplicationProvider.getApplicationContext<Context>()
+        val androidNamespace = "http://schemas.android.com/apk/res/android"
+        val launcherResources = listOf(R.mipmap.ic_launcher, R.mipmap.ic_launcher_round)
+
+        launcherResources.forEach { launcherResource ->
+            val parser = context.resources.getXml(launcherResource)
+            var monochromeDrawable = 0
+            while (parser.eventType != XmlPullParser.END_DOCUMENT) {
+                if (parser.eventType == XmlPullParser.START_TAG && parser.name == "monochrome") {
+                    monochromeDrawable = parser.getAttributeResourceValue(androidNamespace, "drawable", 0)
+                }
+                parser.next()
+            }
+            assertEquals(R.drawable.ivai_launcher_monochrome, monochromeDrawable)
+        }
+
+        val vectorParser = context.resources.getXml(R.drawable.ivai_launcher_monochrome)
+        var vectorFound = false
+        var pathCount = 0
+        while (vectorParser.eventType != XmlPullParser.END_DOCUMENT) {
+            if (vectorParser.eventType == XmlPullParser.START_TAG) {
+                if (vectorParser.name == "vector") vectorFound = true
+                if (vectorParser.name == "path") pathCount += 1
+            }
+            vectorParser.next()
+        }
+        assertTrue(vectorFound)
+        assertTrue(pathCount > 0)
+    }
+
+    @Test
     fun `verify sidebar navigation items rendering and selection`() {
         var selectedDest = NavDestination.CHATS
         composeTestRule.setContent {
