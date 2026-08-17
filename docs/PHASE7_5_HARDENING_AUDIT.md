@@ -22,7 +22,7 @@
 
 ## Lint and Static Quality
 
-`lintDebug` completes with **0 Error**, **0 Fatal**, and **14 Warning** findings on the current main baseline. All remaining notices are dependency/toolchain currency or the deliberately retained adaptive-icon qualifier. The final clean validation run also built `assembleDebug` successfully. The redundant activity label, incomplete Android 12+ data-extraction configuration, and `MonochromeLauncherIcon` findings were eliminated. The adaptive icons remain in `mipmap-anydpi-v26`: moving them into unqualified `mipmap-anydpi` created `IconXmlAndPng` collisions with legacy WebP fallbacks, so the resource move was reverted rather than changing launcher behavior.
+At the baseline under review, `lintDebug` completed with **0 Error**, **0 Fatal**, and **14 Warning** findings. All remaining notices are dependency/toolchain currency or the deliberately retained adaptive-icon qualifier. The final clean validation run also built `assembleDebug` successfully. The redundant activity label, incomplete Android 12+ data-extraction configuration, and `MonochromeLauncherIcon` findings were eliminated. The adaptive icons remain in `mipmap-anydpi-v26`: moving them into unqualified `mipmap-anydpi` created `IconXmlAndPng` collisions with legacy WebP fallbacks, so the resource move was reverted rather than changing launcher behavior.
 
 | Remaining warning | Count | Disposition |
 |---|---:|---|
