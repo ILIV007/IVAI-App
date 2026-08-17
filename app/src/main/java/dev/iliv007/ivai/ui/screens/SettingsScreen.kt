@@ -1,34 +1,22 @@
 package dev.iliv007.ivai.ui.screens
 
-import androidx.compose.foundation.background
-import androidx.compose.foundation.border
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.defaultMinSize
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.DarkMode
 import androidx.compose.material.icons.filled.DeleteOutline
-import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Key
 import androidx.compose.material.icons.filled.LightMode
-import androidx.compose.material.icons.filled.Lock
-import androidx.compose.material.icons.filled.Palette
-import androidx.compose.material.icons.filled.Security
 import androidx.compose.material.icons.filled.Shield
-import androidx.compose.material.icons.filled.VpnKey
-import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -40,372 +28,334 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.semantics.SemanticsProperties
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
-import dev.iliv007.ivai.provider.ProviderAccountAuthMode
-import dev.iliv007.ivai.provider.ProviderCapability
-import dev.iliv007.ivai.provider.ProviderEndpointTrustMode
-import dev.iliv007.ivai.provider.ProviderKind
-import dev.iliv007.ivai.ui.theme.IvaiError
-import dev.iliv007.ivai.ui.theme.IvaiWarning
-import dev.iliv007.ivai.ui.viewmodel.ProviderManagementState
+import dev.iliv007.ivai.ui.components.IvaiPageHeader
+import dev.iliv007.ivai.ui.components.IvaiScreenScaffold
+import dev.iliv007.ivai.ui.components.IvaiStateCard
+import dev.iliv007.ivai.ui.components.IvaiStateTone
+import dev.iliv007.ivai.ui.theme.IvaiElevationTokens
+import dev.iliv007.ivai.ui.theme.IvaiIconSizeTokens
+import dev.iliv007.ivai.ui.theme.IvaiLayoutTokens
+import dev.iliv007.ivai.ui.theme.IvaiShapeTokens
+import dev.iliv007.ivai.ui.theme.IvaiSpacing
+import dev.iliv007.ivai.ui.theme.IvaiStrokeTokens
+import dev.iliv007.ivai.ui.theme.rememberIvaiSemanticColors
 
+/**
+ * Settings only surfaces user-controlled presentation, navigation, privacy commitments, and the
+ * existing local-data deletion action. Provider management and credential operations stay in
+ * Connections, where their explicit review flows already exist.
+ */
 @Composable
 fun SettingsScreen(
     isDarkTheme: Boolean = false,
     onToggleTheme: () -> Unit = {},
-    providerManagementState: ProviderManagementState = ProviderManagementState(),
-    onAddProvider: (
-        ProviderKind,
-        String,
-        String?,
-        String,
-        String,
-        Set<ProviderCapability>,
-        ProviderEndpointTrustMode,
-        Boolean,
-        ProviderAccountAuthMode,
-        String?
-    ) -> Unit = { _, _, _, _, _, _, _, _, _, _ -> },
-    onDeleteProvider: (String) -> Unit = {},
-    onSetProviderEnabled: (String, Boolean) -> Unit = { _, _ -> },
-    onDismissProviderError: () -> Unit = {},
     onDeleteAllLocalData: () -> Unit = {},
     onOpenConnections: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
-    LazyColumn(
-        modifier = modifier
-            .fillMaxSize()
-            .background(MaterialTheme.colorScheme.background)
-            .padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp)
-    ) {
-        // Section: Appearance & Theme Mode
-        item {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier.padding(top = 4.dp)
-            ) {
-                Box(
-                    modifier = Modifier
-                        .size(4.dp, 16.dp)
-                        .clip(RoundedCornerShape(2.dp))
-                        .background(MaterialTheme.colorScheme.primary)
-                )
-                Spacer(modifier = Modifier.width(8.dp))
-                Text(
-                    text = "Appearance & Theme",
-                    style = MaterialTheme.typography.titleMedium.copy(
-                        fontWeight = FontWeight.Bold
-                    ),
-                    color = MaterialTheme.colorScheme.onSurface
+    IvaiScreenScaffold(modifier = modifier, testTag = "settings_screen") {
+        LazyColumn(
+            contentPadding = PaddingValues(IvaiSpacing.Small),
+            verticalArrangement = Arrangement.spacedBy(IvaiSpacing.Medium)
+        ) {
+            item {
+                IvaiPageHeader(
+                    title = "Settings",
+                    subtitle = "Appearance, user-controlled connections, privacy, and local data.",
+                    testTag = "settings_header"
                 )
             }
-        }
 
-        item {
-            Surface(
-                color = MaterialTheme.colorScheme.surface,
-                shape = RoundedCornerShape(14.dp),
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(14.dp))
-                    .testTag("settings_theme_card")
-            ) {
-                Column(modifier = Modifier.padding(16.dp)) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Box(
-                                modifier = Modifier
-                                    .size(36.dp)
-                                    .clip(RoundedCornerShape(8.dp))
-                                    .background(MaterialTheme.colorScheme.primaryContainer),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Icon(
-                                    imageVector = if (isDarkTheme) Icons.Default.DarkMode else Icons.Default.LightMode,
-                                    contentDescription = null,
-                                    tint = MaterialTheme.colorScheme.primary,
-                                    modifier = Modifier.size(18.dp)
-                                )
-                            }
-                            Spacer(modifier = Modifier.width(10.dp))
-                            Column {
-                                Text(
-                                    text = "App Theme Mode",
-                                    style = MaterialTheme.typography.bodyLarge.copy(
-                                        fontWeight = FontWeight.Bold
-                                    ),
-                                    color = MaterialTheme.colorScheme.onSurface
-                                )
-                                Text(
-                                    text = if (isDarkTheme) "Dark Theme (Cyber Obsidian)" else "Light Theme (Default Clean)",
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                            }
-                        }
-
-                        Switch(
-                            checked = isDarkTheme,
-                            onCheckedChange = { onToggleTheme() },
-                            colors = SwitchDefaults.colors(
-                                checkedThumbColor = MaterialTheme.colorScheme.primary,
-                                checkedTrackColor = MaterialTheme.colorScheme.primaryContainer,
-                                uncheckedThumbColor = MaterialTheme.colorScheme.outline,
-                                uncheckedTrackColor = MaterialTheme.colorScheme.surfaceVariant
-                            ),
-                            modifier = Modifier.testTag("switch_theme_mode")
-                        )
-                    }
-                }
-            }
-        }
-
-        item {
-            Surface(
-                color = MaterialTheme.colorScheme.surface,
-                shape = RoundedCornerShape(14.dp),
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(14.dp))
-                    .testTag("settings_connections_shortcut")
-            ) {
-                Row(
-                    modifier = Modifier.padding(16.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+            item {
+                SettingsSection(
+                    title = "Appearance",
+                    description = "Choose the display mode used on this device."
                 ) {
-                    Box(
-                        modifier = Modifier
-                            .size(36.dp)
-                            .clip(RoundedCornerShape(8.dp))
-                            .background(MaterialTheme.colorScheme.secondaryContainer),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Key,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.onSecondaryContainer,
-                            modifier = Modifier.size(18.dp)
-                        )
-                    }
-                    Column(modifier = Modifier.weight(1f)) {
-                        Text(
-                            text = "Connections & Combos",
-                            style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Bold),
-                            color = MaterialTheme.colorScheme.onSurface
-                        )
-                        Text(
-                            text = "Manage user-controlled providers, HTTPS trust, credentials, declared models and ordered Combos.",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-                    OutlinedButton(
-                        onClick = onOpenConnections,
-                        modifier = Modifier.testTag("button_open_connections_from_settings")
-                    ) { Text("Open") }
+                    AppearanceSettingsCard(
+                        isDarkTheme = isDarkTheme,
+                        onToggleTheme = onToggleTheme
+                    )
                 }
             }
-        }
 
-        // Section: Security & Privacy Invariants
-        item {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier.padding(top = 4.dp)
-            ) {
-                Box(
-                    modifier = Modifier
-                        .size(4.dp, 16.dp)
-                        .clip(RoundedCornerShape(2.dp))
-                        .background(MaterialTheme.colorScheme.tertiary)
-                )
-                Spacer(modifier = Modifier.width(8.dp))
-                Text(
-                    text = "Privacy & Invariants",
-                    style = MaterialTheme.typography.titleMedium.copy(
-                        fontWeight = FontWeight.Bold
-                    ),
-                    color = MaterialTheme.colorScheme.onSurface
-                )
-            }
-        }
-
-        item {
-            Surface(
-                color = MaterialTheme.colorScheme.surface,
-                shape = RoundedCornerShape(14.dp),
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(14.dp))
-                    .testTag("settings_privacy_card")
-            ) {
-                Column(
-                    modifier = Modifier.padding(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
+            item {
+                SettingsSection(
+                    title = "Connections",
+                    description = "Providers, credentials, models, and Combos remain under your control."
                 ) {
-                    listOf(
-                        "No Backend Server" to "Chats and settings stay strictly on your device.",
-                        "No Default Telemetry" to "Zero analytic trackers or remote error logs.",
-                        "No Mandatory Account" to "Local-first app with immediate offline availability.",
-                        "Cleartext Denied" to "Network is strictly TLS encrypted when providers are called."
-                    ).forEach { (title, desc) ->
-                        Row(verticalAlignment = Alignment.Top) {
-                            Box(
-                                modifier = Modifier
-                                    .size(24.dp)
-                                    .clip(CircleShape)
-                                    .background(MaterialTheme.colorScheme.primaryContainer)
-                                    .border(0.5.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.5f), CircleShape),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Default.Shield,
-                                    contentDescription = null,
-                                    tint = MaterialTheme.colorScheme.primary,
-                                    modifier = Modifier.size(13.dp)
-                                )
-                            }
-                            Spacer(modifier = Modifier.width(10.dp))
-                            Column {
-                                Text(
-                                    text = title,
-                                    style = MaterialTheme.typography.bodyMedium.copy(
-                                        fontWeight = FontWeight.Bold
-                                    ),
-                                    color = MaterialTheme.colorScheme.onSurface
-                                )
-                                Text(
-                                    text = desc,
-                                    style = MaterialTheme.typography.bodySmall.copy(
-                                        lineHeight = 16.sp
-                                    ),
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                            }
-                        }
-                    }
+                    ConnectionsSettingsCard(onOpenConnections = onOpenConnections)
                 }
             }
-        }
 
-        // Section: Data & Diagnostics
-        item {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier.padding(top = 4.dp)
-            ) {
-                Box(
-                    modifier = Modifier
-                        .size(4.dp, 16.dp)
-                        .clip(RoundedCornerShape(2.dp))
-                        .background(MaterialTheme.colorScheme.error)
-                )
-                Spacer(modifier = Modifier.width(8.dp))
-                Text(
-                    text = "Data Management",
-                    style = MaterialTheme.typography.titleMedium.copy(
-                        fontWeight = FontWeight.Bold
-                    ),
-                    color = MaterialTheme.colorScheme.onSurface
-                )
-            }
-        }
-
-        item {
-            Surface(
-                color = MaterialTheme.colorScheme.surface,
-                shape = RoundedCornerShape(14.dp),
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .border(1.dp, MaterialTheme.colorScheme.error.copy(alpha = 0.3f), RoundedCornerShape(14.dp))
-            ) {
-                Column(modifier = Modifier.padding(16.dp)) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Column {
-                            Text(
-                                text = "Delete All Local Data",
-                                style = MaterialTheme.typography.bodyLarge.copy(
-                                    fontWeight = FontWeight.Bold
-                                ),
-                                color = MaterialTheme.colorScheme.error
-                            )
-                            Spacer(modifier = Modifier.height(2.dp))
-                            Text(
-                                text = "Permanently removes IVAI's local database, workspace files, and encrypted provider credentials from this device.",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        }
-
-                        OutlinedButton(
-                            onClick = onDeleteAllLocalData,
-                            colors = ButtonDefaults.outlinedButtonColors(
-                                contentColor = MaterialTheme.colorScheme.error
-                            ),
-                            shape = RoundedCornerShape(8.dp),
-                            modifier = Modifier
-                                .defaultMinSize(minWidth = 48.dp, minHeight = 48.dp)
-                                .testTag("button_delete_all_data")
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.DeleteOutline,
-                                contentDescription = null,
-                                modifier = Modifier.size(16.dp)
-                            )
-                            Spacer(modifier = Modifier.width(4.dp))
-                            Text(text = "Clear")
-                        }
-                    }
+            item {
+                SettingsSection(
+                    title = "Privacy",
+                    description = "IVAI keeps its operating commitments visible and specific."
+                ) {
+                    PrivacySettingsContent()
                 }
             }
-        }
 
-        // Section: App Metadata
-        item {
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(vertical = 12.dp),
-                contentAlignment = Alignment.Center
-            ) {
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text(
-                        text = "IVAI Native Android",
-                        style = MaterialTheme.typography.labelSmall.copy(
-                            fontFamily = FontFamily.Monospace,
-                            fontWeight = FontWeight.Bold
-                        ),
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                    Spacer(modifier = Modifier.height(3.dp))
-                    Text(
-                        text = "Package: dev.iliv007.ivai | MinSDK: 29 | TargetSDK: 36",
-                        style = MaterialTheme.typography.labelSmall.copy(
-                            fontSize = 10.sp,
-                            fontFamily = FontFamily.Monospace
-                        ),
-                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
-                    )
+            item {
+                SettingsSection(
+                    title = "Local data",
+                    description = "Review the consequence before removing data from this device."
+                ) {
+                    LocalDataSettingsCard(onDeleteAllLocalData = onDeleteAllLocalData)
                 }
             }
         }
     }
 }
 
+@Composable
+private fun SettingsSection(
+    title: String,
+    description: String,
+    content: @Composable () -> Unit
+) {
+    val semanticColors = rememberIvaiSemanticColors()
+    Column(verticalArrangement = Arrangement.spacedBy(IvaiSpacing.XSmall)) {
+        Text(
+            text = title,
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.SemiBold,
+            color = semanticColors.textPrimary,
+            modifier = Modifier.semantics { this[SemanticsProperties.Heading] = Unit }
+        )
+        Text(
+            text = description,
+            style = MaterialTheme.typography.bodySmall,
+            color = semanticColors.textSecondary
+        )
+        content()
+    }
+}
+
+@Composable
+private fun AppearanceSettingsCard(
+    isDarkTheme: Boolean,
+    onToggleTheme: () -> Unit
+) {
+    val semanticColors = rememberIvaiSemanticColors()
+    Surface(
+        modifier = Modifier
+            .fillMaxWidth()
+            .testTag("settings_theme_card"),
+        shape = RoundedCornerShape(IvaiShapeTokens.Card),
+        color = semanticColors.surfaceRaised,
+        border = BorderStroke(IvaiStrokeTokens.Default, semanticColors.border),
+        tonalElevation = IvaiElevationTokens.Raised
+    ) {
+        Row(
+            modifier = Modifier.padding(IvaiSpacing.Small),
+            horizontalArrangement = Arrangement.spacedBy(IvaiSpacing.XSmall),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            SettingsFeatureIcon(
+                icon = if (isDarkTheme) Icons.Default.DarkMode else Icons.Default.LightMode,
+                tone = semanticColors.actionPrimary
+            )
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(IvaiSpacing.XxxSmall)
+            ) {
+                Text(
+                    text = "Dark mode",
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.SemiBold,
+                    color = semanticColors.textPrimary
+                )
+                Text(
+                    text = if (isDarkTheme) "Dark mode is on." else "Light mode is on.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = semanticColors.textSecondary
+                )
+            }
+            Switch(
+                checked = isDarkTheme,
+                onCheckedChange = { onToggleTheme() },
+                colors = SwitchDefaults.colors(
+                    checkedThumbColor = semanticColors.actionOnPrimary,
+                    checkedTrackColor = semanticColors.actionPrimary,
+                    uncheckedThumbColor = semanticColors.textSecondary,
+                    uncheckedTrackColor = semanticColors.surfaceInteractive
+                ),
+                modifier = Modifier
+                    .testTag("switch_theme_mode")
+                    .semantics {
+                        contentDescription = "Toggle dark mode"
+                        stateDescription = if (isDarkTheme) "Dark mode on" else "Dark mode off"
+                    }
+            )
+        }
+    }
+}
+
+@Composable
+private fun ConnectionsSettingsCard(onOpenConnections: () -> Unit) {
+    val semanticColors = rememberIvaiSemanticColors()
+    Surface(
+        modifier = Modifier
+            .fillMaxWidth()
+            .testTag("settings_connections_shortcut"),
+        shape = RoundedCornerShape(IvaiShapeTokens.Card),
+        color = semanticColors.surfaceRaised,
+        border = BorderStroke(IvaiStrokeTokens.Default, semanticColors.border),
+        tonalElevation = IvaiElevationTokens.Raised
+    ) {
+        Column(
+            modifier = Modifier.padding(IvaiSpacing.Small),
+            verticalArrangement = Arrangement.spacedBy(IvaiSpacing.XSmall)
+        ) {
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(IvaiSpacing.XSmall),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                SettingsFeatureIcon(
+                    icon = Icons.Default.Key,
+                    tone = semanticColors.actionSecondary
+                )
+                Column(
+                    modifier = Modifier.weight(1f),
+                    verticalArrangement = Arrangement.spacedBy(IvaiSpacing.XxxSmall)
+                ) {
+                    Text(
+                        text = "Manage Connections",
+                        style = MaterialTheme.typography.titleSmall,
+                        fontWeight = FontWeight.SemiBold,
+                        color = semanticColors.textPrimary
+                    )
+                    Text(
+                        text = "Add and review providers, HTTPS trust, credentials, declared models, and ordered Combos.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = semanticColors.textSecondary
+                    )
+                }
+            }
+            OutlinedButton(
+                onClick = onOpenConnections,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .heightIn(min = IvaiLayoutTokens.MinimumTouchTarget)
+                    .testTag("button_open_connections_from_settings")
+            ) {
+                Text("Open Connections")
+            }
+        }
+    }
+}
+
+@Composable
+private fun PrivacySettingsContent() {
+    val semanticColors = rememberIvaiSemanticColors()
+    Column(verticalArrangement = Arrangement.spacedBy(IvaiSpacing.XSmall)) {
+        IvaiStateCard(
+            title = "Your data stays under your control",
+            message = "IVAI has no central backend, mandatory account, analytics tracker, or remote error log. Credentials are managed on this device.",
+            tone = IvaiStateTone.SUCCESS,
+            icon = Icons.Default.Shield,
+            testTag = "settings_privacy_summary"
+        )
+        PrivacyCommitmentCard(
+            title = "Network protection",
+            description = "Provider calls require HTTPS. Cleartext connections are not accepted."
+        )
+        PrivacyCommitmentCard(
+            title = "Explicit execution target",
+            description = "A provider, model, or Combo is chosen by you before a chat or Agent run uses it."
+        )
+    }
+}
+
+@Composable
+private fun PrivacyCommitmentCard(
+    title: String,
+    description: String
+) {
+    val semanticColors = rememberIvaiSemanticColors()
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(IvaiShapeTokens.Control),
+        color = semanticColors.surfaceInteractive,
+        border = BorderStroke(IvaiStrokeTokens.Subtle, semanticColors.borderSubtle)
+    ) {
+        Row(
+            modifier = Modifier.padding(IvaiSpacing.XSmall),
+            horizontalArrangement = Arrangement.spacedBy(IvaiSpacing.XSmall),
+            verticalAlignment = Alignment.Top
+        ) {
+            Icon(
+                imageVector = Icons.Default.Shield,
+                contentDescription = null,
+                tint = semanticColors.actionPrimary,
+                modifier = Modifier.size(IvaiIconSizeTokens.Meta)
+            )
+            Column(
+                verticalArrangement = Arrangement.spacedBy(IvaiSpacing.XxxSmall)
+            ) {
+                Text(
+                    text = title,
+                    style = MaterialTheme.typography.labelLarge,
+                    color = semanticColors.textPrimary
+                )
+                Text(
+                    text = description,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = semanticColors.textSecondary
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun LocalDataSettingsCard(onDeleteAllLocalData: () -> Unit) {
+    val semanticColors = rememberIvaiSemanticColors()
+    IvaiStateCard(
+        title = "Delete all local data",
+        message = "This permanently removes IVAI's local database, workspace files, and encrypted provider credentials from this device.",
+        tone = IvaiStateTone.ERROR,
+        icon = Icons.Default.DeleteOutline,
+        action = {
+            OutlinedButton(
+                onClick = onDeleteAllLocalData,
+                colors = ButtonDefaults.outlinedButtonColors(contentColor = semanticColors.stateError),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .heightIn(min = IvaiLayoutTokens.MinimumTouchTarget)
+                    .testTag("button_delete_all_data")
+            ) {
+                Text("Delete all local data")
+            }
+        },
+        testTag = "settings_local_data"
+    )
+}
+
+@Composable
+private fun SettingsFeatureIcon(
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    tone: androidx.compose.ui.graphics.Color
+) {
+    val semanticColors = rememberIvaiSemanticColors()
+    Surface(
+        shape = RoundedCornerShape(IvaiShapeTokens.Control),
+        color = semanticColors.surfaceInteractive
+    ) {
+        Icon(
+            imageVector = icon,
+            contentDescription = null,
+            tint = tone,
+            modifier = Modifier
+                .padding(IvaiSpacing.XSmall)
+                .size(IvaiIconSizeTokens.Inline)
+        )
+    }
+}

@@ -122,7 +122,15 @@ fun IvaiMainApp(
                     onDismissError = resolvedViewModel::clearAgentOperationError,
                     onOpenConnections = { resolvedViewModel.selectDestination(NavDestination.ROUTER) }
                 )
-                NavDestination.PROJECTS -> ProjectsScreen(projects = uiState.projects)
+                NavDestination.PROJECTS -> ProjectsScreen(
+                    projects = uiState.projects,
+                    selectedProjectId = uiState.selectedProjectId,
+                    previewState = uiState.previewState,
+                    onSelectProject = resolvedViewModel::selectProject,
+                    onStartProjectChat = resolvedViewModel::createNewChat,
+                    onOpenChats = { resolvedViewModel.selectDestination(NavDestination.CHATS) },
+                    onOpenAgents = { resolvedViewModel.selectDestination(NavDestination.AGENTS) }
+                )
                 NavDestination.ROUTER -> RouterScreen(
                     state = routerManagementState,
                     providers = providerManagementState,
@@ -136,11 +144,6 @@ fun IvaiMainApp(
                 NavDestination.SETTINGS -> SettingsScreen(
                     isDarkTheme = isDarkTheme,
                     onToggleTheme = onToggleTheme,
-                    providerManagementState = providerManagementState,
-                    onAddProvider = resolvedViewModel::addProviderConnection,
-                    onDeleteProvider = resolvedViewModel::deleteProviderConnection,
-                    onSetProviderEnabled = resolvedViewModel::setProviderConnectionEnabled,
-                    onDismissProviderError = resolvedViewModel::clearProviderOperationError,
                     onDeleteAllLocalData = resolvedViewModel::deleteAllLocalData,
                     onOpenConnections = { resolvedViewModel.selectDestination(NavDestination.ROUTER) }
                 )
