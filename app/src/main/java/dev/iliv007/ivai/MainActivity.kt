@@ -119,7 +119,8 @@ fun IvaiMainApp(
                     onSelectRun = resolvedViewModel::selectAgentRun,
                     onCancelRun = resolvedViewModel::cancelAgentRun,
                     onResolveApproval = resolvedViewModel::resolveAgentApproval,
-                    onDismissError = resolvedViewModel::clearAgentOperationError
+                    onDismissError = resolvedViewModel::clearAgentOperationError,
+                    onOpenConnections = { resolvedViewModel.selectDestination(NavDestination.ROUTER) }
                 )
                 NavDestination.PROJECTS -> ProjectsScreen(projects = uiState.projects)
                 NavDestination.ROUTER -> RouterScreen(
