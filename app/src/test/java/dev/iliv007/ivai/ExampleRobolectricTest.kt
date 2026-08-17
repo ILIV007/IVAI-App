@@ -1,6 +1,8 @@
 package dev.iliv007.ivai
 
 import android.content.Context
+import android.content.pm.ApplicationInfo
+import org.xmlpull.v1.XmlPullParser
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
@@ -16,6 +18,7 @@ import dev.iliv007.ivai.ui.theme.IvaiTheme
 import dev.iliv007.ivai.ui.viewmodel.WorkspaceUiState
 import dev.iliv007.ivai.ui.viewmodel.WorkspaceViewModel
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -34,6 +37,60 @@ class ExampleRobolectricTest {
         val context = ApplicationProvider.getApplicationContext<Context>()
         val appName = context.getString(R.string.app_name)
         assertEquals("IVAI", appName)
+    }
+
+    @Test
+    fun `backup and device transfer remain disabled for local data`() {
+        val context = ApplicationProvider.getApplicationContext<Context>()
+        val applicationInfo = context.packageManager.getApplicationInfo(context.packageName, 0)
+        assertEquals(0, applicationInfo.flags and ApplicationInfo.FLAG_ALLOW_BACKUP)
+
+        val parser = context.resources.getXml(R.xml.ivai_data_extraction_rules)
+        val excludedLocations = linkedSetOf<String>()
+        var section = ""
+        while (parser.eventType != XmlPullParser.END_DOCUMENT) {
+            if (parser.eventType == XmlPullParser.START_TAG) {
+                when (parser.name) {
+                    "cloud-backup", "device-transfer" -> section = parser.name
+                    "exclude" -> {
+                        val domain = parser.getAttributeValue(null, "domain")
+                        val path = parser.getAttributeValue(null, "path")
+                        excludedLocations += "$section:$domain:$path"
+                    }
+                }
+            }
+            parser.next()
+        }
+
+        val domains = setOf(
+            "root",
+            "file",
+            "database",
+            "sharedpref",
+            "external",
+            "device_root",
+            "device_file",
+            "device_database",
+            "device_sharedpref"
+        )
+        val expectedExclusions = setOf("cloud-backup", "device-transfer").flatMap { transferType ->
+            domains.map { domain -> "$transferType:$domain:." }
+        }.toSet()
+        assertEquals(expectedExclusions, excludedLocations)
+        assertTrue(excludedLocations.none { it.contains("null") })
+
+        val legacyParser = context.resources.getXml(R.xml.ivai_full_backup_rules)
+        val legacyExclusions = linkedSetOf<String>()
+        while (legacyParser.eventType != XmlPullParser.END_DOCUMENT) {
+            if (legacyParser.eventType == XmlPullParser.START_TAG && legacyParser.name == "exclude") {
+                val domain = legacyParser.getAttributeValue(null, "domain")
+                val path = legacyParser.getAttributeValue(null, "path")
+                legacyExclusions += "$domain:$path"
+            }
+            legacyParser.next()
+        }
+        assertEquals(domains.map { domain -> "$domain:." }.toSet(), legacyExclusions)
+        assertTrue(legacyExclusions.none { it.contains("null") })
     }
 
     @Test

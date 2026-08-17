@@ -5,6 +5,8 @@
 
     <application
         android:allowBackup="false"
+        android:dataExtractionRules="@xml/ivai_data_extraction_rules"
+        android:fullBackupContent="@xml/ivai_full_backup_rules"
         android:icon="@mipmap/ic_launcher"
         android:label="@string/app_name"
         android:roundIcon="@mipmap/ic_launcher_round"
@@ -13,7 +15,6 @@
         <activity
             android:name=".MainActivity"
             android:exported="true"
-            android:label="@string/app_name"
             android:windowSoftInputMode="adjustResize"
             android:theme="@style/Theme.MyApplication">
             <intent-filter>
