@@ -105,7 +105,7 @@ For TalkBack, inspect both linear swipe navigation and exploration by touch, che
 | Evidence | Repository location | Status at protocol creation |
 |---|---|---|
 | Automated regression and scan output | `docs/PHASE7_5_HARDENING_AUDIT.md` | Deterministic hardening is recorded; rerun on final candidate. |
-| Controlled build and facilitator material | `docs/PHASE7_5_FIELD_KIT.md` and `scripts/prepare_phase75_research_build.sh` | Prepared; no participant or device outcome is recorded. |
+| Controlled build, facilitator material, and operating runbook | `docs/PHASE7_5_FIELD_KIT.md`, `docs/PHASE7_5_USABILITY_HEURISTIC_RUNBOOK.md`, and `scripts/prepare_phase75_research_build.sh` | Prepared; no participant or device outcome is recorded. |
 | Participant outcomes and findings | `docs/PHASE7_UIUX_VALIDATION.md` | Template is ready; no participant results fabricated. |
 | Device/accessibility matrix | `docs/PHASE7_UIUX_VALIDATION.md` | Pending access to physical devices and voluntary participants. |
 | Local no-backup hardening evidence | `docs/PHASE7_5_HARDENING_AUDIT.md` and tests/lint | Implemented and regression-protected; rerun on final candidate. |
