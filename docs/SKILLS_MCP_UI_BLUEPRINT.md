@@ -89,7 +89,7 @@ Phase 8.0 produces a static or Compose-preview prototype only. It must use mock/
 | Content/design review | Terminology distinguishes Skill, Provider target, MCP server, capability grant, and per-invocation approval. |
 | Screenshot/semantics | Dark/light, compact/medium, empty/error/disabled/selected states with stable labels/tags. |
 | Accessibility | TalkBack labels, touch target review, contrast, Force-RTL and mixed BiDi prototype review. |
-| Threat review | No screen suggests auto-connect, trust-all, auto-grant, cross-project access, automatic target selection, background execution, secret display, or a consent transition not permitted by the [Phase 8.0 matrix](PHASE8_0_CAPABILITY_CONSENT_MATRIX.md). |
+| Threat review | No screen suggests auto-connect, trust-all, auto-grant, cross-project access, automatic target selection, background execution, secret display, or a consent transition not permitted by the [Phase 8.0 matrix](PHASE8_0_CAPABILITY_CONSENT_MATRIX.md) and [threat model](PHASE8_0_SKILLS_MCP_THREAT_MODEL.md). |
 | User research | Add Skills/MCP scenarios to a future controlled, de-identified usability script only after Phase 7.5 completion; no live server or real credential is needed. |
 
 ## 6. Design Exit Criteria
