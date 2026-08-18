@@ -1,16 +1,16 @@
 # Pre-Alpha Engineering Backlog and ER-04 Handoff
 
-> **Status:** Prepared from clean `main` commit `e3d3bad` after the post-ER-01 global review, then updated through ER-04. ER-01 through ER-03 are merged; ER-04 passed focused and full deterministic validation locally, with protected merge pending. This document does not close Phase 7.5, authorize an Alpha release, or add any runtime capability.
+> **Status:** Prepared from clean `main` commit `e3d3bad` after the post-ER-01 global review, then updated through ER-04. ER-01 through ER-04 are merged; ER-04 passed focused/full deterministic validation and protected CI before merge in PR #51. This document does not close Phase 7.5, authorize an Alpha release, or add any runtime capability.
 
 ## Current Decision
 
-The protected `main` baseline remains synchronized and green. The ER-04 implementation branch now has 133 passing tests and zero lint issues after clean validation. Subject to protected merge, the next engineering increment becomes **ER-05 — Exception Boundary Audit**. It remains intentionally separate from Phase 7.5 research, release minification, Providers, MCP, and Alpha publication.
+The protected `main` baseline at `1d78914` remains synchronized and green. ER-04 merged after 133 passing tests, zero lint issues, schema migration validation, and both protected CI checks. The next engineering increment is **ER-05 — Exception Boundary Audit**. It remains intentionally separate from Phase 7.5 research, release minification, Providers, MCP, and Alpha publication.
 
 | Decision | Status |
 |---|---|
 | Next implementation increment after ER-04 merge | ER-05 — focused exception-boundary audit |
-| Approved `main` baseline before ER-04 | `07ac901` |
-| ER-04 branch deterministic quality baseline | 133 tests; 0 failures, errors, skipped tests, and lint issues |
+| Approved `main` baseline after ER-04 | `1d78914` (PR #51) |
+| ER-04 deterministic quality baseline | 133 tests; 0 failures, errors, skipped tests, and lint issues; protected CI passed |
 | Phase 7.5 participant/device evidence | Deferred, not complete |
 | Public Alpha / signed APK / download | Not approved |
 | MCP and Skills runtime | Planned post-Alpha only; no implementation is authorized by this backlog |
@@ -61,7 +61,7 @@ ER-02 may be declared complete only when the implementation and focused tests pa
 |---|---|---|---|
 | 1 | ER-02 — calculator contract | Closed in PR #49 with bounded local evaluation and regression coverage. | Changes Agent tool behavior while retaining a precise local-only contract. |
 | 2 | ER-03 — approval concurrency | Closed in PR #50 with deterministic approval-lifecycle serialization. | Synchronization is limited to approval lifecycle state so one-time write authority cannot be overwritten by a stale resolution. |
-| 3 | ER-04 — partial stream recovery | Deterministically reproduced and locally fixed; Room v6 adds an explicit durable incomplete marker, protected CI/merge remain required before closure. | Preserves visible partial text after failure/restart without retrying a provider after content becomes visible. |
+| 3 | ER-04 — partial stream recovery | Closed in PR #51; Room v6 adds an explicit durable incomplete marker with Router, migration/reopen, and UI semantics regressions. | Preserves visible partial text after failure/restart without retrying a provider after content becomes visible. |
 | 4 | ER-05 — exception boundary audit | Next increment: audit `catch (_: Throwable)` call sites; add a focused regression before any narrowing. | Exception/cancellation behavior is safety-sensitive and must not become a batch refactor. |
 | 5 | Remaining P2/P3 hardening | Release minification, safe registry lookup, vault recovery, archive malformed-input, and protocol/naming tests remain separate increments. | These are distinct threat/release design decisions, not a batch refactor. |
 | 6 | Phase 7.5 field evidence | Voluntary de-identified usability/heuristic sessions plus compact/medium device evidence. | Sandbox results cannot replace participants, TalkBack, lifecycle, or local HTTPS behavior. |
