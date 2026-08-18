@@ -32,7 +32,7 @@ The review concerns IVAI's pre-Alpha codebase. The current release decision rema
 | ER-11 | OpenAI-compatible event types are ignored. | **Needs compatibility evidence.** The present adapter contract is intentionally narrow; supporting arbitrary events changes protocol behavior. | Deferred compatibility | Add only after an explicitly supported provider/test vector identifies a required event. |
 | ER-12 | `substringBeforeLast('-')` corrupts router attempt IDs. | **Contradicted by current construction.** Candidate entries are created as `$attemptId-${position}`, so removing the final suffix restores the known parent attempt ID. | Not a current bug | Prefer explicit parent ID only if future ID formats change; no behavior fix now. |
 | ER-13 | Credential presence method name is misleading. | **Minor naming/design observation; needs current call-site audit.** | P3 | Defer until a semantic rename can be made without misleading behavior changes. |
-| ER-14 | Release minification is disabled. | **Confirmed configuration.** This is a release-hardening decision, not a safe one-line toggle; R8 rules and full release validation are required. | P2 release hardening | Plan a separate release-build hardening phase before public Alpha, never enable blindly. |
+| ER-14 | Release minification is disabled. | **Confirmed, locally fixed, and protected merge pending.** R8 minification is enabled for the unsigned release variant; clean `assembleRelease` ran `minifyReleaseWithR8`, produced an APK and mapping files, and protected CI now builds the minified release variant on every PR. | P2 release hardening | Merge only after protected CI. Signed artifact, physical-device smoke, owner approval, and public Alpha remain separate gates. |
 | ER-15 | `first { … }` can crash if the registry changes. | **Confirmed, fixed, and merged in PR #55.** Removing the resolved connection before the candidate opens previously threw `NoSuchElementException`. Router revalidates connection/account/model with `firstOrNull` and emits a safe `INVALID_REQUEST` failure with a failed attempt trace. | P2 resilience | Closed; retain stale-catalog safe-failure regression. |
 | ER-16 | `ByteArray` equality in a data class is reference-based. | **Language behavior confirmed, product impact unproven.** | P3 test ergonomics | Add content-equality assertion only if current code/tests compare payload objects. |
 | ER-17 | Network exchange may be closed twice. | **Needs exact call-site review; no observed failure.** | P3 cleanup | Do not change resource lifecycle without a targeted test. |
@@ -47,7 +47,7 @@ The review concerns IVAI's pre-Alpha codebase. The current release decision rema
 
 ## Confirmed Work Order
 
-ER-01 through ER-05, ER-15, ER-22, ER-24, and ER-25 were reproduced, fixed, and merged in standalone PRs. Remaining P2 and P3 work remains separate from the completed BYOK resilience increment.
+ER-01 through ER-05, ER-15, ER-22, ER-24, and ER-25 were reproduced, fixed, and merged in standalone PRs. ER-14 is locally release-validated in its own R8/CI branch; protected merge is pending. Remaining P3 work remains separate from this release-hardening increment.
 
 | Order | Candidate | Why separated |
 |---|---|---|
@@ -59,7 +59,8 @@ ER-01 through ER-05, ER-15, ER-22, ER-24, and ER-25 were reproduced, fixed, and 
 | 6 | ER-15 — safe Router registry lookup | Closed in PR #55 with revalidation and a safe failed trace. |
 | 7 | ER-22 / ER-25 — archive malformed-input atomicity | Closed in PR #57 with checksum-valid malformed collection regression. |
 | 8 | ER-24 — vault desynchronization recovery | Closed in PR #59 by reporting only decryptable non-blank credentials as usable. |
-| 9 | Remaining P2/P3 candidates | Next work resumes with a focused ER-14 release-minification audit or another evidence-confirmed candidate; no batch hardening. |
+| 9 | ER-14 — release-minification hardening | R8 release build, mapping output, and CI release-build gate are locally green; protected merge pending. |
+| 10 | Remaining P3 candidates | Next work resumes with a focused ER-10 SSE parser-spec regression or another evidence-confirmed candidate; no batch hardening. |
 
 ## Non-Negotiable Deferrals
 

@@ -43,8 +43,8 @@ jobs:
           sdkmanager "platform-tools" "platforms;android-36" "build-tools;36.1.0"
       - name: Verify wrapper integrity
         run: unzip -t gradle/wrapper/gradle-wrapper.jar
-      - name: Build debug APK
-        run: ./gradlew clean assembleDebug --no-daemon --stacktrace
+      - name: Build debug and minified release APKs
+        run: ./gradlew clean assembleDebug assembleRelease --no-daemon --stacktrace
       - name: Run unit tests
         run: ./gradlew testDebugUnitTest --no-daemon --stacktrace
       - name: Run Android lint

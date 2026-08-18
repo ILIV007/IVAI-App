@@ -1,16 +1,16 @@
-# Pre-Alpha Engineering Backlog and ER-24 Handoff
+# Pre-Alpha Engineering Backlog and ER-14 Handoff
 
-> **Status:** Prepared from clean `main` commit `e3d3bad` after the post-ER-01 global review, then updated through ER-24. ER-01 through ER-05, ER-15, ER-22, ER-24, and ER-25 are merged; ER-24 passed focused/full deterministic validation and protected CI before merge in PR #59. This document does not close Phase 7.5, authorize an Alpha release, or add any runtime capability.
+> **Status:** Prepared from clean `main` commit `e3d3bad` after the post-ER-01 global review, then updated through ER-14. ER-01 through ER-05, ER-15, ER-22, ER-24, and ER-25 are merged; ER-14 passed release/debug/full deterministic validation locally, with protected merge pending. This document does not close Phase 7.5, authorize an Alpha release, or add any runtime capability.
 
 ## Current Decision
 
-The protected `main` baseline at `f353746` remains synchronized and green. ER-24 merged after 139 passing tests, zero lint issues, and both protected CI checks. The next engineering increment is **ER-14 — Release-Minification Audit**. It remains intentionally separate from Phase 7.5 research, release minification implementation, Providers, MCP, and Alpha publication.
+The protected `main` baseline at `c5c9666` remains synchronized and green. The ER-14 implementation branch has 139 passing tests, zero lint issues, a successful minified release build, and R8 mapping output after clean validation. Subject to protected merge, the next engineering increment is **ER-10 — SSE Parser-Spec Regression**. ER-14 remains intentionally separate from signing, publication, device validation, Providers, MCP, and Alpha approval.
 
 | Decision | Status |
 |---|---|
-| Next implementation increment after ER-24 merge | ER-14 — release-minification audit |
-| Approved `main` baseline after ER-24 | `f353746` (PR #59) |
-| ER-24 deterministic quality baseline | 139 tests; 0 failures, errors, skipped tests, and lint issues; protected CI passed |
+| Next implementation increment after ER-14 merge | ER-10 — SSE parser-spec regression |
+| Approved `main` baseline before ER-14 | `c5c9666` (PR #60) |
+| ER-14 branch deterministic quality baseline | 139 tests; 0 failures, errors, skipped tests, and lint issues; successful R8 release APK and mapping output |
 | Phase 7.5 participant/device evidence | Deferred, not complete |
 | Public Alpha / signed APK / download | Not approved |
 | MCP and Skills runtime | Planned post-Alpha only; no implementation is authorized by this backlog |
@@ -55,7 +55,7 @@ This increment must not add an external math engine, JavaScript/ScriptEngine eva
 
 ER-02 may be declared complete only when the implementation and focused tests pass locally, the full clean build/unit/lint gate passes, source security/architecture scans are clean, the PR scope is limited to the calculator contract, both protected CI jobs pass, `main` protection is restored after merge, and Roadmap/triage are updated with the actual final behavior.
 
-## Ordered Backlog After ER-24
+## Ordered Backlog After ER-14
 
 | Order | Increment | Current evidence and required gate | Why it must remain separate |
 |---|---|---|---|
@@ -66,11 +66,12 @@ ER-02 may be declared complete only when the implementation and focused tests pa
 | 5 | ER-15 — safe Router registry lookup | Closed in PR #55; stale connection/account/model state now yields a safe `INVALID_REQUEST` failed trace. | Registry inconsistency must not crash UI or hide a provider-selection error. |
 | 6 | ER-22 / ER-25 — archive malformed-input atomicity | Closed in PR #57: checksum-valid malformed collection is rejected before Room/file mutation. Allocation policy is unchanged. | Archive safety requires focused corruption evidence, not speculative OOM refactoring. |
 | 7 | ER-24 — vault desynchronization recovery | Closed in PR #59; only decryptable non-blank credentials are reported usable, while stale envelopes remain for deliberate overwrite/clear. | Vault recovery must preserve BYOK boundary and never expose or fabricate credentials. |
-| 8 | ER-14 — release-minification audit | Next candidate: inspect release variant/R8 configuration and run a release validation matrix before any minification toggle. | Minification is a release-hardening decision, not a safe one-line change. |
-| 9 | Remaining P3 hardening | SSE protocol and credential naming tests remain separate increments. | These are distinct behavior/documentation decisions, not a batch refactor. |
-| 10 | Phase 7.5 field evidence | Voluntary de-identified usability/heuristic sessions plus compact/medium device evidence. | Sandbox results cannot replace participants, TalkBack, lifecycle, or local HTTPS behavior. |
-| 11 | Alpha release decision | Owner signing, signed artifact SHA-256, tag, notes, GitHub Release, independent hash check. | Publication must follow—not substitute for—all P0/P1 gates. |
-| 12 | Phase 8.0 Skills/MCP prototype | Threat-model/UX prototype after Alpha, following existing Phase 8 architecture documents. | No MCP runtime, process execution, OAuth, or background capability before its own gates. |
+| 8 | ER-14 — release-minification hardening | Locally fixed: R8 is enabled, clean release build produced the unsigned APK/mapping, and CI now assembles minified release on every PR; protected merge pending. | Minification is a release-hardening decision; signing, device smoke, and publication remain separate gates. |
+| 9 | ER-10 — SSE parser-spec regression | Next candidate: add a literal SSE field/blank-line regression before changing parser behavior. | Protocol parsing must be evidence-driven and should not broaden compatibility silently. |
+| 10 | Remaining P3 hardening | Credential naming and any evidence-confirmed resource lifecycle test remain separate increments. | These are distinct behavior/documentation decisions, not a batch refactor. |
+| 11 | Phase 7.5 field evidence | Voluntary de-identified usability/heuristic sessions plus compact/medium device evidence. | Sandbox results cannot replace participants, TalkBack, lifecycle, or local HTTPS behavior. |
+| 12 | Alpha release decision | Owner signing, signed artifact SHA-256, tag, notes, GitHub Release, independent hash check. | Publication must follow—not substitute for—all P0/P1 gates. |
+| 13 | Phase 8.0 Skills/MCP prototype | Threat-model/UX prototype after Alpha, following existing Phase 8 architecture documents. | No MCP runtime, process execution, OAuth, or background capability before its own gates. |
 
 ## Gates That Remain Intentionally Open
 
