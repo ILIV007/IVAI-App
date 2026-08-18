@@ -35,7 +35,7 @@ The review concerns IVAI's pre-Alpha codebase. The current release decision rema
 | ER-14 | Release minification is disabled. | **Confirmed, fixed, and merged in PR #61.** R8 minification is enabled for the unsigned release variant; `assembleRelease` runs `minifyReleaseWithR8`, produces an APK and mapping files, and protected CI now builds the minified release variant on every PR. | P2 release hardening | Closed for deterministic release-build hardening. Signed artifact, physical-device smoke, owner approval, and public Alpha remain separate gates. |
 | ER-15 | `first { … }` can crash if the registry changes. | **Confirmed, fixed, and merged in PR #55.** Removing the resolved connection before the candidate opens previously threw `NoSuchElementException`. Router revalidates connection/account/model with `firstOrNull` and emits a safe `INVALID_REQUEST` failure with a failed attempt trace. | P2 resilience | Closed; retain stale-catalog safe-failure regression. |
 | ER-16 | `ByteArray` equality in a data class is reference-based. | **Language behavior confirmed, product impact unproven.** | P3 test ergonomics | Add content-equality assertion only if current code/tests compare payload objects. |
-| ER-17 | Network exchange may be closed twice. | **Needs exact call-site review; no observed failure.** | P3 cleanup | Do not change resource lifecycle without a targeted test. |
+| ER-17 | Network exchange may be closed twice. | **Confirmed by deterministic close-count regressions and locally fixed; protected merge pending.** Both active gates closed a successful exchange once in the inner `finally` and again in the outer `finally`; inner ownership now clears the outer reference before its single close. | P3 resource lifecycle | Merge only after focused/full tests, scans, lint, protected CI, and documentation review succeed. Protocol and network policy remain unchanged. |
 | ER-18 | HTTPS-only local endpoint policy causes Ollama/LM Studio friction. | **Intentional security boundary.** HTTP, mDNS and discovery remain explicitly excluded. | UX research item | Test comprehension of HTTPS-only guidance on a physical device; do not add HTTP exception. |
 | ER-19 | Safe diagnostics should be connected to telemetry. | **Rejected as phrased.** Hosted telemetry conflicts with Local-first/Backendless design. | Not a bug | If needed, evaluate a user-exported, fully redacted local diagnostic bundle in a separate privacy phase. |
 | ER-20 | ViewModel integration coverage is limited / ViewModel is large. | **Code-quality observation, not a verified runtime defect.** | Deferred architecture/test quality | Split only in a focused feature-boundary phase; avoid a high-risk refactor during release hardening. |
@@ -47,7 +47,7 @@ The review concerns IVAI's pre-Alpha codebase. The current release decision rema
 
 ## Confirmed Work Order
 
-ER-01 through ER-05, ER-10, ER-13, ER-14, ER-15, ER-22, ER-24, and ER-25 were reproduced, fixed, and merged in standalone PRs. Any remaining P3 work requires a separate evidence-confirmed increment.
+ER-01 through ER-05, ER-10, ER-13, ER-14, ER-15, ER-22, ER-24, and ER-25 were reproduced, fixed, and merged in standalone PRs. ER-17 is reproduced and locally fixed in its own resource-lifecycle branch; protected merge is pending. Any other P3 work requires a separate evidence-confirmed increment.
 
 | Order | Candidate | Why separated |
 |---|---|---|
@@ -62,7 +62,8 @@ ER-01 through ER-05, ER-10, ER-13, ER-14, ER-15, ER-22, ER-24, and ER-25 were re
 | 9 | ER-14 — release-minification hardening | Closed in PR #61 with R8 release build, mapping output, and CI release-build gate. |
 | 10 | ER-10 — literal SSE data-field whitespace | Closed in PR #63 with literal whitespace regressions for both active SSE readers. |
 | 11 | ER-13 — local credential availability naming | Closed in PR #65 with a behavior-preserving rename and no-transport regression. |
-| 12 | Remaining P3 candidates | Next work resumes only with another evidence-confirmed candidate; no batch hardening. |
+| 12 | ER-17 — close-once provider exchange lifecycle | Deterministically reproduced and locally fixed in both active gates; protected merge pending. |
+| 13 | Remaining P3 candidates | Next work resumes only with another evidence-confirmed candidate; no batch hardening. |
 
 ## Non-Negotiable Deferrals
 
