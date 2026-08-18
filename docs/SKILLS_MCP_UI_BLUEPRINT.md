@@ -57,7 +57,7 @@ The run trace displays only a redacted `External capability requested`, `Approve
 
 ## 3. Consent Surfaces and Copy Principles
 
-A capability declaration is not a permission. Consent appears at three distinct points: profile review (connection), capability allowlist (scope), and action execution (one-time use). The user must be able to distinguish them in language, color, iconography, and trace history.
+A capability declaration is not a permission. Consent appears at three distinct points: profile review (connection), capability allowlist (scope), and action execution (one-time use). The [Phase 8.0 Capability Consent and Traceability Matrix](PHASE8_0_CAPABILITY_CONSENT_MATRIX.md) is canonical for the state, data-category, denial, redaction, and later-evidence rules. The user must be able to distinguish the three consent layers in language, color, iconography, and trace history.
 
 | Consent surface | User question answered | Required detail | Primary actions |
 |---|---|---|---|
@@ -89,7 +89,7 @@ Phase 8.0 produces a static or Compose-preview prototype only. It must use mock/
 | Content/design review | Terminology distinguishes Skill, Provider target, MCP server, capability grant, and per-invocation approval. |
 | Screenshot/semantics | Dark/light, compact/medium, empty/error/disabled/selected states with stable labels/tags. |
 | Accessibility | TalkBack labels, touch target review, contrast, Force-RTL and mixed BiDi prototype review. |
-| Threat review | No screen suggests auto-connect, trust-all, auto-grant, cross-project access, automatic target selection, background execution, or secret display. |
+| Threat review | No screen suggests auto-connect, trust-all, auto-grant, cross-project access, automatic target selection, background execution, secret display, or a consent transition not permitted by the [Phase 8.0 matrix](PHASE8_0_CAPABILITY_CONSENT_MATRIX.md). |
 | User research | Add Skills/MCP scenarios to a future controlled, de-identified usability script only after Phase 7.5 completion; no live server or real credential is needed. |
 
 ## 6. Design Exit Criteria
