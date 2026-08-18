@@ -4,7 +4,7 @@
 
 ## Current Decision
 
-The protected `main` baseline at `15acd1d` remains synchronized and green. ER-17 merged after 142 passing tests, zero lint issues, successful R8 release output, and both protected CI checks. Subsequent P3 work continues only from an evidence-confirmed candidate. Protocol semantics, endpoint/network policy, signing, publication, device validation, MCP, and Alpha approval remain intentionally separate.
+The ER-17 code baseline introduced at protected `main` commit `15acd1d` is green; subsequent documentation-only closures retain the same deterministic quality result. ER-17 merged after 142 passing tests, zero lint issues, successful R8 release output, and both protected CI checks. Subsequent P3 work continues only from an evidence-confirmed candidate. Protocol semantics, endpoint/network policy, signing, publication, device validation, MCP, and Alpha approval remain intentionally separate.
 
 | Decision | Status |
 |---|---|
