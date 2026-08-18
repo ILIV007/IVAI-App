@@ -10,8 +10,9 @@ matrix="docs/PHASE8_0_CAPABILITY_CONSENT_MATRIX.md"
 architecture="docs/SKILLS_MCP_FUTURE_ARCHITECTURE.md"
 blueprint="docs/SKILLS_MCP_UI_BLUEPRINT.md"
 roadmap="docs/ROADMAP.md"
+threat_model="docs/PHASE8_0_SKILLS_MCP_THREAT_MODEL.md"
 
-for required_file in "$matrix" "$architecture" "$blueprint" "$roadmap"; do
+for required_file in "$matrix" "$architecture" "$blueprint" "$roadmap" "$threat_model"; do
   [[ -f "$required_file" ]] || {
     echo "Phase 8.0 guard failed: missing $required_file" >&2
     exit 1
@@ -40,14 +41,22 @@ require_text "$matrix" "Capability allowlist"
 require_text "$matrix" "Per-invocation consent"
 require_text "$matrix" "No request, no fallback, no replay after restart."
 require_text "$matrix" "A copy of a token, prompt, file, raw argument, resource value, server response, or telemetry event."
+require_text "$threat_model" "Planning-only threat model"
+require_text "$threat_model" "TM-01"
+require_text "$threat_model" "TM-12"
+require_text "$threat_model" "A Skill description claims it can choose a stronger Provider"
+require_text "$threat_model" "A future request must introduce a named phase"
 require_text "$architecture" "PHASE8_0_CAPABILITY_CONSENT_MATRIX.md"
+require_text "$architecture" "PHASE8_0_SKILLS_MCP_THREAT_MODEL.md"
 require_text "$blueprint" "PHASE8_0_CAPABILITY_CONSENT_MATRIX.md"
+require_text "$blueprint" "PHASE8_0_SKILLS_MCP_THREAT_MODEL.md"
 require_text "$roadmap" "PHASE8_0_CAPABILITY_CONSENT_MATRIX.md"
+require_text "$roadmap" "PHASE8_0_SKILLS_MCP_THREAT_MODEL.md"
 
 if git grep -nI -E -i '\b(skill|mcp)\b' -- app/src/main; then
   echo "Phase 8.0 guard failed: runtime Skills/MCP code exists before an approved focused subphase." >&2
   exit 1
 fi
 
-printf '%s\n' 'PASS: Phase 8.0 consent matrix and cross-links are present'
+printf '%s\n' 'PASS: Phase 8.0 consent matrix, threat model, and cross-links are present'
 printf '%s\n' 'PASS: no production Skills/MCP runtime implementation exists'
