@@ -19,6 +19,7 @@ import kotlinx.coroutines.runBlocking
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
@@ -136,6 +137,23 @@ class BasicAgentRuntimeTest {
         assertTrue(result.isFailure)
         assertTrue(result.exceptionOrNull()?.message?.contains("Unknown Agent Combo target") == true)
         assertEquals(null, repository.findAgentRun("run-${clock.get()}"))
+    }
+
+    @Test
+    fun `runs started in the same millisecond keep distinct persisted identities`() = runBlocking {
+        runtime = BasicAgentRuntime(
+            repository = repository,
+            projectWorkspace = workspace,
+            tools = AgentToolRegistry { clock.get() },
+            nowEpochMs = { 7_000L }
+        )
+        val profile = saveProfile()
+
+        val first = runtime.start(profile, "First bounded run")
+        val second = runtime.start(profile, "Second bounded run")
+
+        assertNotEquals(first.id, second.id)
+        assertEquals(2, repository.observeAgentRuns(profile.id).first().size)
     }
 
     @Test
