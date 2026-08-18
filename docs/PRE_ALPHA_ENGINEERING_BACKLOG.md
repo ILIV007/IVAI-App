@@ -1,16 +1,16 @@
 # Pre-Alpha Engineering Backlog and ER-10 Handoff
 
-> **Status:** Prepared from clean `main` commit `e3d3bad` after the post-ER-01 global review, then updated through ER-10. ER-01 through ER-05, ER-14, ER-15, ER-22, ER-24, and ER-25 are merged; ER-10 passed focused/release/debug/full deterministic validation locally, with protected merge pending. This document does not close Phase 7.5, authorize an Alpha release, or add any runtime capability.
+> **Status:** Prepared from clean `main` commit `e3d3bad` after the post-ER-01 global review, then updated through ER-10. ER-01 through ER-05, ER-10, ER-14, ER-15, ER-22, ER-24, and ER-25 are merged; ER-10 passed focused/release/debug/full deterministic validation and protected CI before merge in PR #63. This document does not close Phase 7.5, authorize an Alpha release, or add any runtime capability.
 
 ## Current Decision
 
-The protected `main` baseline at `673f906` remains synchronized and green. The ER-10 implementation branch has 141 passing tests and zero lint issues after clean debug/release validation. Subject to protected merge, the next engineering increment is **ER-13 — Credential Naming Audit**. ER-10 remains intentionally separate from event compatibility, endpoint/network policy, signing, publication, device validation, Providers, MCP, and Alpha approval.
+The protected `main` baseline at `a412f88` remains synchronized and green. ER-10 merged after 141 passing tests, zero lint issues, successful R8 release output, and both protected CI checks. The next engineering increment is **ER-13 — Credential Naming Audit**. It remains intentionally separate from event compatibility, endpoint/network policy, signing, publication, device validation, Providers, MCP, and Alpha approval.
 
 | Decision | Status |
 |---|---|
 | Next implementation increment after ER-10 merge | ER-13 — credential naming audit |
-| Approved `main` baseline before ER-10 | `673f906` (PR #62) |
-| ER-10 branch deterministic quality baseline | 141 tests; 0 failures, errors, skipped tests, and lint issues; successful R8 release APK/mapping |
+| Approved `main` baseline after ER-10 | `a412f88` (PR #63) |
+| ER-10 deterministic quality baseline | 141 tests; 0 failures, errors, skipped tests, and lint issues; successful R8 release APK/mapping and protected CI |
 | Phase 7.5 participant/device evidence | Deferred, not complete |
 | Public Alpha / signed APK / download | Not approved |
 | MCP and Skills runtime | Planned post-Alpha only; no implementation is authorized by this backlog |
@@ -67,7 +67,7 @@ ER-02 may be declared complete only when the implementation and focused tests pa
 | 6 | ER-22 / ER-25 — archive malformed-input atomicity | Closed in PR #57: checksum-valid malformed collection is rejected before Room/file mutation. Allocation policy is unchanged. | Archive safety requires focused corruption evidence, not speculative OOM refactoring. |
 | 7 | ER-24 — vault desynchronization recovery | Closed in PR #59; only decryptable non-blank credentials are reported usable, while stale envelopes remain for deliberate overwrite/clear. | Vault recovery must preserve BYOK boundary and never expose or fabricate credentials. |
 | 8 | ER-14 — release-minification hardening | Closed in PR #61: R8 is enabled, release build produced the unsigned APK/mapping, and CI assembles minified release on every PR. | Minification is a release-hardening decision; signing, device smoke, and publication remain separate gates. |
-| 9 | ER-10 — literal SSE data-field whitespace | Deterministically reproduced and locally fixed in both active SSE readers; only one optional post-colon space is removed; protected merge pending. | Protocol parsing must be evidence-driven and should not broaden event compatibility silently. |
+| 9 | ER-10 — literal SSE data-field whitespace | Closed in PR #63; only one optional post-colon space is removed in both active SSE readers. | Protocol parsing must be evidence-driven and should not broaden event compatibility silently. |
 | 10 | ER-13 — credential naming audit | Next candidate: audit `validateStoredCredential` semantics and rename only if all call-sites and test names support a behavior-preserving change. | Naming must not imply a network validation or obscure the BYOK/local boundary. |
 | 11 | Remaining P3 hardening | Any evidence-confirmed resource lifecycle test remains a separate increment. | It is a distinct lifecycle decision, not a batch refactor. |
 | 12 | Phase 7.5 field evidence | Voluntary de-identified usability/heuristic sessions plus compact/medium device evidence. | Sandbox results cannot replace participants, TalkBack, lifecycle, or local HTTPS behavior. |

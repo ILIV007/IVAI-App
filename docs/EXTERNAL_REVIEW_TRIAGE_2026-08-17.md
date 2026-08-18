@@ -28,7 +28,7 @@ The review concerns IVAI's pre-Alpha codebase. The current release decision rema
 | ER-07 | Keystore must require biometric/PIN per access. | **Not a defect as stated.** Existing design uses a non-exportable Keystore vault for BYOK; per-operation user authentication is a product trade-off that may break foreground streaming/rotation/recovery. | Deferred security design | Consider a separate optional high-assurance mode only after user research and Android-device threat analysis. |
 | ER-08 | Migration 4→5 can fail from duplicate credential references. | **Contradicted for normal supported upgrade.** The credential-reference unique index was already created in migration 1→2. A duplicate database would require corruption/out-of-contract historic state. | Not a current migration bug | Retain corruption recovery tests; no blind deduplication migration. |
 | ER-09 | Automatic model discovery should be added. | **Intentional exclusion.** IVAI requires explicit, user-controlled provider/model configuration and no automatic network action. | Not a bug | Keep manual model-ID path; evaluate a later user-started discovery phase separately. |
-| ER-10 | SSE `trimStart()` is not fully literal SSE parsing. | **Confirmed by deterministic regressions and locally fixed; protected merge pending.** Both active SSE readers now remove only the one optional space directly after `data:` and preserve subsequent leading spaces/tabs in the payload. | P3 protocol correctness | Merge only after focused/full tests, scans, lint, protected CI, and documentation review succeed. Event compatibility remains unchanged. |
+| ER-10 | SSE `trimStart()` is not fully literal SSE parsing. | **Confirmed, fixed, and merged in PR #63.** Both active SSE readers remove only the one optional space directly after `data:` and preserve subsequent leading spaces/tabs in the payload. | P3 protocol correctness | Closed; retain literal whitespace regressions. Event compatibility remains unchanged. |
 | ER-11 | OpenAI-compatible event types are ignored. | **Needs compatibility evidence.** The present adapter contract is intentionally narrow; supporting arbitrary events changes protocol behavior. | Deferred compatibility | Add only after an explicitly supported provider/test vector identifies a required event. |
 | ER-12 | `substringBeforeLast('-')` corrupts router attempt IDs. | **Contradicted by current construction.** Candidate entries are created as `$attemptId-${position}`, so removing the final suffix restores the known parent attempt ID. | Not a current bug | Prefer explicit parent ID only if future ID formats change; no behavior fix now. |
 | ER-13 | Credential presence method name is misleading. | **Minor naming/design observation; needs current call-site audit.** | P3 | Defer until a semantic rename can be made without misleading behavior changes. |
@@ -47,7 +47,7 @@ The review concerns IVAI's pre-Alpha codebase. The current release decision rema
 
 ## Confirmed Work Order
 
-ER-01 through ER-05, ER-14, ER-15, ER-22, ER-24, and ER-25 were reproduced, fixed, and merged in standalone PRs. ER-10 is reproduced and locally fixed in its own literal-SSE branch; protected merge is pending. Remaining P3 work remains separate from this protocol-correctness increment.
+ER-01 through ER-05, ER-10, ER-14, ER-15, ER-22, ER-24, and ER-25 were reproduced, fixed, and merged in standalone PRs. Remaining P3 work remains separate from the completed protocol-correctness increment.
 
 | Order | Candidate | Why separated |
 |---|---|---|
@@ -60,7 +60,7 @@ ER-01 through ER-05, ER-14, ER-15, ER-22, ER-24, and ER-25 were reproduced, fixe
 | 7 | ER-22 / ER-25 — archive malformed-input atomicity | Closed in PR #57 with checksum-valid malformed collection regression. |
 | 8 | ER-24 — vault desynchronization recovery | Closed in PR #59 by reporting only decryptable non-blank credentials as usable. |
 | 9 | ER-14 — release-minification hardening | Closed in PR #61 with R8 release build, mapping output, and CI release-build gate. |
-| 10 | ER-10 — literal SSE data-field whitespace | Deterministically reproduced and locally fixed in both active SSE readers; protected merge pending. |
+| 10 | ER-10 — literal SSE data-field whitespace | Closed in PR #63 with literal whitespace regressions for both active SSE readers. |
 | 11 | Remaining P3 candidates | Next work resumes with a focused ER-13 credential naming audit or another evidence-confirmed candidate; no batch hardening. |
 
 ## Non-Negotiable Deferrals
