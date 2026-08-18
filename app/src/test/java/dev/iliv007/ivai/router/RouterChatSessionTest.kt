@@ -55,6 +55,47 @@ class RouterChatSessionTest {
     fun tearDown() = database.close()
 
     @Test
+    fun `visible partial stream failure persists incomplete assistant response without fallback`() = runBlocking {
+        repository.saveThread(ChatThreadEntity("thread", "Local router", "", 1L, "User model", null))
+        repository.saveProviderConnection(ProviderConnectionEntity("gemini", "GEMINI", "User provider", null, true, 1L, 1L))
+        repository.saveProviderAccount(ProviderAccountEntity("gemini-account", "gemini", "BYOK", "credential.gemini", true, 1L, 1L))
+        repository.saveProviderModel(ProviderModelEntity("gemini-model", "gemini", "user-first-model", "First model", "TEXT,STREAMING", true, true, 1L))
+        val catalog = RouterCatalog(
+            connections = repository.currentProviderRegistry().connections,
+            accounts = repository.currentProviderRegistry().accounts,
+            models = repository.currentProviderRegistry().models,
+            credentialPresent = setOf("credential.gemini")
+        )
+        val session = RouterChatSession(
+            workspace = repository,
+            router = SequentialRouter(),
+            providerResolver = { _, _, _ -> partialFailureProvider },
+            nowEpochMs = { 100L }
+        )
+
+        val events = session.send(
+            threadId = "thread",
+            target = ExecutionTarget.DirectModel("gemini", "gemini-account", "gemini-model"),
+            comboEntries = emptyList(),
+            catalog = catalog,
+            history = emptyList(),
+            prompt = "hello",
+            attemptId = "router-partial"
+        ).toList()
+
+        assertEquals(listOf("visible partial"), events.filterIsInstance<ProviderStreamEvent.Delta>().map { it.text })
+        assertTrue(events.last() is ProviderStreamEvent.Failed)
+        val messages = repository.observeMessages("thread").first()
+        assertEquals(2, messages.size)
+        assertEquals("hello", messages.first().text)
+        val partial = messages.last()
+        assertEquals("visible partial", partial.text)
+        assertEquals("user-first-model", partial.modelBadge)
+        assertTrue(partial.isIncomplete)
+        assertEquals(RouterAttemptOutcome.FAILED.name, repository.observeRouterAttempts("thread").first().single().outcome)
+    }
+
+    @Test
     fun `retryable first candidate failure falls back once and records ordered safe trace`() = runBlocking {
         repository.saveThread(ChatThreadEntity("thread", "Local router", "", 1L, "User Combo", null))
         repository.saveProviderConnection(ProviderConnectionEntity("gemini", "GEMINI", "First user provider", null, true, 1L, 1L))
@@ -105,6 +146,12 @@ class RouterChatSessionTest {
         assertEquals(listOf(RouterAttemptOutcome.FAILED.name, RouterAttemptOutcome.SUCCEEDED.name), entryTrace.map { it.outcome })
         assertEquals(ProviderErrorKind.RATE_LIMIT.name, entryTrace.first().safeErrorKind)
         assertTrue(entryTrace.all { it.safeErrorMessage?.contains("secret", ignoreCase = true) != true })
+    }
+
+    private val partialFailureProvider = FakeProvider(ProviderId("fake-partial")) { request ->
+        emit(ProviderStreamEvent.Started(request.attemptId))
+        emit(ProviderStreamEvent.Delta("visible partial"))
+        emit(ProviderStreamEvent.Failed(NormalizedProviderError(ProviderErrorKind.NETWORK_UNAVAILABLE, "Network interrupted", retryable = true)))
     }
 
     private val retryableFailureProvider = FakeProvider(ProviderId("fake-gemini")) { request ->

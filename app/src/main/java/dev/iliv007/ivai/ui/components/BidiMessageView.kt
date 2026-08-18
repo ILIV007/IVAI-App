@@ -382,6 +382,14 @@ fun AiMessageBubble(
                                 verticalAlignment = Alignment.CenterVertically,
                                 horizontalArrangement = Arrangement.spacedBy(6.dp)
                             ) {
+                                if (message.isIncomplete) {
+                                    Text(
+                                        text = "Incomplete response",
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = MaterialTheme.colorScheme.error,
+                                        modifier = Modifier.testTag("incomplete_message_${message.id}")
+                                    )
+                                }
                                 message.latencyMs?.let { latency ->
                                     Row(
                                         verticalAlignment = Alignment.CenterVertically,

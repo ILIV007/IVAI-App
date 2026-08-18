@@ -26,6 +26,20 @@ class PersistentWorkspaceDatabaseTest {
             val repository = LocalWorkspaceRepository(firstOpen)
             repository.saveProject(WorkspaceProjectEntity("project-1", "Persisted", "", 0, 10L))
             repository.saveThread(ChatThreadEntity("thread-1", "Persisted thread", "", 20L, "mock", "project-1"))
+            repository.appendMessage(
+                ChatMessageEntity(
+                    id = "partial-assistant",
+                    threadId = "thread-1",
+                    sender = "ASSISTANT",
+                    text = "Visible partial response",
+                    createdAtEpochMs = 30L,
+                    contentType = "TEXT",
+                    codeSnippet = null,
+                    modelBadge = "user-managed-model",
+                    latencyMs = 10L,
+                    isIncomplete = true
+                )
+            )
         } finally {
             firstOpen.close()
         }
@@ -36,7 +50,10 @@ class PersistentWorkspaceDatabaseTest {
         try {
             assertNotNull(reopened.projectDao().findById("project-1"))
             assertEquals("project-1", reopened.threadDao().findById("thread-1")?.projectId)
-            assertTrue(reopened.messageDao().listForThread("thread-1").isEmpty())
+            val partial = reopened.messageDao().listForThread("thread-1").single()
+            assertEquals("Visible partial response", partial.text)
+            assertTrue(partial.isIncomplete)
+            assertTrue(partial.toDomainMessage("Local").isIncomplete)
         } finally {
             reopened.close()
             context.deleteDatabase(databaseName)

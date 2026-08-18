@@ -170,6 +170,20 @@ class RouterChatSession(
 
             val failure = candidateError ?: ProviderStreamEvent.Failed(routerIncompleteStreamError())
             lastError = failure
+            if (response.isNotEmpty()) {
+                val completedAt = maxOf(nowEpochMs(), startedAt + 1)
+                workspace.appendMessage(
+                    ChatMessage(
+                        id = "msg-$attemptId-assistant",
+                        sender = MessageSender.ASSISTANT,
+                        text = response.toString(),
+                        timestamp = "Now",
+                        modelBadge = candidate.providerModelId,
+                        latencyMs = completedAt - startedAt,
+                        isIncomplete = true
+                    ).toEntity(threadId, completedAt)
+                )
+            }
             finishEntry(candidateAttemptId, candidate, RouterAttemptOutcome.FAILED, candidateStartedAt, failure)
             val mayFallback = response.isEmpty() && isSafeFallback(failure)
             if (!mayFallback) {

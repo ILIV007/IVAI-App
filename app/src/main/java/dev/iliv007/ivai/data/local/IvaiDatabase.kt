@@ -25,7 +25,7 @@ import androidx.sqlite.db.SupportSQLiteDatabase
         AgentRunStepEntity::class,
         AgentApprovalEntity::class
     ],
-    version = 5,
+    version = 6,
     exportSchema = true
 )
 abstract class IvaiDatabase : RoomDatabase() {
@@ -53,7 +53,17 @@ abstract class IvaiDatabase : RoomDatabase() {
                 context.applicationContext,
                 IvaiDatabase::class.java,
                 DATABASE_NAME
-            ).addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5).build()
+            ).addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6).build()
+
+        /**
+         * A visible stream that ends without completion is retained as an explicit local incomplete
+         * assistant message. Existing messages remain complete by default.
+         */
+        val MIGRATION_5_6 = object : Migration(5, 6) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE `chat_messages` ADD COLUMN `is_incomplete` INTEGER NOT NULL DEFAULT 0")
+            }
+        }
 
         /**
          * Existing provider connections retain remote HTTPS/API-key behavior. No local endpoint,

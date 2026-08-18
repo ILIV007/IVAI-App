@@ -20,9 +20,9 @@ The review concerns IVAI's pre-Alpha codebase. The current release decision rema
 | ID | External claim | Evidence in current source | Classification | Proposed action |
 |---|---|---|---|---|
 | ER-01 | Router path can show a duplicate user message with different IDs. | **Confirmed, fixed, and merged in PR #46.** `RouterChatSession` now shares its stable user-message ID with the `Started` UI event, and `WorkspaceViewModel` deduplicates by ID; `RouterUserMessageInvariantTest` protects the invariant. | P1 functional correctness | Closed; retain the regression test. |
-| ER-02 | Calculator accepts an expression but does not compute it. | **Confirmed, test-first fixed, and locally validated; protected merge pending.** A bounded local parser accepts only documented decimal arithmetic and returns a normalized observation; invalid, oversized, overly nested, overly tokenized, and division-by-zero input is safely rejected. | P1 product-contract gap | Merge only after focused and full tests, scans, lint, protected CI, and documentation review succeed. |
-| ER-03 | Pending write approvals can race. | **Confirmed by deterministic regression and locally fixed; protected merge pending.** A stale resolution could claim the in-memory write, then overwrite a completed cancellation and perform the write. A local `Mutex` now serializes resolve, cancel, and process-death recovery; state is reread under lock. | P1 safety correctness | Merge only after focused and full tests, scans, lint, protected CI, and documentation review succeed. |
-| ER-04 | A stream that emitted partial assistant text then fails loses the answer after restart. | **Confirmed by static trace.** A partial response reaches UI via `Delta`, but only `Completed` persists an assistant entity; intentional no-fallback-after-visible-content avoids duplicate provider work. | P1 data-recovery candidate | Define safe incomplete-message UX and persistence contract; add regression test and handle in a focused router PR. |
+| ER-02 | Calculator accepts an expression but does not compute it. | **Confirmed, fixed, and merged in PR #49.** A bounded local parser accepts only documented decimal arithmetic and returns a normalized observation; invalid, oversized, overly nested, overly tokenized, and division-by-zero input is safely rejected. | P1 product-contract gap | Closed; retain the regression tests. |
+| ER-03 | Pending write approvals can race. | **Confirmed, fixed, and merged in PR #50.** A stale resolution could claim the in-memory write, then overwrite a completed cancellation and perform the write. A local `Mutex` serializes resolve, cancel, and process-death recovery; state is reread under lock. | P1 safety correctness | Closed; retain the deterministic concurrency regression. |
+| ER-04 | A stream that emitted partial assistant text then fails loses the answer after restart. | **Confirmed, test-first locally fixed; protected merge pending.** Router now persists a non-empty visible partial as an assistant message marked `isIncomplete=true`, Room v6 stores the durable marker, and UI labels it `Incomplete response`. No fallback occurs after visible content. | P1 data-recovery correctness | Merge only after focused/full tests, schema migration validation, lint, scans, protected CI, and documentation review succeed. |
 | ER-05 | Broad `catch (_: Throwable)` can swallow fatal VM errors. | **Confirmed static pattern; severity overstated.** Cancellation is handled first in the router, but generic `Throwable` catches still deserve narrowing after call-site review. | P2 resilience | Audit each catch; replace only with a safe, tested narrower boundary. |
 | ER-06 | A 60-second read timeout is unsuitable for all reasoning streams. | **Configuration confirmed; impact unproven.** A static timeout is present, but a correct value depends on provider/device/network behavior. | Phase 7.5 / P2 evidence | Keep as physical-device/network validation item; do not alter timeout policy solely from speculation. |
 | ER-07 | Keystore must require biometric/PIN per access. | **Not a defect as stated.** Existing design uses a non-exportable Keystore vault for BYOK; per-operation user authentication is a product trade-off that may break foreground streaming/rotation/recovery. | Deferred security design | Consider a separate optional high-assurance mode only after user research and Android-device threat analysis. |
@@ -47,15 +47,15 @@ The review concerns IVAI's pre-Alpha codebase. The current release decision rema
 
 ## Confirmed Work Order
 
-ER-01 and ER-02 were reproduced, fixed, and merged in standalone PRs. ER-03 is now reproduced and locally fixed in its own approval-serialization branch; protected merge is pending. ER-04 remains a distinct follow-up PR and must not be combined with any completed increment.
+ER-01, ER-02, and ER-03 were reproduced, fixed, and merged in standalone PRs. ER-04 is reproduced and locally fixed in its own Router recovery branch; protected merge is pending. P2 and P3 work remains separate from this data-recovery increment.
 
 | Order | Candidate | Why separated |
 |---|---|---|
 | 1 | ER-01 — Router UI duplicate user message | Closed in PR #46 with a stable-ID regression. |
 | 2 | ER-02 — Calculator contract | Closed in PR #49 with bounded arithmetic semantics and parser limits. |
-| 3 | ER-03 — Approval concurrency | Deterministically reproduced and locally fixed with approval-lifecycle serialization; protected merge pending. |
-| 4 | ER-04 — Partial stream recovery | Next candidate; requires a user-visible incomplete-message state and Router persistence contract. |
-| 5 | P2/P3 candidates | Each is deferred to a focused evidence/design phase, not bundled hardening. |
+| 3 | ER-03 — Approval concurrency | Closed in PR #50 with deterministic approval-lifecycle serialization. |
+| 4 | ER-04 — Partial stream recovery | Deterministically reproduced and locally fixed with a Room v6 incomplete-message marker; protected merge pending. |
+| 5 | P2/P3 candidates | Next work begins with a focused ER-05 exception-boundary audit; no batch hardening. |
 
 ## Non-Negotiable Deferrals
 

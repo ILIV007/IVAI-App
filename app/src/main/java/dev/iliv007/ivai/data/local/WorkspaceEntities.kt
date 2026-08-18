@@ -63,8 +63,8 @@ data class ChatMessageEntity(
     @ColumnInfo(name = "content_type") val contentType: String,
     @ColumnInfo(name = "code_snippet") val codeSnippet: String?,
     @ColumnInfo(name = "model_badge") val modelBadge: String?,
-    @ColumnInfo(name = "latency_ms") val latencyMs: Long?
-
+    @ColumnInfo(name = "latency_ms") val latencyMs: Long?,
+    @ColumnInfo(name = "is_incomplete", defaultValue = "0") val isIncomplete: Boolean = false
 )
 
 fun ChatMessage.toEntity(threadId: String, createdAtEpochMs: Long): ChatMessageEntity =
@@ -77,7 +77,8 @@ fun ChatMessage.toEntity(threadId: String, createdAtEpochMs: Long): ChatMessageE
         contentType = type.name,
         codeSnippet = codeSnippet,
         modelBadge = modelBadge,
-        latencyMs = latencyMs
+        latencyMs = latencyMs,
+        isIncomplete = isIncomplete
     )
 
 fun ChatMessageEntity.toDomainMessage(timestamp: String): ChatMessage =
@@ -89,7 +90,8 @@ fun ChatMessageEntity.toDomainMessage(timestamp: String): ChatMessage =
         type = MessageContentType.valueOf(contentType),
         codeSnippet = codeSnippet,
         modelBadge = modelBadge,
-        latencyMs = latencyMs
+        latencyMs = latencyMs,
+        isIncomplete = isIncomplete
     )
 
 @Entity(

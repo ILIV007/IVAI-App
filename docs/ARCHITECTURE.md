@@ -8,7 +8,7 @@ IVAI is a single Android application module built with Kotlin, Jetpack Compose, 
 Compose UI
   -> WorkspaceViewModel and feature state flows
   -> LocalWorkspaceRepository
-  -> Room v5 with provider trust/auth metadata | app-private ProjectWorkspace | encrypted Secret Vault
+  -> Room v6 with provider trust/auth metadata and durable incomplete-stream marker | app-private ProjectWorkspace | encrypted Secret Vault
   -> ProviderAdapterRegistry and foreground provider sessions
   -> user-selected Direct Model or ordered Combo
 ```
@@ -19,7 +19,7 @@ Compose UI
 |---|---|---|
 | Compose UI | Renders Room-backed workspace, provider, router, and Agent state; sends user actions to the ViewModel. | UI never receives or stores plaintext credentials. |
 | `WorkspaceViewModel` | Coordinates local state flows, explicit foreground actions, and safe user-visible errors. | It does not select an implicit provider or execute shell/background automation. |
-| `LocalWorkspaceRepository` | Transactional local persistence, registry validation, Router references, Agent target validation, and recovery state. | Room stores opaque API-key references or canonical no-auth markers, never secret values; local trust confirmations are persisted. |
+| `LocalWorkspaceRepository` | Transactional local persistence, registry validation, Router references, Agent target validation, and recovery state. | Room stores opaque API-key references or canonical no-auth markers, never secret values; local trust confirmations and interrupted visible assistant partials are persisted with explicit state. |
 | `ProjectWorkspace` | App-private project-file isolation with canonical relative-path validation and bounded read/list/search primitives. | No unrestricted external-storage or Shell file access; Agent file operations cannot escape the profile project. |
 | `EncryptedSecretVault` | Encrypted credential storage through a per-reference Android Keystore key. | Secrets are excluded from Room, traces, exports, and UI state. |
 | Provider preset catalog | Local, reviewable metadata for Gemini, OpenRouter, OpenAI, Groq, Mistral, Together, DeepSeek, Fireworks and xAI setup. | A preset provides no secret, model selection, connection, discovery or automatic network operation; cloud protocol mappings reuse installed adapters. |
