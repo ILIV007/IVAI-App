@@ -12,6 +12,8 @@ import dev.iliv007.ivai.data.local.ProviderModelEntity
 import dev.iliv007.ivai.data.local.RouterComboEntity
 import dev.iliv007.ivai.data.local.RouterComboEntryEntity
 import dev.iliv007.ivai.data.local.WorkspaceProjectEntity
+import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import org.junit.After
@@ -243,6 +245,41 @@ class BasicAgentRuntimeTest {
         assertTrue(first is AgentToolResult.Completed)
         assertTrue(overflow is AgentToolResult.Rejected)
         assertEquals(AgentRunStatus.FAILED.name, repository.findAgentRun(run.id)?.status)
+    }
+
+    @Test
+    fun `cancellation wins over a stale concurrent write approval resolution`() = runBlocking {
+        val resolutionReachedCommit = CompletableDeferred<Unit>()
+        val allowResolutionCommit = CompletableDeferred<Unit>()
+        runtime = BasicAgentRuntime(
+            repository = repository,
+            projectWorkspace = workspace,
+            tools = AgentToolRegistry { clock.get() },
+            nowEpochMs = { clock.getAndIncrement() },
+            beforeApprovalResolutionLock = {
+                resolutionReachedCommit.complete(Unit)
+                allowResolutionCommit.await()
+            }
+        )
+        val profile = saveProfile()
+        val run = runtime.start(profile, "Resolve or cancel a local write")
+        runtime.requestTool(
+            run,
+            projectId = "project-a",
+            position = 1,
+            request = AgentToolRequest.WriteProjectFile("notes/race.md", "must never be written after cancellation")
+        )
+        val approval = repository.observeAgentApprovals(run.id).first().single()
+
+        val resolution = async { runtime.resolveWriteApproval(approval.id, allowOnce = true) }
+        resolutionReachedCommit.await()
+        runtime.cancel(run)
+        allowResolutionCommit.complete(Unit)
+
+        assertTrue(resolution.await() is AgentToolResult.Rejected)
+        assertEquals(AgentRunStatus.CANCELLED.name, repository.findAgentRun(run.id)?.status)
+        assertEquals(ApprovalStatus.DENIED.name, repository.findAgentApproval(approval.id)?.status)
+        assertFalse(runCatching { workspace.readText("project-a", "notes/race.md") }.isSuccess)
     }
 
     @Test
