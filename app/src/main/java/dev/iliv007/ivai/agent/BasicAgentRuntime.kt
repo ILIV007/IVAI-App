@@ -8,6 +8,7 @@ import dev.iliv007.ivai.data.local.LocalWorkspaceRepository
 import dev.iliv007.ivai.data.local.ProjectWorkspace
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
+import java.util.UUID
 
 /**
  * Bounded local runtime for the Basic Agent Alpha.
@@ -34,7 +35,7 @@ class BasicAgentRuntime(
 
         val now = nowEpochMs()
         val run = AgentRunEntity(
-            id = "run-$now",
+            id = "run-$now-${UUID.randomUUID()}",
             agentId = profile.id,
             goal = goal.trim(),
             status = AgentRunStatus.RUNNING.name,
