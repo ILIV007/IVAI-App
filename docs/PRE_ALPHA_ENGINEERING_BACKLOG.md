@@ -1,16 +1,16 @@
-# Pre-Alpha Engineering Backlog and ER-05 Handoff
+# Pre-Alpha Engineering Backlog and ER-15 Handoff
 
-> **Status:** Prepared from clean `main` commit `e3d3bad` after the post-ER-01 global review, then updated through ER-05. ER-01 through ER-05 are merged; ER-05 passed focused/full deterministic validation and protected CI before merge in PR #53. This document does not close Phase 7.5, authorize an Alpha release, or add any runtime capability.
+> **Status:** Prepared from clean `main` commit `e3d3bad` after the post-ER-01 global review, then updated through ER-15. ER-01 through ER-05 are merged; ER-15 passed focused/full deterministic validation locally, with protected merge pending. This document does not close Phase 7.5, authorize an Alpha release, or add any runtime capability.
 
 ## Current Decision
 
-The protected `main` baseline at `fcde8c3` remains synchronized and green. ER-05 merged after 136 passing tests, zero lint issues, and both protected CI checks. The next engineering increment is **ER-15 — Safe Router Registry Lookup**. It remains intentionally separate from Phase 7.5 research, release minification, Providers, MCP, and Alpha publication.
+The protected `main` baseline at `d713830` remains synchronized and green. The ER-15 implementation branch has 137 passing tests and zero lint issues after clean validation. Subject to protected merge, the next engineering increment is **ER-22 — Archive Malformed-Input Hardening**. ER-15 remains intentionally separate from Phase 7.5 research, release minification, Providers, MCP, and Alpha publication.
 
 | Decision | Status |
 |---|---|
-| Next implementation increment after ER-05 merge | ER-15 — safe Router registry lookup |
-| Approved `main` baseline after ER-05 | `fcde8c3` (PR #53) |
-| ER-05 deterministic quality baseline | 136 tests; 0 failures, errors, skipped tests, and lint issues; protected CI passed |
+| Next implementation increment after ER-15 merge | ER-22 — archive malformed-input hardening |
+| Approved `main` baseline before ER-15 | `d713830` (PR #54) |
+| ER-15 branch deterministic quality baseline | 137 tests; 0 failures, errors, skipped tests, and lint issues |
 | Phase 7.5 participant/device evidence | Deferred, not complete |
 | Public Alpha / signed APK / download | Not approved |
 | MCP and Skills runtime | Planned post-Alpha only; no implementation is authorized by this backlog |
@@ -55,7 +55,7 @@ This increment must not add an external math engine, JavaScript/ScriptEngine eva
 
 ER-02 may be declared complete only when the implementation and focused tests pass locally, the full clean build/unit/lint gate passes, source security/architecture scans are clean, the PR scope is limited to the calculator contract, both protected CI jobs pass, `main` protection is restored after merge, and Roadmap/triage are updated with the actual final behavior.
 
-## Ordered Backlog After ER-05
+## Ordered Backlog After ER-15
 
 | Order | Increment | Current evidence and required gate | Why it must remain separate |
 |---|---|---|---|
@@ -63,11 +63,12 @@ ER-02 may be declared complete only when the implementation and focused tests pa
 | 2 | ER-03 — approval concurrency | Closed in PR #50 with deterministic approval-lifecycle serialization. | Synchronization is limited to approval lifecycle state so one-time write authority cannot be overwritten by a stale resolution. |
 | 3 | ER-04 — partial stream recovery | Closed in PR #51; Room v6 adds an explicit durable incomplete marker with Router, migration/reopen, and UI semantics regressions. | Preserves visible partial text after failure/restart without retrying a provider after content becomes visible. |
 | 4 | ER-05 — exception boundary audit | Closed in PR #53; Router, Gemini, and OpenAI-compatible recover only `Exception`, while fatal `Error` propagates. | Exception/cancellation behavior is safety-sensitive and must not become a batch refactor. |
-| 5 | ER-15 — safe Router registry lookup | Next candidate: reproduce invalid catalog lookup and normalize it to a safe Router failure only if the failure is confirmed. | Registry inconsistency must not crash UI or hide a provider-selection error. |
-| 6 | Remaining P2/P3 hardening | Release minification, vault recovery, archive malformed-input, and protocol/naming tests remain separate increments. | These are distinct threat/release design decisions, not a batch refactor. |
-| 7 | Phase 7.5 field evidence | Voluntary de-identified usability/heuristic sessions plus compact/medium device evidence. | Sandbox results cannot replace participants, TalkBack, lifecycle, or local HTTPS behavior. |
-| 8 | Alpha release decision | Owner signing, signed artifact SHA-256, tag, notes, GitHub Release, independent hash check. | Publication must follow—not substitute for—all P0/P1 gates. |
-| 9 | Phase 8.0 Skills/MCP prototype | Threat-model/UX prototype after Alpha, following existing Phase 8 architecture documents. | No MCP runtime, process execution, OAuth, or background capability before its own gates. |
+| 5 | ER-15 — safe Router registry lookup | Deterministically reproduced and locally fixed; stale connection/account/model state now yields a safe `INVALID_REQUEST` failed trace, with protected merge pending. | Registry inconsistency must not crash UI or hide a provider-selection error. |
+| 6 | ER-22 — archive malformed-input hardening | Next candidate: test malformed archive decode/rollback atomicity before changing parsing or allocation behavior. | Archive safety requires focused corruption evidence, not speculative OOM refactoring. |
+| 7 | Remaining P2/P3 hardening | Release minification, vault recovery, and protocol/naming tests remain separate increments. | These are distinct threat/release design decisions, not a batch refactor. |
+| 8 | Phase 7.5 field evidence | Voluntary de-identified usability/heuristic sessions plus compact/medium device evidence. | Sandbox results cannot replace participants, TalkBack, lifecycle, or local HTTPS behavior. |
+| 9 | Alpha release decision | Owner signing, signed artifact SHA-256, tag, notes, GitHub Release, independent hash check. | Publication must follow—not substitute for—all P0/P1 gates. |
+| 10 | Phase 8.0 Skills/MCP prototype | Threat-model/UX prototype after Alpha, following existing Phase 8 architecture documents. | No MCP runtime, process execution, OAuth, or background capability before its own gates. |
 
 ## Gates That Remain Intentionally Open
 
