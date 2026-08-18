@@ -9,11 +9,11 @@ IVAI remains a **Local-first, Backendless, BYOK Agent Harness**. Provider connec
 | Review area | Evidence and outcome | Status |
 |---|---|---|
 | Provider-neutral execution | Registry-derived Direct Model and Combo paths remain the only execution targets. Provider catalog metadata does not create a connection, select a model, or make a request. | Verified |
-| Local endpoint trust | Room v5 persists `REMOTE_HTTPS`, `LOCAL_LOOPBACK_HTTPS` or `LOCAL_LAN_HTTPS`; exact HTTPS endpoint classification, confirmation and no-auth transport are enforced and tested. | Verified |
+| Local endpoint trust | Room v6 persists `REMOTE_HTTPS`, `LOCAL_LOOPBACK_HTTPS` or `LOCAL_LAN_HTTPS`; exact HTTPS endpoint classification, confirmation and no-auth transport are enforced and tested. The later v6 migration also adds a separate incomplete-stream marker without weakening endpoint policy. | Verified |
 | Branding asset | The user-provided VA mark is now the launcher asset for all legacy density buckets and Android adaptive icons, and is exposed in the Compose top bar with a content description. | Implemented |
 | Theme consistency | Platform launch bars and Compose light/dark palettes now use the indigo, emerald/aqua and violet identity derived from the approved brand reference. | Implemented |
 | Visual regression | The Robolectric/Roborazzi main-screen test asserts that the visible brand logo and its semantic content description are present before its capture. | Implemented |
-| Documentation accuracy | The roadmap and architecture no longer describe Room v4 or local endpoints as wholly blocked; the remaining limits are explicitly stated. | Corrected |
+| Documentation accuracy | The roadmap and architecture no longer describe Room v4 or local endpoints as wholly blocked; Room is now v6 and the remaining limits are explicitly stated. | Corrected |
 
 ## Findings intentionally deferred to the next hardening phase
 

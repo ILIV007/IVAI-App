@@ -182,6 +182,36 @@ class ChatFoundationTest {
     }
 
     @Test
+    fun persisted_incomplete_assistant_response_is_visibly_marked() {
+        composeTestRule.setContent {
+            IvaiTheme(darkTheme = true) {
+                ChatsScreen(
+                    previewState = UiPreviewState.NORMAL,
+                    onResetState = {},
+                    threads = listOf(
+                        chatThread(
+                            modelOrCombo = "User model",
+                            messages = listOf(
+                                ChatMessage(
+                                    id = "partial-assistant",
+                                    sender = MessageSender.ASSISTANT,
+                                    text = "Visible partial response",
+                                    timestamp = "Local",
+                                    isIncomplete = true
+                                )
+                            )
+                        )
+                    ),
+                    selectedThreadId = "thread-1"
+                )
+            }
+        }
+
+        composeTestRule.onNodeWithTag("incomplete_message_partial-assistant").assertIsDisplayed()
+        composeTestRule.onNodeWithText("Incomplete response").assertIsDisplayed()
+    }
+
+    @Test
     fun empty_preview_state_is_recordable() {
         composeTestRule.setContent {
             IvaiTheme(darkTheme = true) {

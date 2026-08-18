@@ -20,7 +20,9 @@ data class ChatMessage(
     val type: MessageContentType = MessageContentType.TEXT,
     val codeSnippet: String? = null,
     val modelBadge: String? = null,
-    val latencyMs: Long? = null
+    val latencyMs: Long? = null,
+    /** True only when a visible provider stream ended before its completion event. */
+    val isIncomplete: Boolean = false
 )
 
 data class ChatThread(

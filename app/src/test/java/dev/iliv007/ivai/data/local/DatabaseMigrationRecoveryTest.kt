@@ -21,7 +21,7 @@ class DatabaseMigrationRecoveryTest {
     @Test
     fun `legacy version one database upgrades through all migrations and recovers workspace data`() = runBlocking {
         val context = ApplicationProvider.getApplicationContext<Context>()
-        val databaseName = "migration-v1-to-v5-${System.nanoTime()}.db"
+        val databaseName = "migration-v1-to-v6-${System.nanoTime()}.db"
         context.deleteDatabase(databaseName)
         createVersionOneDatabase(context, databaseName)
 
@@ -30,20 +30,20 @@ class DatabaseMigrationRecoveryTest {
                 IvaiDatabase.MIGRATION_1_2,
                 IvaiDatabase.MIGRATION_2_3,
                 IvaiDatabase.MIGRATION_3_4,
-                IvaiDatabase.MIGRATION_4_5
+                IvaiDatabase.MIGRATION_4_5,
+                IvaiDatabase.MIGRATION_5_6
             )
             .allowMainThreadQueries()
             .build()
         try {
-            assertEquals(5, upgraded.openHelper.writableDatabase.version)
+            assertEquals(6, upgraded.openHelper.writableDatabase.version)
             assertEquals("Legacy project", upgraded.projectDao().findById("legacy-project")?.name)
             assertEquals("legacy-project", upgraded.threadDao().findById("legacy-thread")?.projectId)
-            assertEquals(
-                "پیام محلی قدیمی",
-                upgraded.messageDao().listForThread("legacy-thread").single().text
-            )
+            val legacyMessage = upgraded.messageDao().listForThread("legacy-thread").single()
+            assertEquals("پیام محلی قدیمی", legacyMessage.text)
+            assertTrue(!legacyMessage.isIncomplete)
 
-            // Opening the database validates Room's complete v5 schema. Querying the new DAO also
+            // Opening the database validates Room's complete v6 schema. Querying the new DAO also
             // proves that Agent tables and provider trust/auth columns are available after upgrade.
             assertTrue(upgraded.agentProfileDao().observeAll().first().isEmpty())
         } finally {
@@ -55,13 +55,16 @@ class DatabaseMigrationRecoveryTest {
                 IvaiDatabase.MIGRATION_1_2,
                 IvaiDatabase.MIGRATION_2_3,
                 IvaiDatabase.MIGRATION_3_4,
-                IvaiDatabase.MIGRATION_4_5
+                IvaiDatabase.MIGRATION_4_5,
+                IvaiDatabase.MIGRATION_5_6
             )
             .allowMainThreadQueries()
             .build()
         try {
             assertNotNull(reopened.projectDao().findById("legacy-project"))
-            assertEquals("legacy-thread", reopened.messageDao().listForThread("legacy-thread").single().threadId)
+            val reopenedMessage = reopened.messageDao().listForThread("legacy-thread").single()
+            assertEquals("legacy-thread", reopenedMessage.threadId)
+            assertTrue(!reopenedMessage.isIncomplete)
             assertTrue(reopened.agentProfileDao().observeAll().first().isEmpty())
         } finally {
             reopened.close()

@@ -1,16 +1,16 @@
-# Pre-Alpha Engineering Backlog and ER-02 Handoff
+# Pre-Alpha Engineering Backlog and ER-04 Handoff
 
-> **Status:** Prepared from clean `main` commit `e3d3bad` after the post-ER-01 global review, then updated through ER-03. ER-01 and ER-02 are merged; ER-03 passed local focused and full deterministic validation, with protected merge pending. This document does not close Phase 7.5, authorize an Alpha release, or add any runtime capability.
+> **Status:** Prepared from clean `main` commit `e3d3bad` after the post-ER-01 global review, then updated through ER-04. ER-01 through ER-03 are merged; ER-04 passed focused and full deterministic validation locally, with protected merge pending. This document does not close Phase 7.5, authorize an Alpha release, or add any runtime capability.
 
 ## Current Decision
 
-The protected `main` baseline remains synchronized and green. The ER-03 implementation branch now has 131 passing tests and zero lint issues after clean validation. Subject to protected merge, the next engineering increment becomes **ER-04 — Partial Stream Recovery**. It remains intentionally separate from Phase 7.5 research, release hardening, Providers, MCP, and Alpha publication.
+The protected `main` baseline remains synchronized and green. The ER-04 implementation branch now has 133 passing tests and zero lint issues after clean validation. Subject to protected merge, the next engineering increment becomes **ER-05 — Exception Boundary Audit**. It remains intentionally separate from Phase 7.5 research, release minification, Providers, MCP, and Alpha publication.
 
 | Decision | Status |
 |---|---|
-| Next implementation increment after ER-03 merge | ER-04 — partial stream recovery contract |
-| Approved `main` baseline before ER-02 | `5fc4d68` |
-| ER-03 branch deterministic quality baseline | 131 tests; 0 failures, errors, skipped tests, and lint issues |
+| Next implementation increment after ER-04 merge | ER-05 — focused exception-boundary audit |
+| Approved `main` baseline before ER-04 | `07ac901` |
+| ER-04 branch deterministic quality baseline | 133 tests; 0 failures, errors, skipped tests, and lint issues |
 | Phase 7.5 participant/device evidence | Deferred, not complete |
 | Public Alpha / signed APK / download | Not approved |
 | MCP and Skills runtime | Planned post-Alpha only; no implementation is authorized by this backlog |
@@ -55,17 +55,18 @@ This increment must not add an external math engine, JavaScript/ScriptEngine eva
 
 ER-02 may be declared complete only when the implementation and focused tests pass locally, the full clean build/unit/lint gate passes, source security/architecture scans are clean, the PR scope is limited to the calculator contract, both protected CI jobs pass, `main` protection is restored after merge, and Roadmap/triage are updated with the actual final behavior.
 
-## Ordered Backlog After ER-02
+## Ordered Backlog After ER-04
 
 | Order | Increment | Current evidence and required gate | Why it must remain separate |
 |---|---|---|---|
 | 1 | ER-02 — calculator contract | Closed in PR #49 with bounded local evaluation and regression coverage. | Changes Agent tool behavior while retaining a precise local-only contract. |
-| 2 | ER-03 — approval concurrency | Deterministically reproduced and locally fixed; protected CI/merge remain required before closure. | Synchronization is limited to approval lifecycle state so one-time write authority cannot be overwritten by a stale resolution. |
-| 3 | ER-04 — partial stream recovery | Next increment: define incomplete-message UI/persistence contract, then add Router regression and remediation. | User-visible recovery semantics must be decided before persistence changes. |
-| 4 | P2 release hardening | Review exception boundaries, release minification, vault recovery and archive malformed-input cases one at a time. | These are distinct threat/release design decisions, not a batch refactor. |
-| 5 | Phase 7.5 field evidence | Voluntary de-identified usability/heuristic sessions plus compact/medium device evidence. | Sandbox results cannot replace participants, TalkBack, lifecycle, or local HTTPS behavior. |
-| 6 | Alpha release decision | Owner signing, signed artifact SHA-256, tag, notes, GitHub Release, independent hash check. | Publication must follow—not substitute for—all P0/P1 gates. |
-| 7 | Phase 8.0 Skills/MCP prototype | Threat-model/UX prototype after Alpha, following existing Phase 8 architecture documents. | No MCP runtime, process execution, OAuth, or background capability before its own gates. |
+| 2 | ER-03 — approval concurrency | Closed in PR #50 with deterministic approval-lifecycle serialization. | Synchronization is limited to approval lifecycle state so one-time write authority cannot be overwritten by a stale resolution. |
+| 3 | ER-04 — partial stream recovery | Deterministically reproduced and locally fixed; Room v6 adds an explicit durable incomplete marker, protected CI/merge remain required before closure. | Preserves visible partial text after failure/restart without retrying a provider after content becomes visible. |
+| 4 | ER-05 — exception boundary audit | Next increment: audit `catch (_: Throwable)` call sites; add a focused regression before any narrowing. | Exception/cancellation behavior is safety-sensitive and must not become a batch refactor. |
+| 5 | Remaining P2/P3 hardening | Release minification, safe registry lookup, vault recovery, archive malformed-input, and protocol/naming tests remain separate increments. | These are distinct threat/release design decisions, not a batch refactor. |
+| 6 | Phase 7.5 field evidence | Voluntary de-identified usability/heuristic sessions plus compact/medium device evidence. | Sandbox results cannot replace participants, TalkBack, lifecycle, or local HTTPS behavior. |
+| 7 | Alpha release decision | Owner signing, signed artifact SHA-256, tag, notes, GitHub Release, independent hash check. | Publication must follow—not substitute for—all P0/P1 gates. |
+| 8 | Phase 8.0 Skills/MCP prototype | Threat-model/UX prototype after Alpha, following existing Phase 8 architecture documents. | No MCP runtime, process execution, OAuth, or background capability before its own gates. |
 
 ## Gates That Remain Intentionally Open
 
@@ -78,7 +79,7 @@ ER-02 may be declared complete only when the implementation and focused tests pa
 
 ## Repository Preparation Checklist
 
-Before opening the ER-02 branch, start from a clean synchronized `main`, retain the existing stable protection settings, use a focused `feat(agent): ...` branch, keep the PR body explicit about unchanged security boundaries, run the clean quality gate, wait for both CI jobs, squash merge with protection restoration, and update the Roadmap, triage, and this backlog only with evidence from the finished increment.
+Before opening the next focused branch, start from a clean synchronized `main`, retain the existing stable protection settings, use a focused `fix/` or `chore/` branch, keep the PR body explicit about unchanged security boundaries, run the clean quality gate, wait for both CI jobs, squash merge with protection restoration, and update the Roadmap, triage, and this backlog only with evidence from the finished increment.
 
 ## References
 
