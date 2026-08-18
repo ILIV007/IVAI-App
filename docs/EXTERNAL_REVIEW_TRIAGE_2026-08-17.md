@@ -40,14 +40,14 @@ The review concerns IVAI's pre-Alpha codebase. The current release decision rema
 | ER-19 | Safe diagnostics should be connected to telemetry. | **Rejected as phrased.** Hosted telemetry conflicts with Local-first/Backendless design. | Not a bug | If needed, evaluate a user-exported, fully redacted local diagnostic bundle in a separate privacy phase. |
 | ER-20 | ViewModel integration coverage is limited / ViewModel is large. | **Code-quality observation, not a verified runtime defect.** | Deferred architecture/test quality | Split only in a focused feature-boundary phase; avoid a high-risk refactor during release hardening. |
 | ER-21 | Markdown parse is necessarily causing main-thread jank. | **Unconfirmed and source names in the report do not match current source paths.** | Physical-device performance evidence | Profile compact/medium devices before refactor; preserve streaming behavior until data exists. |
-| ER-22 | Archive import's 16 MiB bounded allocation is a critical OOM. | **Bounded allocation confirmed; criticality remains unproven.** A checksum-valid archive with a malicious collection size is now deterministically rejected before any Room/file mutation, proving malformed-input atomicity. No allocation policy or OOM behavior was changed. | P2 hardening | Locally test-fixed; merge the regression. Defer chunking or allocation changes until measured low-memory evidence exists. |
+| ER-22 | Archive import's 16 MiB bounded allocation is a critical OOM. | **Bounded allocation confirmed; criticality remains unproven.** PR #57 adds a checksum-valid malicious collection-size regression that is rejected before any Room/file mutation, proving malformed-input atomicity. No allocation policy or OOM behavior was changed. | P2 hardening | Closed for deterministic malformed-input coverage; defer chunking or allocation changes until measured low-memory evidence exists. |
 | ER-23 | `BufferedReader.readLine()` blocks cancellation. | **Needs device/network reproduction.** Socket cancellation behavior cannot be inferred solely from source. | Phase 7.5 network evidence | Keep as a real-device timeout/cancel scenario; no HTTP client migration now. |
 | ER-24 | Keystore/DataStore desynchronization needs clearer recovery. | **Plausible UX/recovery candidate; exact current handling needs a focused vault test.** | P2 candidate | Test missing/invalidated key reference and user-visible safe recovery before changing deletion behavior. |
-| ER-25 | Archive format corruption case needs more tests. | **Confirmed test gap, locally fixed with ER-22; protected merge pending.** A checksum-valid malformed collection is rejected during decode before import replacement, while current Room/files remain unchanged. | P3 test hardening | Merge the focused atomicity regression; retain it with the checksum-corruption test. |
+| ER-25 | Archive format corruption case needs more tests. | **Confirmed test gap, fixed, and merged in PR #57.** A checksum-valid malformed collection is rejected during decode before import replacement, while current Room/files remain unchanged. | P3 test hardening | Closed; retain the atomicity regression with the checksum-corruption test. |
 
 ## Confirmed Work Order
 
-ER-01 through ER-05 and ER-15 were reproduced, fixed, and merged in standalone PRs. ER-22/ER-25 malformed archive coverage is locally test-fixed in its own branch; protected merge is pending. Remaining P2 and P3 work remains separate from this archive-hardening increment.
+ER-01 through ER-05, ER-15, ER-22, and ER-25 were reproduced, fixed, and merged in standalone PRs. Remaining P2 and P3 work remains separate from the completed archive-hardening increment.
 
 | Order | Candidate | Why separated |
 |---|---|---|
@@ -57,7 +57,7 @@ ER-01 through ER-05 and ER-15 were reproduced, fixed, and merged in standalone P
 | 4 | ER-04 — Partial stream recovery | Closed in PR #51 with a Room v6 incomplete-message marker and recovery regressions. |
 | 5 | ER-05 — exception boundaries | Closed in PR #53 with fatal-propagation regressions across Router, Gemini, and OpenAI-compatible boundaries. |
 | 6 | ER-15 — safe Router registry lookup | Closed in PR #55 with revalidation and a safe failed trace. |
-| 7 | ER-22 / ER-25 — archive malformed-input atomicity | Checksum-valid malformed collection regression is locally green; protected merge pending. |
+| 7 | ER-22 / ER-25 — archive malformed-input atomicity | Closed in PR #57 with checksum-valid malformed collection regression. |
 | 8 | Remaining P2/P3 candidates | Next work resumes with a focused ER-24 vault desynchronization recovery test or another evidence-confirmed candidate; no batch hardening. |
 
 ## Non-Negotiable Deferrals

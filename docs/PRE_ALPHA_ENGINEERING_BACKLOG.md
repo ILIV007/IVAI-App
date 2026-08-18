@@ -1,16 +1,16 @@
 # Pre-Alpha Engineering Backlog and ER-22/ER-25 Handoff
 
-> **Status:** Prepared from clean `main` commit `e3d3bad` after the post-ER-01 global review, then updated through ER-22/ER-25. ER-01 through ER-05 and ER-15 are merged; ER-22/ER-25 passed focused/full deterministic validation locally, with protected merge pending. This document does not close Phase 7.5, authorize an Alpha release, or add any runtime capability.
+> **Status:** Prepared from clean `main` commit `e3d3bad` after the post-ER-01 global review, then updated through ER-22/ER-25. ER-01 through ER-05, ER-15, ER-22, and ER-25 are merged; ER-22/ER-25 passed focused/full deterministic validation and protected CI before merge in PR #57. This document does not close Phase 7.5, authorize an Alpha release, or add any runtime capability.
 
 ## Current Decision
 
-The protected `main` baseline at `539be96` remains synchronized and green. The ER-22/ER-25 implementation branch has 138 passing tests and zero lint issues after clean validation. Subject to protected merge, the next engineering increment is **ER-24 — Vault Desynchronization Recovery**. Archive allocation policy remains unchanged because low-memory evidence is absent. The increment remains intentionally separate from Phase 7.5 research, release minification, Providers, MCP, and Alpha publication.
+The protected `main` baseline at `2a0b937` remains synchronized and green. ER-22/ER-25 merged after 138 passing tests, zero lint issues, and both protected CI checks. The next engineering increment is **ER-24 — Vault Desynchronization Recovery**. Archive allocation policy remains unchanged because low-memory evidence is absent. The increment remains intentionally separate from Phase 7.5 research, release minification, Providers, MCP, and Alpha publication.
 
 | Decision | Status |
 |---|---|
 | Next implementation increment after ER-22/ER-25 merge | ER-24 — vault desynchronization recovery |
-| Approved `main` baseline before ER-22/ER-25 | `539be96` (PR #56) |
-| ER-22/ER-25 branch deterministic quality baseline | 138 tests; 0 failures, errors, skipped tests, and lint issues |
+| Approved `main` baseline after ER-22/ER-25 | `2a0b937` (PR #57) |
+| ER-22/ER-25 deterministic quality baseline | 138 tests; 0 failures, errors, skipped tests, and lint issues; protected CI passed |
 | Phase 7.5 participant/device evidence | Deferred, not complete |
 | Public Alpha / signed APK / download | Not approved |
 | MCP and Skills runtime | Planned post-Alpha only; no implementation is authorized by this backlog |
@@ -64,7 +64,7 @@ ER-02 may be declared complete only when the implementation and focused tests pa
 | 3 | ER-04 — partial stream recovery | Closed in PR #51; Room v6 adds an explicit durable incomplete marker with Router, migration/reopen, and UI semantics regressions. | Preserves visible partial text after failure/restart without retrying a provider after content becomes visible. |
 | 4 | ER-05 — exception boundary audit | Closed in PR #53; Router, Gemini, and OpenAI-compatible recover only `Exception`, while fatal `Error` propagates. | Exception/cancellation behavior is safety-sensitive and must not become a batch refactor. |
 | 5 | ER-15 — safe Router registry lookup | Closed in PR #55; stale connection/account/model state now yields a safe `INVALID_REQUEST` failed trace. | Registry inconsistency must not crash UI or hide a provider-selection error. |
-| 6 | ER-22 / ER-25 — archive malformed-input atomicity | Locally test-fixed: checksum-valid malformed collection is rejected before Room/file mutation; protected merge pending. Allocation policy is unchanged. | Archive safety requires focused corruption evidence, not speculative OOM refactoring. |
+| 6 | ER-22 / ER-25 — archive malformed-input atomicity | Closed in PR #57: checksum-valid malformed collection is rejected before Room/file mutation. Allocation policy is unchanged. | Archive safety requires focused corruption evidence, not speculative OOM refactoring. |
 | 7 | ER-24 — vault desynchronization recovery | Next candidate: reproduce missing/invalidated credential key reference and assert safe recovery before changing deletion behavior. | Vault recovery must preserve BYOK boundary and never expose or fabricate credentials. |
 | 8 | Remaining P2/P3 hardening | Release minification and protocol/naming tests remain separate increments. | These are distinct threat/release design decisions, not a batch refactor. |
 | 9 | Phase 7.5 field evidence | Voluntary de-identified usability/heuristic sessions plus compact/medium device evidence. | Sandbox results cannot replace participants, TalkBack, lifecycle, or local HTTPS behavior. |
