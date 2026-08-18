@@ -60,6 +60,7 @@ data class EncryptedSecretPayload(
 
 data class SecretRecordStatus(
     val reference: String,
+    /** True only when a non-blank credential envelope can be decrypted with its current key alias. */
     val exists: Boolean
 )
 
@@ -72,7 +73,9 @@ class EncryptedSecretVault(
         return dataStore.data.map { preferences ->
             SecretRecordStatus(
                 reference = normalized,
-                exists = preferences[preferenceKey(normalized)] != null
+                exists = preferences[preferenceKey(normalized)]
+                    ?.let { encoded -> decryptOrNull(normalized, encoded) }
+                    ?.isNotBlank() == true
             )
         }
     }
@@ -92,10 +95,7 @@ class EncryptedSecretVault(
         val normalized = normalizeReference(reference)
         val encoded = dataStore.data.map { it[preferenceKey(normalized)] }.firstValue()
             ?: return null
-        val payload = EncryptedSecretPayload.decode(encoded) ?: return null
-        return runCatching {
-            cipherForReference(keyAlias(normalized)).decrypt(payload).decodeToString()
-        }.getOrNull()
+        return decryptOrNull(normalized, encoded)
     }
 
     suspend fun clear(reference: String) {
@@ -134,6 +134,13 @@ class EncryptedSecretVault(
         keyDeletionFailure?.let { failure ->
             throw IllegalStateException("Unable to fully remove encrypted secret key material", failure)
         }
+    }
+
+    private fun decryptOrNull(normalizedReference: String, encoded: String): String? {
+        val payload = EncryptedSecretPayload.decode(encoded) ?: return null
+        return runCatching {
+            cipherForReference(keyAlias(normalizedReference)).decrypt(payload).decodeToString()
+        }.getOrNull()
     }
 
     companion object {

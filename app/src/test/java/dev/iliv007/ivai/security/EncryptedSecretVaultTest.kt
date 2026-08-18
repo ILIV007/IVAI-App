@@ -78,6 +78,18 @@ class EncryptedSecretVaultTest {
     }
 
     @Test
+    fun `keystore decrypt failure is not reported as a usable credential`() = runBlocking {
+        val reference = "openrouter"
+        vault.store(reference, "test-only-secret")
+        cipherFactory.forAlias(EncryptedSecretVault.keyAlias(reference)).decryptFailure =
+            IllegalStateException("key invalidated")
+
+        assertNull(vault.read(reference))
+        assertFalse(vault.observeStatus(reference).first().exists)
+        assertTrue(dataStore.data.first()[stringPreferencesKey("ivai.secret.v1.$reference")] != null)
+    }
+
+    @Test
     fun `vault clear all removes every ciphertext and matching key without decrypting`() = runBlocking {
         vault.store("gemini", "first-secret")
         vault.store("openrouter", "second-secret")
@@ -109,6 +121,7 @@ class EncryptedSecretVaultTest {
     private class RecordingCipher : SecretCipher {
         var wasDeleted: Boolean = false
             private set
+        var decryptFailure: Throwable? = null
 
         override fun encrypt(plaintext: ByteArray): EncryptedSecretPayload {
             val iv = "fixed-test-iv".encodeToByteArray()
@@ -116,7 +129,10 @@ class EncryptedSecretVaultTest {
             return EncryptedSecretPayload(EncryptedSecretPayload.CURRENT_VERSION, iv, ciphertext)
         }
 
-        override fun decrypt(payload: EncryptedSecretPayload): ByteArray = payload.ciphertext.reversedArray()
+        override fun decrypt(payload: EncryptedSecretPayload): ByteArray {
+            decryptFailure?.let { throw it }
+            return payload.ciphertext.reversedArray()
+        }
 
         override fun deleteKey() {
             wasDeleted = true
