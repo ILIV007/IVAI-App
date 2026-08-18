@@ -34,15 +34,16 @@ Before every session, the facilitator reads the following statement and records 
 
 ## 4. Controlled Build and Session Setup
 
-Use the package produced by `./scripts/prepare_phase75_research_build.sh`. Before each session, verify the package README commit and APK SHA-256, then clear local app data. The app must contain no account, credential, connection, endpoint, model, Combo, Agent target, project file, or prior chat data. The session is local-only: do not send provider traffic, use local endpoint networking, or let an Agent write a file.
+Use the package produced by `./scripts/prepare_phase75_research_build.sh`. Before each session, confirm that `RESEARCH_PACKAGE_MANIFEST.txt` declares the intended commit/debug-only status and run `sha256sum --check SHA256SUMS.txt` for every transferred artifact, then clear local app data. The app must contain no account, credential, connection, endpoint, model, Combo, Agent target, project file, or prior chat data. The session is local-only: do not send provider traffic, use local endpoint networking, or let an Agent write a file.
 
 | Preflight check | Required result | Owner |
 |---|---|---|
-| Build provenance | Package README matches intended research commit. | Facilitator |
-| APK integrity | APK hash matches `SHA256SUMS.txt`. | Facilitator |
+| Build provenance | Package manifest declares the intended research commit and debug-only status. | Facilitator |
+| Artifact integrity | `sha256sum --check SHA256SUMS.txt` succeeds for every package artifact. | Facilitator |
+| Quality provenance | Build-quality log is present for the controlled package. | Facilitator |
 | App state | Fresh/cleared local state with no credentials or personal content. | Facilitator |
 | Safety notice | Participant has heard the opening statement and may stop. | Facilitator |
-| Evidence record | Blank de-identified template ready; identity mapping remains outside repository. | Note-taker |
+| Evidence record | Blank local worksheet and de-identified repository template are ready; identity mapping remains outside repository. | Note-taker |
 
 ## 5. Participant Session Script
 
@@ -103,7 +104,7 @@ Run the device matrix separately but against the same controlled build and evide
 
 ## 10. Evidence Handoff and Completion
 
-1. The facilitator transfers only approved de-identified outcomes to the validation record; raw notes and any identity mapping remain outside the repository.
+1. The facilitator verifies package provenance before the session, then transfers only approved de-identified aggregate outcomes from the local worksheet to the validation record; raw notes, checksum verification material, and any identity mapping remain outside the repository.
 2. The research owner calculates agreement/direct-success rates and marks every gate Pass, Pending, or Blocked without inference.
 3. Any P0/P1 creates a focused code/documentation remediation PR and a matching retest plan; do not mix remediation with unrelated provider/data/runtime work.
 4. After evidence passes, rerun the [Release Readiness Checklist](RELEASE_READINESS_CHECKLIST.md) on the final candidate.
