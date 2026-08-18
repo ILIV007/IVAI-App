@@ -6,6 +6,8 @@ import dev.iliv007.ivai.data.local.AgentRunEntity
 import dev.iliv007.ivai.data.local.AgentRunStepEntity
 import dev.iliv007.ivai.data.local.LocalWorkspaceRepository
 import dev.iliv007.ivai.data.local.ProjectWorkspace
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 
 /**
  * Bounded local runtime for the Basic Agent Alpha.
@@ -17,9 +19,12 @@ class BasicAgentRuntime(
     private val repository: LocalWorkspaceRepository,
     private val projectWorkspace: ProjectWorkspace,
     private val tools: AgentToolRegistry,
-    private val nowEpochMs: () -> Long = System::currentTimeMillis
+    private val nowEpochMs: () -> Long = System::currentTimeMillis,
+    /** Default no-op seam used only by deterministic concurrency tests. */
+    private val beforeApprovalResolutionLock: suspend () -> Unit = {}
 ) {
     private val pendingWrites = mutableMapOf<String, PendingWrite>()
+    private val approvalMutex = Mutex()
 
     suspend fun start(profile: AgentProfileEntity, goal: String): AgentRunEntity {
         require(profile.isEnabled) { "Agent profile is disabled" }
@@ -149,62 +154,65 @@ class BasicAgentRuntime(
     }
 
     suspend fun resolveWriteApproval(approvalId: String, allowOnce: Boolean): AgentToolResult {
-        val approval = repository.findAgentApproval(approvalId)
-            ?: return AgentToolResult.Rejected("Approval request was not found.")
-        if (approval.status != ApprovalStatus.PENDING.name) {
-            return AgentToolResult.Rejected("Approval request is no longer pending.")
-        }
-        val run = repository.findAgentRun(approval.runId)
-            ?: return AgentToolResult.Rejected("Agent run was not found.")
-        if (run.status != AgentRunStatus.AWAITING_APPROVAL.name) {
-            return AgentToolResult.Rejected("Agent run is not awaiting approval.")
-        }
+        beforeApprovalResolutionLock()
+        return approvalMutex.withLock {
+            val approval = repository.findAgentApproval(approvalId)
+                ?: return@withLock AgentToolResult.Rejected("Approval request was not found.")
+            if (approval.status != ApprovalStatus.PENDING.name) {
+                return@withLock AgentToolResult.Rejected("Approval request is no longer pending.")
+            }
+            val run = repository.findAgentRun(approval.runId)
+                ?: return@withLock AgentToolResult.Rejected("Agent run was not found.")
+            if (run.status != AgentRunStatus.AWAITING_APPROVAL.name) {
+                return@withLock AgentToolResult.Rejected("Agent run is not awaiting approval.")
+            }
 
-        val now = nowEpochMs()
-        val position = approval.id.substringAfterLast('-').toIntOrNull() ?: 0
-        val pending = pendingWrites.remove(approvalId)
-        if (!allowOnce) {
-            repository.saveAgentApproval(approval.copy(status = ApprovalStatus.DENIED.name, resolvedAtEpochMs = now))
-            repository.saveAgentRunStep(
-                AgentRunStepEntity(
-                    id = "${approval.runId}-step-$position",
-                    runId = approval.runId,
-                    position = position,
-                    stepKind = approval.toolKind,
-                    status = "DENIED",
-                    safeSummary = "Write was denied by the user.",
-                    createdAtEpochMs = now,
-                    completedAtEpochMs = now
+            val now = nowEpochMs()
+            val position = approval.id.substringAfterLast('-').toIntOrNull() ?: 0
+            val pending = pendingWrites.remove(approvalId)
+            if (!allowOnce) {
+                repository.saveAgentApproval(approval.copy(status = ApprovalStatus.DENIED.name, resolvedAtEpochMs = now))
+                repository.saveAgentRunStep(
+                    AgentRunStepEntity(
+                        id = "${approval.runId}-step-$position",
+                        runId = approval.runId,
+                        position = position,
+                        stepKind = approval.toolKind,
+                        status = "DENIED",
+                        safeSummary = "Write was denied by the user.",
+                        createdAtEpochMs = now,
+                        completedAtEpochMs = now
+                    )
                 )
-            )
-            repository.saveAgentRun(run.copy(status = AgentRunStatus.RUNNING.name))
-            return AgentToolResult.Rejected("Write was denied by the user.")
-        }
-        if (pending == null) {
-            repository.saveAgentApproval(approval.copy(status = ApprovalStatus.DENIED.name, resolvedAtEpochMs = now))
-            return fail(run, "Write approval expired before execution.")
-        }
+                repository.saveAgentRun(run.copy(status = AgentRunStatus.RUNNING.name))
+                return@withLock AgentToolResult.Rejected("Write was denied by the user.")
+            }
+            if (pending == null) {
+                repository.saveAgentApproval(approval.copy(status = ApprovalStatus.DENIED.name, resolvedAtEpochMs = now))
+                return@withLock fail(run, "Write approval expired before execution.")
+            }
 
-        repository.saveAgentApproval(approval.copy(status = ApprovalStatus.ALLOWED_ONCE.name, resolvedAtEpochMs = now))
-        return try {
-            projectWorkspace.writeText(pending.projectId, pending.relativePath, pending.content)
-            repository.saveAgentApproval(approval.copy(status = ApprovalStatus.EXECUTED.name, resolvedAtEpochMs = now))
-            repository.saveAgentRunStep(
-                AgentRunStepEntity(
-                    id = "${approval.runId}-step-$position",
-                    runId = approval.runId,
-                    position = position,
-                    stepKind = approval.toolKind,
-                    status = "COMPLETED",
-                    safeSummary = "Approved write completed: ${approval.targetPath}",
-                    createdAtEpochMs = now,
-                    completedAtEpochMs = now
+            repository.saveAgentApproval(approval.copy(status = ApprovalStatus.ALLOWED_ONCE.name, resolvedAtEpochMs = now))
+            try {
+                projectWorkspace.writeText(pending.projectId, pending.relativePath, pending.content)
+                repository.saveAgentApproval(approval.copy(status = ApprovalStatus.EXECUTED.name, resolvedAtEpochMs = now))
+                repository.saveAgentRunStep(
+                    AgentRunStepEntity(
+                        id = "${approval.runId}-step-$position",
+                        runId = approval.runId,
+                        position = position,
+                        stepKind = approval.toolKind,
+                        status = "COMPLETED",
+                        safeSummary = "Approved write completed: ${approval.targetPath}",
+                        createdAtEpochMs = now,
+                        completedAtEpochMs = now
+                    )
                 )
-            )
-            repository.saveAgentRun(run.copy(status = AgentRunStatus.RUNNING.name))
-            AgentToolResult.Completed("Approved write completed: ${approval.targetPath}")
-        } catch (_: Exception) {
-            fail(run, "Approved write could not be completed.")
+                repository.saveAgentRun(run.copy(status = AgentRunStatus.RUNNING.name))
+                AgentToolResult.Completed("Approved write completed: ${approval.targetPath}")
+            } catch (_: Exception) {
+                fail(run, "Approved write could not be completed.")
+            }
         }
     }
 
@@ -212,14 +220,14 @@ class BasicAgentRuntime(
      * A process restart intentionally loses pending write content. Every persisted pending approval
      * is therefore denied and traced by the repository; no write can be replayed automatically.
      */
-    suspend fun recoverAfterProcessDeath(): Int {
+    suspend fun recoverAfterProcessDeath(): Int = approvalMutex.withLock {
         pendingWrites.clear()
-        return repository.expirePendingAgentApprovalsAfterProcessDeath(nowEpochMs())
+        repository.expirePendingAgentApprovalsAfterProcessDeath(nowEpochMs())
     }
 
-    suspend fun cancel(run: AgentRunEntity): AgentRunEntity {
-        val currentRun = repository.findAgentRun(run.id) ?: return run
-        if (currentRun.status in TERMINAL_STATUSES) return currentRun
+    suspend fun cancel(run: AgentRunEntity): AgentRunEntity = approvalMutex.withLock {
+        val currentRun = repository.findAgentRun(run.id) ?: return@withLock run
+        if (currentRun.status in TERMINAL_STATUSES) return@withLock currentRun
 
         val now = nowEpochMs()
         pendingWrites.entries.removeIf { (approvalId, _) -> approvalId.startsWith("${currentRun.id}-approval-") }
@@ -244,7 +252,7 @@ class BasicAgentRuntime(
                 completedAtEpochMs = now
             )
         )
-        return cancelled
+        cancelled
     }
 
     suspend fun complete(run: AgentRunEntity): AgentRunEntity {
