@@ -31,7 +31,7 @@ After process death, write payloads are intentionally unavailable because they a
 
 ### Data and security
 
-Room schema history is exported under `app/schemas/`. Migration and reopen coverage includes a real legacy v1 fixture upgraded through all current migrations to v5, including endpoint trust and authentication-mode defaults. Local export/import is versioned and secret-free. The app-private workspace rejects unsafe traversal paths. Provider diagnostics and user-visible errors are designed to avoid raw credentials, authorization headers, raw model reasoning, and unredacted secrets.
+Room schema history is exported under `app/schemas/`. Migration and reopen coverage includes a real legacy v1 fixture upgraded through all current migrations to v6, including endpoint trust, authentication-mode defaults, and the durable incomplete marker for a visible assistant partial interrupted before stream completion. Local export/import is versioned and secret-free. The app-private workspace rejects unsafe traversal paths. Provider diagnostics and user-visible errors are designed to avoid raw credentials, authorization headers, raw model reasoning, and unredacted secrets.
 
 ## Explicit Alpha boundaries
 

@@ -12,7 +12,7 @@ The app may display a user-provided label and masked status, but never re-displa
 
 ## Persistence and migration policy
 
-`IvaiDatabase` v4 stores local workspace records, provider registry metadata, Router Combos and attempts, and bounded Agent records. Provider credentials never enter Room. Schemas are versioned and committed. Migration coverage includes a file-backed v1 database upgraded through all current migrations and reopened after validation.
+`IvaiDatabase` v6 stores local workspace records, provider registry metadata, Router Combos and attempts, bounded Agent records, and the durable incomplete marker for a visible assistant partial interrupted before stream completion. Provider credentials never enter Room. Schemas are versioned and committed. Migration coverage includes a file-backed v1 database upgraded through all current migrations and reopened after validation.
 
 Any schema, export/import, backup/restore, or local-file boundary change requires a dedicated migration/recovery test and security review. Project files remain within the app-private workspace and all relative paths are validated against traversal.
 
