@@ -34,12 +34,13 @@ Before every session, the facilitator reads the following statement and records 
 
 ## 4. Controlled Build and Session Setup
 
-Use the package produced by `./scripts/prepare_phase75_research_build.sh`. Before each session, confirm that `RESEARCH_PACKAGE_MANIFEST.txt` declares the intended commit/debug-only status and run `sha256sum --check SHA256SUMS.txt` for every transferred artifact, then clear local app data. The app must contain no account, credential, connection, endpoint, model, Combo, Agent target, project file, or prior chat data. The session is local-only: do not send provider traffic, use local endpoint networking, or let an Agent write a file.
+Use the package produced by `./scripts/prepare_phase75_research_build.sh`. Before each session, run `./scripts/verify_phase75_research_package.sh <package-directory>` to validate the expected artifact inventory, manifest commit/debug-only boundary, checksum file, and blank worksheet, then clear local app data. The app must contain no account, credential, connection, endpoint, model, Combo, Agent target, project file, or prior chat data. The session is local-only: do not send provider traffic, use local endpoint networking, or let an Agent write a file.
 
 | Preflight check | Required result | Owner |
 |---|---|---|
+| Package verification | Package validator succeeds for the expected artifact inventory, manifest, checksums, and blank worksheet. | Facilitator |
 | Build provenance | Package manifest declares the intended research commit and debug-only status. | Facilitator |
-| Artifact integrity | `sha256sum --check SHA256SUMS.txt` succeeds for every package artifact. | Facilitator |
+| Artifact integrity | Validator-confirmed checksum file covers every expected package artifact. | Facilitator |
 | Quality provenance | Build-quality log is present for the controlled package. | Facilitator |
 | App state | Fresh/cleared local state with no credentials or personal content. | Facilitator |
 | Safety notice | Participant has heard the opening statement and may stop. | Facilitator |

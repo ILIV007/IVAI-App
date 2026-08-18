@@ -64,7 +64,8 @@ Quality command: ./gradlew clean assembleDebug testDebugUnitTest lintDebug --no-
 Integrity procedure:
 1. Run sha256sum --check SHA256SUMS.txt from this directory before every session.
 2. Confirm the commit and build type above against the intended controlled research build.
-3. Do not treat this manifest, a successful command, or the local worksheet as participant/device evidence or Alpha approval.
+3. Run scripts/verify_phase75_research_package.sh against this directory before every session.
+4. Do not treat this manifest, a successful command, or the local worksheet as participant/device evidence or Alpha approval.
 
 Checksum-covered artifacts:
 - IVAI-phase75-research-debug.apk
@@ -124,7 +125,7 @@ Mandatory session safety:
 - Use a clean app state and add no API key, account, provider, endpoint, model, Combo, or Agent target.
 - Do not send a request, connect a provider, perform an Agent write, or use a workspace containing personal data.
 - Record only de-identified outcomes in the approved validation record; never store raw participant data in the repository.
-- Verify every checksum in SHA256SUMS.txt and review RESEARCH_PACKAGE_MANIFEST.txt before every session.
+- Run scripts/verify_phase75_research_package.sh against this package, then review RESEARCH_PACKAGE_MANIFEST.txt before every session.
 - This package does not substitute for a signed release, physical-device evidence, or Alpha approval.
 
 Contents:
@@ -137,4 +138,5 @@ Contents:
 - RESEARCH_SESSION_WORKSHEET.md (blank local-only worksheet)
 EOF
 
+"$repo_root/scripts/verify_phase75_research_package.sh" "$package_dir"
 printf 'Prepared controlled Phase 7.5 research package: %s\n' "$package_dir"
