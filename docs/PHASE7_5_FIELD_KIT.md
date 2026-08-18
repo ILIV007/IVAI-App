@@ -20,14 +20,15 @@ export ANDROID_HOME=/tmp/android-sdk-ivai
 ./scripts/prepare_phase75_research_build.sh
 ```
 
-The helper runs the clean build, unit tests, and lint; then writes a local package under `/tmp/ivai-phase75-research/<commit>/` containing a debug APK, build-quality log, test/lint reports, a manifest, full-artifact SHA-256 checksums, and a blank local worksheet. The package is intentionally outside the repository and must not be committed or published.
+The helper runs the clean build, unit tests, and lint; then writes a local package under `/tmp/ivai-phase75-research/<commit>/` containing a debug APK, build-quality log, test/lint reports, a manifest, full-artifact SHA-256 checksums, and a blank local worksheet. It validates the package before reporting success. The package is intentionally outside the repository and must not be committed or published.
 
 Before any participant receives a device, the facilitator must confirm all of the following:
 
 | Check | Required outcome |
 |---|---|
+| Package verification | `./scripts/verify_phase75_research_package.sh /tmp/ivai-phase75-research/<commit>` succeeds before every session. |
 | Build provenance | `RESEARCH_PACKAGE_MANIFEST.txt` commit matches the intended research build and declares debug-only status. |
-| Integrity | `sha256sum --check SHA256SUMS.txt` succeeds for the APK, test/lint reports, and build-quality log. |
+| Integrity | Validator-confirmed `SHA256SUMS.txt` covers and matches the APK, test/lint reports, and build-quality log. |
 | Quality provenance | `build-quality.log` records the successful clean debug/test/lint command used for this package. |
 | App state | Fresh/cleared local app data; no account, credential, provider connection, endpoint, Combo, Agent target, project file, or prior chat data. |
 | Network and write safety | No real provider request, local endpoint connection, or Agent write will be initiated. |
