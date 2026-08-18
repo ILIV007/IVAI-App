@@ -1,16 +1,16 @@
 # Pre-Alpha Engineering Backlog and ER-15 Handoff
 
-> **Status:** Prepared from clean `main` commit `e3d3bad` after the post-ER-01 global review, then updated through ER-15. ER-01 through ER-05 are merged; ER-15 passed focused/full deterministic validation locally, with protected merge pending. This document does not close Phase 7.5, authorize an Alpha release, or add any runtime capability.
+> **Status:** Prepared from clean `main` commit `e3d3bad` after the post-ER-01 global review, then updated through ER-15. ER-01 through ER-05 and ER-15 are merged; ER-15 passed focused/full deterministic validation and protected CI before merge in PR #55. This document does not close Phase 7.5, authorize an Alpha release, or add any runtime capability.
 
 ## Current Decision
 
-The protected `main` baseline at `d713830` remains synchronized and green. The ER-15 implementation branch has 137 passing tests and zero lint issues after clean validation. Subject to protected merge, the next engineering increment is **ER-22 — Archive Malformed-Input Hardening**. ER-15 remains intentionally separate from Phase 7.5 research, release minification, Providers, MCP, and Alpha publication.
+The protected `main` baseline at `202958e` remains synchronized and green. ER-15 merged after 137 passing tests, zero lint issues, and both protected CI checks. The next engineering increment is **ER-22 — Archive Malformed-Input Hardening**. It remains intentionally separate from Phase 7.5 research, release minification, Providers, MCP, and Alpha publication.
 
 | Decision | Status |
 |---|---|
 | Next implementation increment after ER-15 merge | ER-22 — archive malformed-input hardening |
-| Approved `main` baseline before ER-15 | `d713830` (PR #54) |
-| ER-15 branch deterministic quality baseline | 137 tests; 0 failures, errors, skipped tests, and lint issues |
+| Approved `main` baseline after ER-15 | `202958e` (PR #55) |
+| ER-15 deterministic quality baseline | 137 tests; 0 failures, errors, skipped tests, and lint issues; protected CI passed |
 | Phase 7.5 participant/device evidence | Deferred, not complete |
 | Public Alpha / signed APK / download | Not approved |
 | MCP and Skills runtime | Planned post-Alpha only; no implementation is authorized by this backlog |
@@ -63,7 +63,7 @@ ER-02 may be declared complete only when the implementation and focused tests pa
 | 2 | ER-03 — approval concurrency | Closed in PR #50 with deterministic approval-lifecycle serialization. | Synchronization is limited to approval lifecycle state so one-time write authority cannot be overwritten by a stale resolution. |
 | 3 | ER-04 — partial stream recovery | Closed in PR #51; Room v6 adds an explicit durable incomplete marker with Router, migration/reopen, and UI semantics regressions. | Preserves visible partial text after failure/restart without retrying a provider after content becomes visible. |
 | 4 | ER-05 — exception boundary audit | Closed in PR #53; Router, Gemini, and OpenAI-compatible recover only `Exception`, while fatal `Error` propagates. | Exception/cancellation behavior is safety-sensitive and must not become a batch refactor. |
-| 5 | ER-15 — safe Router registry lookup | Deterministically reproduced and locally fixed; stale connection/account/model state now yields a safe `INVALID_REQUEST` failed trace, with protected merge pending. | Registry inconsistency must not crash UI or hide a provider-selection error. |
+| 5 | ER-15 — safe Router registry lookup | Closed in PR #55; stale connection/account/model state now yields a safe `INVALID_REQUEST` failed trace. | Registry inconsistency must not crash UI or hide a provider-selection error. |
 | 6 | ER-22 — archive malformed-input hardening | Next candidate: test malformed archive decode/rollback atomicity before changing parsing or allocation behavior. | Archive safety requires focused corruption evidence, not speculative OOM refactoring. |
 | 7 | Remaining P2/P3 hardening | Release minification, vault recovery, and protocol/naming tests remain separate increments. | These are distinct threat/release design decisions, not a batch refactor. |
 | 8 | Phase 7.5 field evidence | Voluntary de-identified usability/heuristic sessions plus compact/medium device evidence. | Sandbox results cannot replace participants, TalkBack, lifecycle, or local HTTPS behavior. |
