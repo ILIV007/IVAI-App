@@ -92,6 +92,7 @@ class GeminiNetworkGateTest {
         assertEquals("generativelanguage.googleapis.com", diagnostics.single().host)
         assertFalse(diagnostics.single().toString().contains("test-only-credential"))
         assertTrue(exchange.wasClosed)
+        assertEquals(1, exchange.closeCount)
     }
 
     @Test
@@ -199,9 +200,11 @@ class GeminiNetworkGateTest {
         override val responseStream: InputStream
     ) : GeminiHttpExchange {
         var wasClosed: Boolean = false
+        var closeCount: Int = 0
 
         override fun close() {
             wasClosed = true
+            closeCount += 1
             runCatching { responseStream.close() }
         }
     }

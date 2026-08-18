@@ -107,12 +107,14 @@ class OpenAiCompatibleNoAuthTest {
         assertTrue(transport.requestBody.contains("user-local-model"))
         assertTrue(events.any { it is ProviderStreamEvent.Started })
         assertTrue(events.last() is ProviderStreamEvent.Completed)
+        assertEquals(1, transport.closeCount)
     }
 
     private class RecordingTransport : OpenAiCompatibleHttpTransport {
         var url: String? = null
         var bearerToken: String? = null
         var requestBody: String = ""
+        var closeCount: Int = 0
 
         override fun open(url: String, bearerToken: String?, requestBody: String): OpenAiCompatibleHttpExchange {
             this.url = url
@@ -123,7 +125,9 @@ class OpenAiCompatibleNoAuthTest {
                 override val responseStream = ByteArrayInputStream(
                     "data: {\"id\":\"local-no-auth-1\",\"choices\":[{\"delta\":{},\"finish_reason\":\"stop\"}]}\\n\\n".encodeToByteArray()
                 )
-                override fun close() = Unit
+                override fun close() {
+                    closeCount += 1
+                }
             }
         }
     }

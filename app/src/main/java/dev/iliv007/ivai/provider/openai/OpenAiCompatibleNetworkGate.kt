@@ -147,6 +147,7 @@ class OpenAiCompatibleNetworkGate(
                     emit(ProviderStreamEvent.Failed(terminalError))
                 }
             } finally {
+                exchange = null
                 currentExchange.close()
             }
         } catch (cancellation: CancellationException) {
