@@ -12,11 +12,14 @@
 |---|---|
 | Research owner | Pending owner assignment |
 | Build/prototype identifier | Pending |
+| Package manifest and all-artifact checksum verification | Pending; retain locally outside the repository |
 | Dates | Pending |
 | Recruitment channel | Pending; must be voluntary |
 | Consent acknowledgement method | Pending |
 | Participant count | Pending; target 5–8 for the initial qualitative pass |
 | Data retention owner/location | Pending; keep outside application runtime and repository unless de-identified approval is explicit |
+
+Before entering any result, the research owner verifies the controlled package manifest and every checksum, retains the local worksheet outside the repository, and transfers only approved de-identified aggregates. A verified package is provenance preparation, not a completed participant or device gate.
 
 ## Open Card Sort
 
@@ -66,7 +69,7 @@ Two reviewers record findings independently before reconciliation. Do not collap
 
 ## Physical-Device and Accessibility Sweep
 
-| Device class / OS | Build | Configuration | Task-critical result | Non-sensitive screenshot/reference | Finding ID(s) |
+| Device class / OS | Build manifest and checksum status | Configuration | Task-critical result | Non-sensitive screenshot/reference | Finding ID(s) |
 |---|---|---|---|---|---|
 | Compact physical device | Pending | Fresh install, upgrade, restart, rotation, offline; dark/light; default/large font; Force-RTL; TalkBack | Pending | Pending | Pending |
 | Medium physical device | Pending | Fresh install, upgrade, restart, rotation, offline; dark/light; default/large font; Force-RTL; TalkBack | Pending | Pending | Pending |
