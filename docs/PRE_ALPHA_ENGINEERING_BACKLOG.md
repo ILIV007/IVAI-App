@@ -1,16 +1,16 @@
 # Pre-Alpha Engineering Backlog and ER-24 Handoff
 
-> **Status:** Prepared from clean `main` commit `e3d3bad` after the post-ER-01 global review, then updated through ER-24. ER-01 through ER-05, ER-15, ER-22, and ER-25 are merged; ER-24 passed focused/full deterministic validation locally, with protected merge pending. This document does not close Phase 7.5, authorize an Alpha release, or add any runtime capability.
+> **Status:** Prepared from clean `main` commit `e3d3bad` after the post-ER-01 global review, then updated through ER-24. ER-01 through ER-05, ER-15, ER-22, ER-24, and ER-25 are merged; ER-24 passed focused/full deterministic validation and protected CI before merge in PR #59. This document does not close Phase 7.5, authorize an Alpha release, or add any runtime capability.
 
 ## Current Decision
 
-The protected `main` baseline at `2265ff4` remains synchronized and green. The ER-24 implementation branch has 139 passing tests and zero lint issues after clean validation. Subject to protected merge, the next engineering increment is **ER-14 — Release-Minification Audit**. ER-24 remains intentionally separate from Phase 7.5 research, release minification implementation, Providers, MCP, and Alpha publication.
+The protected `main` baseline at `f353746` remains synchronized and green. ER-24 merged after 139 passing tests, zero lint issues, and both protected CI checks. The next engineering increment is **ER-14 — Release-Minification Audit**. It remains intentionally separate from Phase 7.5 research, release minification implementation, Providers, MCP, and Alpha publication.
 
 | Decision | Status |
 |---|---|
 | Next implementation increment after ER-24 merge | ER-14 — release-minification audit |
-| Approved `main` baseline before ER-24 | `2265ff4` (PR #58) |
-| ER-24 branch deterministic quality baseline | 139 tests; 0 failures, errors, skipped tests, and lint issues |
+| Approved `main` baseline after ER-24 | `f353746` (PR #59) |
+| ER-24 deterministic quality baseline | 139 tests; 0 failures, errors, skipped tests, and lint issues; protected CI passed |
 | Phase 7.5 participant/device evidence | Deferred, not complete |
 | Public Alpha / signed APK / download | Not approved |
 | MCP and Skills runtime | Planned post-Alpha only; no implementation is authorized by this backlog |
@@ -65,7 +65,7 @@ ER-02 may be declared complete only when the implementation and focused tests pa
 | 4 | ER-05 — exception boundary audit | Closed in PR #53; Router, Gemini, and OpenAI-compatible recover only `Exception`, while fatal `Error` propagates. | Exception/cancellation behavior is safety-sensitive and must not become a batch refactor. |
 | 5 | ER-15 — safe Router registry lookup | Closed in PR #55; stale connection/account/model state now yields a safe `INVALID_REQUEST` failed trace. | Registry inconsistency must not crash UI or hide a provider-selection error. |
 | 6 | ER-22 / ER-25 — archive malformed-input atomicity | Closed in PR #57: checksum-valid malformed collection is rejected before Room/file mutation. Allocation policy is unchanged. | Archive safety requires focused corruption evidence, not speculative OOM refactoring. |
-| 7 | ER-24 — vault desynchronization recovery | Deterministically reproduced and locally fixed; only decryptable non-blank credentials are reported usable, while stale envelopes remain for deliberate overwrite/clear; protected merge pending. | Vault recovery must preserve BYOK boundary and never expose or fabricate credentials. |
+| 7 | ER-24 — vault desynchronization recovery | Closed in PR #59; only decryptable non-blank credentials are reported usable, while stale envelopes remain for deliberate overwrite/clear. | Vault recovery must preserve BYOK boundary and never expose or fabricate credentials. |
 | 8 | ER-14 — release-minification audit | Next candidate: inspect release variant/R8 configuration and run a release validation matrix before any minification toggle. | Minification is a release-hardening decision, not a safe one-line change. |
 | 9 | Remaining P3 hardening | SSE protocol and credential naming tests remain separate increments. | These are distinct behavior/documentation decisions, not a batch refactor. |
 | 10 | Phase 7.5 field evidence | Voluntary de-identified usability/heuristic sessions plus compact/medium device evidence. | Sandbox results cannot replace participants, TalkBack, lifecycle, or local HTTPS behavior. |
