@@ -31,6 +31,8 @@ Record these fields before running any quality command. The candidate must be ge
 | Repository integrity | `git fsck --full --no-reflogs`, tracked-file review | No corruption; no tracked key, certificate, `local.properties`, or environment-secret file. | Pending |
 | Release owner approval | Explicit recorded owner decision | Owner approves the exact signed artifact only after every blocker below passes. | Pending |
 
+A local unsigned package may be prepared through [Release Candidate Preparation](RELEASE_CANDIDATE_PREPARATION.md) to retain deterministic evidence for one exact commit. That package is neither a signed artifact nor a public/stable approval, and it cannot convert any participant, physical-device, signing, tag, release-note, or owner-decision row to Pass.
+
 ## 3. Build, Test, Lint, and Reproducibility
 
 Run all commands from the candidate checkout with the documented JDK and Android SDK. The full quality gate must pass before inspecting generated artifacts. A forced test rerun prevents cache-only evidence from being mistaken for execution evidence.

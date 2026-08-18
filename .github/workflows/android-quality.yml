@@ -45,6 +45,8 @@ jobs:
         run: unzip -t gradle/wrapper/gradle-wrapper.jar
       - name: Run Phase 7.5 research-package verifier regression
         run: bash scripts/test_phase75_research_package_verifier.sh
+      - name: Run Release Candidate package verifier regression
+        run: bash scripts/test_release_candidate_package_verifier.sh
       - name: Build debug and minified release APKs
         run: ./gradlew clean assembleDebug assembleRelease --no-daemon --stacktrace
       - name: Run unit tests
