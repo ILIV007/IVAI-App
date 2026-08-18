@@ -31,7 +31,7 @@ The review concerns IVAI's pre-Alpha codebase. The current release decision rema
 | ER-10 | SSE `trimStart()` is not fully literal SSE parsing. | **Confirmed, fixed, and merged in PR #63.** Both active SSE readers remove only the one optional space directly after `data:` and preserve subsequent leading spaces/tabs in the payload. | P3 protocol correctness | Closed; retain literal whitespace regressions. Event compatibility remains unchanged. |
 | ER-11 | OpenAI-compatible event types are ignored. | **Needs compatibility evidence.** The present adapter contract is intentionally narrow; supporting arbitrary events changes protocol behavior. | Deferred compatibility | Add only after an explicitly supported provider/test vector identifies a required event. |
 | ER-12 | `substringBeforeLast('-')` corrupts router attempt IDs. | **Contradicted by current construction.** Candidate entries are created as `$attemptId-${position}`, so removing the final suffix restores the known parent attempt ID. | Not a current bug | Prefer explicit parent ID only if future ID formats change; no behavior fix now. |
-| ER-13 | Credential presence method name is misleading. | **Minor naming/design observation; needs current call-site audit.** | P3 | Defer until a semantic rename can be made without misleading behavior changes. |
+| ER-13 | Credential presence method name is misleading. | **Confirmed by call-site audit and locally fixed; protected merge pending.** Active gate methods now use `checkStoredCredentialAvailability`, documenting that they only read local vault availability; a regression proves this check does not open a transport. | P3 naming correctness | Merge only after focused/full tests, scans, lint, protected CI, and documentation review succeed. Public Provider API and live network validation remain unchanged. |
 | ER-14 | Release minification is disabled. | **Confirmed, fixed, and merged in PR #61.** R8 minification is enabled for the unsigned release variant; `assembleRelease` runs `minifyReleaseWithR8`, produces an APK and mapping files, and protected CI now builds the minified release variant on every PR. | P2 release hardening | Closed for deterministic release-build hardening. Signed artifact, physical-device smoke, owner approval, and public Alpha remain separate gates. |
 | ER-15 | `first { … }` can crash if the registry changes. | **Confirmed, fixed, and merged in PR #55.** Removing the resolved connection before the candidate opens previously threw `NoSuchElementException`. Router revalidates connection/account/model with `firstOrNull` and emits a safe `INVALID_REQUEST` failure with a failed attempt trace. | P2 resilience | Closed; retain stale-catalog safe-failure regression. |
 | ER-16 | `ByteArray` equality in a data class is reference-based. | **Language behavior confirmed, product impact unproven.** | P3 test ergonomics | Add content-equality assertion only if current code/tests compare payload objects. |
@@ -47,7 +47,7 @@ The review concerns IVAI's pre-Alpha codebase. The current release decision rema
 
 ## Confirmed Work Order
 
-ER-01 through ER-05, ER-10, ER-14, ER-15, ER-22, ER-24, and ER-25 were reproduced, fixed, and merged in standalone PRs. Remaining P3 work remains separate from the completed protocol-correctness increment.
+ER-01 through ER-05, ER-10, ER-14, ER-15, ER-22, ER-24, and ER-25 were reproduced, fixed, and merged in standalone PRs. ER-13 is locally fixed in its own behavior-preserving naming branch; protected merge is pending. Remaining evidence-confirmed P3 work remains separate from this naming-correctness increment.
 
 | Order | Candidate | Why separated |
 |---|---|---|
@@ -61,7 +61,8 @@ ER-01 through ER-05, ER-10, ER-14, ER-15, ER-22, ER-24, and ER-25 were reproduce
 | 8 | ER-24 — vault desynchronization recovery | Closed in PR #59 by reporting only decryptable non-blank credentials as usable. |
 | 9 | ER-14 — release-minification hardening | Closed in PR #61 with R8 release build, mapping output, and CI release-build gate. |
 | 10 | ER-10 — literal SSE data-field whitespace | Closed in PR #63 with literal whitespace regressions for both active SSE readers. |
-| 11 | Remaining P3 candidates | Next work resumes with a focused ER-13 credential naming audit or another evidence-confirmed candidate; no batch hardening. |
+| 11 | ER-13 — local credential availability naming | Call-site audit and no-transport regression are locally green; protected merge pending. |
+| 12 | Remaining P3 candidates | Next work resumes only with another evidence-confirmed candidate; no batch hardening. |
 
 ## Non-Negotiable Deferrals
 

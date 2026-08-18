@@ -19,7 +19,7 @@ class GeminiChatProvider(
     override val providerId: ProviderId = ID
 
     override suspend fun validateConnection(credentialReference: CredentialReference): ProviderConnectionValidation =
-        networkGate.validateStoredCredential(credentialReference)
+        networkGate.checkStoredCredentialAvailability(credentialReference)
 
     /**
      * The Interactions API vertical slice deliberately supports manual model IDs. Dynamic model

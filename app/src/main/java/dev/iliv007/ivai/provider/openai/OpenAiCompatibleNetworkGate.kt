@@ -51,7 +51,8 @@ class OpenAiCompatibleNetworkGate(
         ProviderEndpointPolicy.requireAllowedEndpoint(baseUrl, trustMode)
     }
 
-    suspend fun validateStoredCredential(reference: CredentialReference): ProviderConnectionValidation {
+    /** Checks only local vault availability; a live request is validated when chat starts. */
+    suspend fun checkStoredCredentialAvailability(reference: CredentialReference): ProviderConnectionValidation {
         val exists = !vault.read(reference.value).isNullOrBlank()
         return if (exists) {
             ProviderConnectionValidation(providerId, isUsable = true)
@@ -189,7 +190,7 @@ class OpenRouterChatProvider(
 ) : ChatProvider {
     override val providerId: ProviderId = ID
     private val networkGate = gate
-    override suspend fun validateConnection(credentialReference: CredentialReference) = networkGate.validateStoredCredential(credentialReference)
+    override suspend fun validateConnection(credentialReference: CredentialReference) = networkGate.checkStoredCredentialAvailability(credentialReference)
     override suspend fun discoverModels(credentialReference: CredentialReference): List<ProviderModelDescriptor> = emptyList()
     override fun streamChat(request: ProviderChatRequest) = networkGate.stream(request)
 
@@ -207,7 +208,7 @@ class CustomOpenAiChatProvider(
 ) : ChatProvider {
     override val providerId: ProviderId = ID
     private val networkGate = gate
-    override suspend fun validateConnection(credentialReference: CredentialReference) = networkGate.validateStoredCredential(credentialReference)
+    override suspend fun validateConnection(credentialReference: CredentialReference) = networkGate.checkStoredCredentialAvailability(credentialReference)
     override suspend fun discoverModels(credentialReference: CredentialReference): List<ProviderModelDescriptor> = emptyList()
     override fun streamChat(request: ProviderChatRequest) = networkGate.stream(request)
 
