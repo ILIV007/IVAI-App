@@ -18,6 +18,8 @@ import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 import java.io.File
+import java.nio.ByteBuffer
+import java.security.MessageDigest
 
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [36])
@@ -85,6 +87,29 @@ class LocalWorkspaceArchiveTest {
     }
 
     @Test
+    fun `checksum valid malformed collection leaves current local workspace untouched`() = runBlocking {
+        seedWorkspace("before-malformed-import")
+        val export = File(temporaryFolder.root, "workspace.ivai")
+        archive.exportTo(export)
+        val bytes = export.readBytes()
+        val payloadSize = ByteBuffer.wrap(bytes, HEADER_SIZE_OFFSET, Int.SIZE_BYTES).int
+        val payloadOffset = HEADER_SIZE_OFFSET + Int.SIZE_BYTES + CHECKSUM_BYTES
+        assertEquals(payloadOffset + payloadSize, bytes.size)
+        ByteBuffer.wrap(bytes, payloadOffset + Long.SIZE_BYTES, Int.SIZE_BYTES).putInt(Int.MAX_VALUE)
+        val payload = bytes.copyOfRange(payloadOffset, bytes.size)
+        MessageDigest.getInstance("SHA-256").digest(payload).copyInto(bytes, destinationOffset = HEADER_SIZE_OFFSET + Int.SIZE_BYTES)
+        export.writeBytes(bytes)
+
+        val failure = runCatching { archive.importFrom(export) }.exceptionOrNull()
+
+        assertTrue(failure is IllegalArgumentException)
+        assertEquals("Archive collection size is invalid", failure?.message)
+        assertEquals("before-malformed-import", workspace.readText("project-1", "notes/readme.txt"))
+        assertNotNull(database.projectDao().findById("project-1"))
+        assertEquals(1, database.messageDao().listForThread("thread-1").size)
+    }
+
+    @Test
     fun `workspace rejects traversal and absolute paths`() {
         val traversalFailure = runCatching {
             workspace.writeText("project-1", "../outside.txt", "blocked")
@@ -132,5 +157,10 @@ class LocalWorkspaceArchiveTest {
             )
         )
         workspace.writeText("project-1", "notes/readme.txt", fileContent)
+    }
+
+    private companion object {
+        const val HEADER_SIZE_OFFSET = 8
+        const val CHECKSUM_BYTES = 32
     }
 }
