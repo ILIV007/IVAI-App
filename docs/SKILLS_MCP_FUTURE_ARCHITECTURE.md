@@ -2,7 +2,7 @@
 
 > **Status:** Planning only. This document adds no runtime capability, network connection, credential, process execution, background job, database migration, or release claim.
 >
-> **Decision:** IVAI will prepare for Skills and Model Context Protocol (MCP) as **separate, user-controlled capability planes**. Their implementation begins only after the current Phase 7.5 evidence gates and Alpha release gates are closed, and each subphase remains independently reviewable.
+> **Decision:** IVAI will prepare for Skills and Model Context Protocol (MCP) as **separate, user-controlled capability planes**. Their implementation begins only after the current Phase 7.5 evidence gates and Alpha release gates are closed, and each subphase remains independently reviewable. The [Phase 8.0 Capability Consent and Traceability Matrix](PHASE8_0_CAPABILITY_CONSENT_MATRIX.md) is the canonical cross-reference for future state, consent, redaction, and evidence terminology.
 
 ## 1. Product Intent and Non-Negotiable Boundaries
 
@@ -99,7 +99,7 @@ These phases are ordered dependencies, not a commitment to implement every phase
 
 | Phase | Goal | Explicit scope | Gate before advancing |
 |---|---|---|---|
-| 8.0 — Capability architecture decision | Freeze terminology, trust tiers, permission vocabulary, data classification, threat model, and UX acceptance matrix. | Documents, test plan, and design prototype only. | Security/design review agrees that Skills do not grant authority and MCP remains opt-in/direct. |
+| 8.0 — Capability architecture decision | Freeze terminology, trust tiers, permission vocabulary, data classification, threat model, and UX acceptance matrix. | Documents, test plan, and design prototype only; see the [consent matrix](PHASE8_0_CAPABILITY_CONSENT_MATRIX.md). | Security/design review agrees that Skills do not grant authority and MCP remains opt-in/direct. |
 | 8.1 — Local Skill registry | Add schema-validated, app-private declarative Skill definitions and a local library UI. | No execution code, no remote catalog, no network, no MCP, no scheduler. | Import/migration/delete/export/redaction/process-death tests; Skill cannot alter Agent target or grant capabilities. |
 | 8.2 — Skill-to-Agent binding | Let a user bind an enabled local Skill to an Agent through final review. | Explicit capability references and local parameter validation only. | Target/project/binding validation, cancellation, recovery, RTL/semantics and screenshot coverage. |
 | 8.3 — MCP profile foundation | Add disabled-by-default user-managed MCP server metadata and vault references. | Local schema/editor/revoke/delete/import validation; no connection attempt. | No secret in Room/export/trace; endpoint parsing rejects HTTP/query/fragment/userinfo; migrations and revocation pass. |
