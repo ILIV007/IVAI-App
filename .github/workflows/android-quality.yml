@@ -45,6 +45,8 @@ jobs:
         run: unzip -t gradle/wrapper/gradle-wrapper.jar
       - name: Run provider-neutral branding guard
         run: bash scripts/check_provider_neutral_branding.sh
+      - name: Run bounded RTL exception guard
+        run: bash scripts/check_rtl_bounded_exceptions.sh
       - name: Run Phase 8.0 architecture-readiness guard
         run: bash scripts/check_phase80_architecture_readiness.sh
       - name: Run Phase 7.5 research-package verifier regression
