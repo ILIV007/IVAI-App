@@ -95,6 +95,18 @@ class GeminiNetworkGateTest {
     }
 
     @Test
+    fun `connection check uses local credential availability without opening transport`() = runBlocking {
+        vault.store("gemini", "test-only-credential")
+        val transport = FakeTransport(FakeExchange(200, ByteArrayInputStream(ByteArray(0))))
+
+        val validation = GeminiNetworkGate(vault, transport)
+            .checkStoredCredentialAvailability(CredentialReference("gemini"))
+
+        assertTrue(validation.isUsable)
+        assertFalse(transport.wasOpened)
+    }
+
+    @Test
     fun `missing vault credential fails without opening transport`() = runBlocking {
         val transport = FakeTransport(FakeExchange(200, ByteArrayInputStream(ByteArray(0))))
 

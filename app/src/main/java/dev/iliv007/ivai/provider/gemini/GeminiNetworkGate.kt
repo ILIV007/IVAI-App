@@ -36,8 +36,8 @@ class GeminiNetworkGate(
     private val diagnostics: SafeNetworkDiagnostics = SafeNetworkDiagnostics.None,
     private val nowEpochMs: () -> Long = System::currentTimeMillis
 ) {
-    /** This checks only the local vault boundary; a live request is validated when chat starts. */
-    suspend fun validateStoredCredential(reference: CredentialReference): ProviderConnectionValidation {
+    /** Checks only local vault availability; a live request is validated when chat starts. */
+    suspend fun checkStoredCredentialAvailability(reference: CredentialReference): ProviderConnectionValidation {
         val exists = !vault.read(reference.value).isNullOrBlank()
         return if (exists) {
             ProviderConnectionValidation(providerId = GeminiChatProvider.ID, isUsable = true)
