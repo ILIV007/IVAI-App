@@ -157,7 +157,7 @@ class OpenAiCompatibleNetworkGate(
                 retryable = true
             )
             emit(ProviderStreamEvent.Failed(terminalError))
-        } catch (_: Throwable) {
+        } catch (_: Exception) {
             terminalError = NormalizedProviderError(
                 kind = ProviderErrorKind.UNKNOWN,
                 safeMessage = "Provider request could not be completed."

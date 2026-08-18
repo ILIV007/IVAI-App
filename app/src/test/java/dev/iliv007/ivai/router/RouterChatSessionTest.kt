@@ -55,6 +55,43 @@ class RouterChatSessionTest {
     fun tearDown() = database.close()
 
     @Test
+    fun `fatal provider error propagates instead of being normalized`() = runBlocking {
+        repository.saveThread(ChatThreadEntity("thread", "Local router", "", 1L, "User model", null))
+        repository.saveProviderConnection(ProviderConnectionEntity("gemini", "GEMINI", "User provider", null, true, 1L, 1L))
+        repository.saveProviderAccount(ProviderAccountEntity("gemini-account", "gemini", "BYOK", "credential.gemini", true, 1L, 1L))
+        repository.saveProviderModel(ProviderModelEntity("gemini-model", "gemini", "user-first-model", "First model", "TEXT,STREAMING", true, true, 1L))
+        val catalog = RouterCatalog(
+            connections = repository.currentProviderRegistry().connections,
+            accounts = repository.currentProviderRegistry().accounts,
+            models = repository.currentProviderRegistry().models,
+            credentialPresent = setOf("credential.gemini")
+        )
+        val session = RouterChatSession(
+            workspace = repository,
+            router = SequentialRouter(),
+            providerResolver = { _, _, _ -> fatalProvider },
+            nowEpochMs = { 100L }
+        )
+        var propagated: AssertionError? = null
+
+        try {
+            session.send(
+                threadId = "thread",
+                target = ExecutionTarget.DirectModel("gemini", "gemini-account", "gemini-model"),
+                comboEntries = emptyList(),
+                catalog = catalog,
+                history = emptyList(),
+                prompt = "hello",
+                attemptId = "router-fatal"
+            ).toList()
+        } catch (error: AssertionError) {
+            propagated = error
+        }
+
+        assertEquals("fatal provider error", propagated?.message)
+    }
+
+    @Test
     fun `visible partial stream failure persists incomplete assistant response without fallback`() = runBlocking {
         repository.saveThread(ChatThreadEntity("thread", "Local router", "", 1L, "User model", null))
         repository.saveProviderConnection(ProviderConnectionEntity("gemini", "GEMINI", "User provider", null, true, 1L, 1L))
@@ -146,6 +183,10 @@ class RouterChatSessionTest {
         assertEquals(listOf(RouterAttemptOutcome.FAILED.name, RouterAttemptOutcome.SUCCEEDED.name), entryTrace.map { it.outcome })
         assertEquals(ProviderErrorKind.RATE_LIMIT.name, entryTrace.first().safeErrorKind)
         assertTrue(entryTrace.all { it.safeErrorMessage?.contains("secret", ignoreCase = true) != true })
+    }
+
+    private val fatalProvider = FakeProvider(ProviderId("fake-fatal")) {
+        throw AssertionError("fatal provider error")
     }
 
     private val partialFailureProvider = FakeProvider(ProviderId("fake-partial")) { request ->
