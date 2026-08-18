@@ -70,10 +70,11 @@ ER-02 may be declared complete only when the implementation and focused tests pa
 | 9 | ER-10 — literal SSE data-field whitespace | Closed in PR #63; only one optional post-colon space is removed in both active SSE readers. | Protocol parsing must be evidence-driven and should not broaden event compatibility silently. |
 | 10 | ER-13 — local credential availability naming | Closed in PR #65; active gates use `checkStoredCredentialAvailability` and no-transport behavior is covered. | Naming must not imply a network validation or obscure the BYOK/local boundary. |
 | 11 | ER-17 — close-once provider exchange lifecycle | Closed in PR #67 with deterministic close-count regressions for both active gates. | Resource ownership remained separate from protocol/provider feature changes. |
-| 12 | Remaining P3 hardening | Any evidence-confirmed candidate remains a separate increment. | It is a distinct decision, not a batch refactor. |
-| 13 | Phase 7.5 field evidence | Voluntary de-identified usability/heuristic sessions plus compact/medium device evidence. | Sandbox results cannot replace participants, TalkBack, lifecycle, or local HTTPS behavior. |
-| 14 | Alpha release decision | Owner signing, signed artifact SHA-256, tag, notes, GitHub Release, independent hash check. | Publication must follow—not substitute for—all P0/P1 gates. |
-| 15 | Phase 8.0 Skills/MCP prototype | Threat-model/UX prototype after Alpha, following existing Phase 8 architecture documents. | No MCP runtime, process execution, OAuth, or background capability before its own gates. |
+| 12 | ER-16 — encrypted payload `ByteArray` equality | Closed as no-change: audit found construction/encode/decode/decrypt usage only, with no whole-payload product or test comparison. | A theoretical Kotlin equality property is not a behavior defect without a comparison call-site. |
+| 13 | Remaining P3 hardening | Any evidence-confirmed candidate remains a separate increment. | It is a distinct decision, not a batch refactor. |
+| 14 | Phase 7.5 field evidence | Voluntary de-identified usability/heuristic sessions plus compact/medium device evidence. | Sandbox results cannot replace participants, TalkBack, lifecycle, or local HTTPS behavior. |
+| 15 | Alpha release decision | Owner signing, signed artifact SHA-256, tag, notes, GitHub Release, independent hash check. | Publication must follow—not substitute for—all P0/P1 gates. |
+| 16 | Phase 8.0 Skills/MCP prototype | Threat-model/UX prototype after Alpha, following existing Phase 8 architecture documents. | No MCP runtime, process execution, OAuth, or background capability before its own gates. |
 
 ## Gates That Remain Intentionally Open
 
