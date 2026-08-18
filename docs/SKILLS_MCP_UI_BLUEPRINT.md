@@ -82,7 +82,7 @@ The Phase 7 IVAI design system remains the visual foundation: dark/light semanti
 
 ## 5. Prototype and Test Plan Before Implementation
 
-Phase 8.0 produces a static or Compose-preview prototype only. It must use mock/local metadata and must not embed a real endpoint, secret, OAuth token, external tool, local server, or live Agent write. The review prototype covers the following flows: empty Skill Library; Skill detail; Agent binding final review; empty MCP profile list; disabled MCP editor; connection-review warning; capability allowlist; one-time external consent; cancel/timeout/scope failure; and redacted trace.
+Phase 8.0 produces a static or Compose-preview prototype only. It must use mock/local metadata and must not embed a real endpoint, secret, OAuth token, external tool, local server, or live Agent write. The [Phase 8.0 Prototype Review Specification](PHASE8_0_PROTOTYPE_REVIEW_SPECIFICATION.md) is the canonical scenario, mock-fixture, copy, semantics, and acceptance source for that future review material. The review prototype covers the following flows: empty Skill Library; Skill detail; Agent binding final review; empty MCP profile list; disabled MCP editor; connection-review warning; capability allowlist; one-time external consent; cancel/timeout/scope failure; and redacted trace.
 
 | Test layer | Required evidence before any runtime phase |
 |---|---|
