@@ -1,16 +1,16 @@
 # Pre-Alpha Engineering Backlog and ER-02 Handoff
 
-> **Status:** Prepared from clean `main` commit `e3d3bad` after the post-ER-01 global review. This document organizes the next focused engineering increments. It does not close Phase 7.5, authorize an Alpha release, or add any runtime capability.
+> **Status:** Prepared from clean `main` commit `e3d3bad` after the post-ER-01 global review and updated on the ER-02 implementation branch. ER-02 passed local focused and full deterministic validation; protected merge is still pending. This document does not close Phase 7.5, authorize an Alpha release, or add any runtime capability.
 
 ## Current Decision
 
-The deterministic baseline is healthy: protected `main` is synchronized, the current CI head is green, the unit suite contains 125 passing tests, and lint has no reported issues. The next engineering increment is **ER-02 — Calculator Contract**. It is intentionally separate from Router recovery, Agent approval concurrency, Phase 7.5 research, release hardening, Providers, MCP, and Alpha publication.
+The protected `main` baseline remains synchronized and green. The ER-02 implementation branch now has 130 passing tests and zero lint issues after clean validation. Subject to protected merge, the next engineering increment becomes **ER-03 — Approval Concurrency Reproduction**. It remains intentionally separate from Router recovery, Phase 7.5 research, release hardening, Providers, MCP, and Alpha publication.
 
 | Decision | Status |
 |---|---|
-| Next implementation increment | ER-02 — bounded local calculator contract |
-| Current source baseline | `e3d3bad` |
-| Current deterministic quality baseline | 125 tests; 0 failures, errors, skipped tests, and lint issues |
+| Next implementation increment after ER-02 merge | ER-03 — approval concurrency reproduction |
+| Approved `main` baseline before ER-02 | `5fc4d68` |
+| ER-02 branch deterministic quality baseline | 130 tests; 0 failures, errors, skipped tests, and lint issues |
 | Phase 7.5 participant/device evidence | Deferred, not complete |
 | Public Alpha / signed APK / download | Not approved |
 | MCP and Skills runtime | Planned post-Alpha only; no implementation is authorized by this backlog |
@@ -35,7 +35,7 @@ Make the existing `CALCULATE` Agent tool truthful: a valid arithmetic request re
 
 ### ER-02 Acceptance Tests
 
-The implementation PR must add a parser/evaluator test suite before or alongside production code. The suite must prove both ordinary behavior and rejection boundaries.
+The implementation adds a parser/evaluator test suite alongside production code. The suite proves both ordinary behavior and rejection boundaries.
 
 | Test category | Required cases |
 |---|---|
@@ -59,8 +59,8 @@ ER-02 may be declared complete only when the implementation and focused tests pa
 
 | Order | Increment | Current evidence and required gate | Why it must remain separate |
 |---|---|---|---|
-| 1 | ER-02 — calculator contract | Confirmed P1 gap; bounded parser/evaluator design and tests required. | Changes Agent tool behavior and needs a precise local-only contract. |
-| 2 | ER-03 — approval concurrency | Add concurrent resolve/deny/cancel regression; fix only if one-time-write invariant is shown to fail. | Safety-sensitive atomicity work must not be speculative. |
+| 1 | ER-02 — calculator contract | Implemented and locally validated; protected CI/merge remain required before closure. | Changes Agent tool behavior while retaining a precise local-only contract. |
+| 2 | ER-03 — approval concurrency | Next increment: add concurrent resolve/deny/cancel regression; fix only if one-time-write invariant is shown to fail. | Safety-sensitive atomicity work must not be speculative. |
 | 3 | ER-04 — partial stream recovery | Define incomplete-message UI/persistence contract, then add Router regression and remediation. | User-visible recovery semantics must be decided before persistence changes. |
 | 4 | P2 release hardening | Review exception boundaries, release minification, vault recovery and archive malformed-input cases one at a time. | These are distinct threat/release design decisions, not a batch refactor. |
 | 5 | Phase 7.5 field evidence | Voluntary de-identified usability/heuristic sessions plus compact/medium device evidence. | Sandbox results cannot replace participants, TalkBack, lifecycle, or local HTTPS behavior. |
