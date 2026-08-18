@@ -82,10 +82,24 @@ class RouterChatSession(
         var lastError: ProviderStreamEvent.Failed? = null
 
         for (candidate in resolution.candidates) {
-            val connection = catalog.connections.first { it.id == candidate.connectionId }
-            val account = catalog.accounts.first { it.id == candidate.accountId }
             val candidateAttemptId = "$attemptId-${candidate.position}"
             val candidateStartedAt = nowEpochMs()
+            val connection = catalog.connections.firstOrNull {
+                it.id == candidate.connectionId && it.isEnabled
+            }
+            val account = catalog.accounts.firstOrNull {
+                it.id == candidate.accountId && it.connectionId == candidate.connectionId && it.isEnabled
+            }
+            val model = catalog.models.firstOrNull {
+                it.id == candidate.modelId && it.connectionId == candidate.connectionId && it.isSelectable
+            }
+            if (connection == null || account == null || model == null) {
+                val failure = ProviderStreamEvent.Failed(routerConfigurationChangedError())
+                finishEntry(candidateAttemptId, candidate, RouterAttemptOutcome.FAILED, candidateStartedAt, failure)
+                finishAttempt(attemptId, threadId, target, RouterAttemptOutcome.FAILED, startedAt, failure)
+                emit(failure)
+                return@flow
+            }
             workspace.saveRouterAttemptEntry(
                 RouterAttemptEntryEntity(
                     id = candidateAttemptId,
@@ -262,6 +276,11 @@ class RouterChatSession(
     private fun routerUnavailableError() = dev.iliv007.ivai.provider.NormalizedProviderError(
         kind = ProviderErrorKind.UNSUPPORTED_CAPABILITY,
         safeMessage = "No enabled provider target can satisfy this request."
+    )
+
+    private fun routerConfigurationChangedError() = dev.iliv007.ivai.provider.NormalizedProviderError(
+        kind = ProviderErrorKind.INVALID_REQUEST,
+        safeMessage = "Selected provider configuration changed before the request could start."
     )
 
     private fun routerIncompleteStreamError() = dev.iliv007.ivai.provider.NormalizedProviderError(

@@ -29,6 +29,7 @@ import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.runBlocking
 import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
@@ -53,6 +54,54 @@ class RouterChatSessionTest {
 
     @After
     fun tearDown() = database.close()
+
+    @Test
+    fun `catalog removal after resolution returns a safe router failure`() = runBlocking {
+        repository.saveThread(ChatThreadEntity("thread", "Local router", "", 1L, "User model", null))
+        val connections = mutableListOf(ProviderConnectionEntity("gemini", "GEMINI", "User provider", null, true, 1L, 1L))
+        repository.saveProviderConnection(connections.single())
+        repository.saveProviderAccount(ProviderAccountEntity("gemini-account", "gemini", "BYOK", "credential.gemini", true, 1L, 1L))
+        repository.saveProviderModel(ProviderModelEntity("gemini-model", "gemini", "user-first-model", "First model", "TEXT,STREAMING", true, true, 1L))
+        val catalog = RouterCatalog(
+            connections = connections,
+            accounts = repository.currentProviderRegistry().accounts,
+            models = repository.currentProviderRegistry().models,
+            credentialPresent = setOf("credential.gemini")
+        )
+        var providerWasResolved = false
+        var clearAfterResolution = true
+        val session = RouterChatSession(
+            workspace = repository,
+            router = SequentialRouter(),
+            providerResolver = { _, _, _ ->
+                providerWasResolved = true
+                partialFailureProvider
+            },
+            nowEpochMs = {
+                if (clearAfterResolution) {
+                    connections.clear()
+                    clearAfterResolution = false
+                }
+                100L
+            }
+        )
+
+        val events = session.send(
+            threadId = "thread",
+            target = ExecutionTarget.DirectModel("gemini", "gemini-account", "gemini-model"),
+            comboEntries = emptyList(),
+            catalog = catalog,
+            history = emptyList(),
+            prompt = "hello",
+            attemptId = "router-stale-catalog"
+        ).toList()
+
+        assertFalse(providerWasResolved)
+        val failure = events.single() as ProviderStreamEvent.Failed
+        assertEquals(ProviderErrorKind.INVALID_REQUEST, failure.error.kind)
+        assertEquals("Selected provider configuration changed before the request could start.", failure.error.safeMessage)
+        assertEquals(RouterAttemptOutcome.FAILED.name, repository.observeRouterAttempts("thread").first().single().outcome)
+    }
 
     @Test
     fun `fatal provider error propagates instead of being normalized`() = runBlocking {
