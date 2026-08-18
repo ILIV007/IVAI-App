@@ -1,16 +1,16 @@
-# Pre-Alpha Engineering Backlog and ER-04 Handoff
+# Pre-Alpha Engineering Backlog and ER-05 Handoff
 
-> **Status:** Prepared from clean `main` commit `e3d3bad` after the post-ER-01 global review, then updated through ER-04. ER-01 through ER-04 are merged; ER-04 passed focused/full deterministic validation and protected CI before merge in PR #51. This document does not close Phase 7.5, authorize an Alpha release, or add any runtime capability.
+> **Status:** Prepared from clean `main` commit `e3d3bad` after the post-ER-01 global review, then updated through ER-05. ER-01 through ER-04 are merged; ER-05 passed focused/full deterministic validation locally, with protected merge pending. This document does not close Phase 7.5, authorize an Alpha release, or add any runtime capability.
 
 ## Current Decision
 
-The protected `main` baseline at `1d78914` remains synchronized and green. ER-04 merged after 133 passing tests, zero lint issues, schema migration validation, and both protected CI checks. The next engineering increment is **ER-05 — Exception Boundary Audit**. It remains intentionally separate from Phase 7.5 research, release minification, Providers, MCP, and Alpha publication.
+The protected `main` baseline at `874f2a7` remains synchronized and green. The ER-05 implementation branch has 136 passing tests and zero lint issues after clean validation. Subject to protected merge, the next engineering increment is **ER-15 — Safe Router Registry Lookup**. ER-05 remains intentionally separate from Phase 7.5 research, release minification, Providers, MCP, and Alpha publication.
 
 | Decision | Status |
 |---|---|
-| Next implementation increment after ER-04 merge | ER-05 — focused exception-boundary audit |
-| Approved `main` baseline after ER-04 | `1d78914` (PR #51) |
-| ER-04 deterministic quality baseline | 133 tests; 0 failures, errors, skipped tests, and lint issues; protected CI passed |
+| Next implementation increment after ER-05 merge | ER-15 — safe Router registry lookup |
+| Approved `main` baseline before ER-05 | `874f2a7` (PR #52) |
+| ER-05 branch deterministic quality baseline | 136 tests; 0 failures, errors, skipped tests, and lint issues |
 | Phase 7.5 participant/device evidence | Deferred, not complete |
 | Public Alpha / signed APK / download | Not approved |
 | MCP and Skills runtime | Planned post-Alpha only; no implementation is authorized by this backlog |
@@ -55,18 +55,19 @@ This increment must not add an external math engine, JavaScript/ScriptEngine eva
 
 ER-02 may be declared complete only when the implementation and focused tests pass locally, the full clean build/unit/lint gate passes, source security/architecture scans are clean, the PR scope is limited to the calculator contract, both protected CI jobs pass, `main` protection is restored after merge, and Roadmap/triage are updated with the actual final behavior.
 
-## Ordered Backlog After ER-04
+## Ordered Backlog After ER-05
 
 | Order | Increment | Current evidence and required gate | Why it must remain separate |
 |---|---|---|---|
 | 1 | ER-02 — calculator contract | Closed in PR #49 with bounded local evaluation and regression coverage. | Changes Agent tool behavior while retaining a precise local-only contract. |
 | 2 | ER-03 — approval concurrency | Closed in PR #50 with deterministic approval-lifecycle serialization. | Synchronization is limited to approval lifecycle state so one-time write authority cannot be overwritten by a stale resolution. |
 | 3 | ER-04 — partial stream recovery | Closed in PR #51; Room v6 adds an explicit durable incomplete marker with Router, migration/reopen, and UI semantics regressions. | Preserves visible partial text after failure/restart without retrying a provider after content becomes visible. |
-| 4 | ER-05 — exception boundary audit | Next increment: audit `catch (_: Throwable)` call sites; add a focused regression before any narrowing. | Exception/cancellation behavior is safety-sensitive and must not become a batch refactor. |
-| 5 | Remaining P2/P3 hardening | Release minification, safe registry lookup, vault recovery, archive malformed-input, and protocol/naming tests remain separate increments. | These are distinct threat/release design decisions, not a batch refactor. |
-| 6 | Phase 7.5 field evidence | Voluntary de-identified usability/heuristic sessions plus compact/medium device evidence. | Sandbox results cannot replace participants, TalkBack, lifecycle, or local HTTPS behavior. |
-| 7 | Alpha release decision | Owner signing, signed artifact SHA-256, tag, notes, GitHub Release, independent hash check. | Publication must follow—not substitute for—all P0/P1 gates. |
-| 8 | Phase 8.0 Skills/MCP prototype | Threat-model/UX prototype after Alpha, following existing Phase 8 architecture documents. | No MCP runtime, process execution, OAuth, or background capability before its own gates. |
+| 4 | ER-05 — exception boundary audit | Deterministically reproduced and locally fixed; Router, Gemini, and OpenAI-compatible recover only `Exception`, while fatal `Error` propagates; protected merge pending. | Exception/cancellation behavior is safety-sensitive and must not become a batch refactor. |
+| 5 | ER-15 — safe Router registry lookup | Next candidate: reproduce invalid catalog lookup and normalize it to a safe Router failure only if the failure is confirmed. | Registry inconsistency must not crash UI or hide a provider-selection error. |
+| 6 | Remaining P2/P3 hardening | Release minification, vault recovery, archive malformed-input, and protocol/naming tests remain separate increments. | These are distinct threat/release design decisions, not a batch refactor. |
+| 7 | Phase 7.5 field evidence | Voluntary de-identified usability/heuristic sessions plus compact/medium device evidence. | Sandbox results cannot replace participants, TalkBack, lifecycle, or local HTTPS behavior. |
+| 8 | Alpha release decision | Owner signing, signed artifact SHA-256, tag, notes, GitHub Release, independent hash check. | Publication must follow—not substitute for—all P0/P1 gates. |
+| 9 | Phase 8.0 Skills/MCP prototype | Threat-model/UX prototype after Alpha, following existing Phase 8 architecture documents. | No MCP runtime, process execution, OAuth, or background capability before its own gates. |
 
 ## Gates That Remain Intentionally Open
 

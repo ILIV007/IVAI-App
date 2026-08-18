@@ -23,7 +23,7 @@ The review concerns IVAI's pre-Alpha codebase. The current release decision rema
 | ER-02 | Calculator accepts an expression but does not compute it. | **Confirmed, fixed, and merged in PR #49.** A bounded local parser accepts only documented decimal arithmetic and returns a normalized observation; invalid, oversized, overly nested, overly tokenized, and division-by-zero input is safely rejected. | P1 product-contract gap | Closed; retain the regression tests. |
 | ER-03 | Pending write approvals can race. | **Confirmed, fixed, and merged in PR #50.** A stale resolution could claim the in-memory write, then overwrite a completed cancellation and perform the write. A local `Mutex` serializes resolve, cancel, and process-death recovery; state is reread under lock. | P1 safety correctness | Closed; retain the deterministic concurrency regression. |
 | ER-04 | A stream that emitted partial assistant text then fails loses the answer after restart. | **Confirmed, fixed, and merged in PR #51.** Router persists a non-empty visible partial as an assistant message marked `isIncomplete=true`, Room v6 stores the durable marker, and UI labels it `Incomplete response`. No fallback occurs after visible content. | P1 data-recovery correctness | Closed; retain Router failure-after-delta, migration/reopen, and UI semantics regressions. |
-| ER-05 | Broad `catch (_: Throwable)` can swallow fatal VM errors. | **Confirmed static pattern; severity overstated.** Cancellation is handled first in the router, but generic `Throwable` catches still deserve narrowing after call-site review. | P2 resilience | Audit each catch; replace only with a safe, tested narrower boundary. |
+| ER-05 | Broad `catch (_: Throwable)` can swallow fatal VM errors. | **Confirmed by deterministic regressions and locally fixed; protected merge pending.** Router, Gemini, and OpenAI-compatible boundaries now normalize only `Exception`; tests prove a fatal `AssertionError` propagates. The archive rollback boundary deliberately rethrows its primary `Throwable` after rollback attempt and is unchanged. | P2 resilience | Merge only after focused/full tests, scans, lint, protected CI, and documentation review succeed. |
 | ER-06 | A 60-second read timeout is unsuitable for all reasoning streams. | **Configuration confirmed; impact unproven.** A static timeout is present, but a correct value depends on provider/device/network behavior. | Phase 7.5 / P2 evidence | Keep as physical-device/network validation item; do not alter timeout policy solely from speculation. |
 | ER-07 | Keystore must require biometric/PIN per access. | **Not a defect as stated.** Existing design uses a non-exportable Keystore vault for BYOK; per-operation user authentication is a product trade-off that may break foreground streaming/rotation/recovery. | Deferred security design | Consider a separate optional high-assurance mode only after user research and Android-device threat analysis. |
 | ER-08 | Migration 4→5 can fail from duplicate credential references. | **Contradicted for normal supported upgrade.** The credential-reference unique index was already created in migration 1→2. A duplicate database would require corruption/out-of-contract historic state. | Not a current migration bug | Retain corruption recovery tests; no blind deduplication migration. |
@@ -47,7 +47,7 @@ The review concerns IVAI's pre-Alpha codebase. The current release decision rema
 
 ## Confirmed Work Order
 
-ER-01 through ER-04 were reproduced, fixed, and merged in standalone PRs. P2 and P3 work remains separate from the completed data-recovery increment.
+ER-01 through ER-04 were reproduced, fixed, and merged in standalone PRs. ER-05 is reproduced and locally fixed in its own exception-boundary branch; protected merge is pending. Remaining P2 and P3 work remains separate from this narrow resilience increment.
 
 | Order | Candidate | Why separated |
 |---|---|---|
@@ -55,7 +55,8 @@ ER-01 through ER-04 were reproduced, fixed, and merged in standalone PRs. P2 and
 | 2 | ER-02 — Calculator contract | Closed in PR #49 with bounded arithmetic semantics and parser limits. |
 | 3 | ER-03 — Approval concurrency | Closed in PR #50 with deterministic approval-lifecycle serialization. |
 | 4 | ER-04 — Partial stream recovery | Closed in PR #51 with a Room v6 incomplete-message marker and recovery regressions. |
-| 5 | P2/P3 candidates | Next work begins with a focused ER-05 exception-boundary audit; no batch hardening. |
+| 5 | ER-05 — exception boundaries | Deterministically reproduced and locally fixed in Router, Gemini, and OpenAI-compatible boundaries; protected merge pending. |
+| 6 | Remaining P2/P3 candidates | Next work resumes with a focused ER-15 safe registry lookup or another evidence-confirmed candidate; no batch hardening. |
 
 ## Non-Negotiable Deferrals
 

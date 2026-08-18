@@ -50,6 +50,38 @@ class OpenAiCompatibleNoAuthTest {
     }
 
     @Test
+    fun `fatal transport error propagates instead of being normalized`() = runBlocking {
+        val transport = object : OpenAiCompatibleHttpTransport {
+            override fun open(url: String, bearerToken: String?, requestBody: String): OpenAiCompatibleHttpExchange =
+                throw AssertionError("fatal transport error")
+        }
+        val gate = OpenAiCompatibleNetworkGate(
+            providerId = ProviderId("custom-openai-compatible"),
+            baseUrl = "https://localhost:1234/v1",
+            trustMode = ProviderEndpointTrustMode.LOCAL_LOOPBACK_HTTPS,
+            vault = vault,
+            transport = transport
+        )
+        var propagated: AssertionError? = null
+
+        try {
+            gate.stream(
+                ProviderChatRequest(
+                    credentialReference = null,
+                    authMode = ProviderAccountAuthMode.NONE,
+                    modelId = "user-local-model",
+                    messages = listOf(ProviderMessage(ProviderMessageRole.USER, "local test")),
+                    attemptId = "fatal-no-auth-1"
+                )
+            ).toList()
+        } catch (error: AssertionError) {
+            propagated = error
+        }
+
+        assertEquals("fatal transport error", propagated?.message)
+    }
+
+    @Test
     fun `trusted local no-auth request omits Authorization and does not need a vault entry`() = runBlocking {
         val transport = RecordingTransport()
         val gate = OpenAiCompatibleNetworkGate(

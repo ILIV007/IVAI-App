@@ -123,6 +123,24 @@ class GeminiNetworkGateTest {
     }
 
     @Test
+    fun `fatal transport error propagates instead of being normalized`() = runBlocking {
+        vault.store("gemini", "test-only-credential")
+        val transport = object : GeminiHttpTransport {
+            override fun open(url: String, apiKey: String, requestBody: String): GeminiHttpExchange =
+                throw AssertionError("fatal transport error")
+        }
+        var propagated: AssertionError? = null
+
+        try {
+            GeminiNetworkGate(vault, transport).stream(request()).toList()
+        } catch (error: AssertionError) {
+            propagated = error
+        }
+
+        assertEquals("fatal transport error", propagated?.message)
+    }
+
+    @Test
     fun `cancelling collection closes active foreground exchange`() = runBlocking {
         vault.store("gemini", "test-only-credential")
         val input = PipedInputStream()

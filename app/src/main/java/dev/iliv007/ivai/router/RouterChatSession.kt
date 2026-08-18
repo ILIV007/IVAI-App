@@ -145,7 +145,7 @@ class RouterChatSession(
                 }
                 emit(ProviderStreamEvent.Cancelled)
                 return@flow
-            } catch (_: Throwable) {
+            } catch (_: Exception) {
                 candidateError = ProviderStreamEvent.Failed(unexpectedProviderError())
             }
 
