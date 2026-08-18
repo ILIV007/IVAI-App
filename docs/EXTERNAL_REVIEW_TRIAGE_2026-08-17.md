@@ -34,7 +34,7 @@ The review concerns IVAI's pre-Alpha codebase. The current release decision rema
 | ER-13 | Credential presence method name is misleading. | **Confirmed, fixed, and merged in PR #65.** Active gate methods use `checkStoredCredentialAvailability`, documenting that they only read local vault availability; a regression proves this check does not open a transport. | P3 naming correctness | Closed; retain the no-transport local-availability regression. Public Provider API and live network validation remain unchanged. |
 | ER-14 | Release minification is disabled. | **Confirmed, fixed, and merged in PR #61.** R8 minification is enabled for the unsigned release variant; `assembleRelease` runs `minifyReleaseWithR8`, produces an APK and mapping files, and protected CI now builds the minified release variant on every PR. | P2 release hardening | Closed for deterministic release-build hardening. Signed artifact, physical-device smoke, owner approval, and public Alpha remain separate gates. |
 | ER-15 | `first { … }` can crash if the registry changes. | **Confirmed, fixed, and merged in PR #55.** Removing the resolved connection before the candidate opens previously threw `NoSuchElementException`. Router revalidates connection/account/model with `firstOrNull` and emits a safe `INVALID_REQUEST` failure with a failed attempt trace. | P2 resilience | Closed; retain stale-catalog safe-failure regression. |
-| ER-16 | `ByteArray` equality in a data class is reference-based. | **Language behavior confirmed, product impact unproven.** | P3 test ergonomics | Add content-equality assertion only if current code/tests compare payload objects. |
+| ER-16 | `ByteArray` equality in a data class is reference-based. | **Language behavior confirmed; current product impact disproven by call-site audit.** `EncryptedSecretPayload` is only constructed, encoded/decoded, and decrypted; no production branch or test compares whole payload objects. | P3 test ergonomics | Closed as no-change: retain byte-level serialization/decryption assertions. Add value equality only with a future payload-object comparison use case and focused regression. |
 | ER-17 | Network exchange may be closed twice. | **Confirmed, fixed, and merged in PR #67.** Close-count regressions reproduced the double-close in both active gates. Inner stream ownership now clears the outer reference before its single close, so each successful exchange closes exactly once. | P3 resource lifecycle | Closed after focused/full validation and both protected CI checks. Protocol and network policy remain unchanged. |
 | ER-18 | HTTPS-only local endpoint policy causes Ollama/LM Studio friction. | **Intentional security boundary.** HTTP, mDNS and discovery remain explicitly excluded. | UX research item | Test comprehension of HTTPS-only guidance on a physical device; do not add HTTP exception. |
 | ER-19 | Safe diagnostics should be connected to telemetry. | **Rejected as phrased.** Hosted telemetry conflicts with Local-first/Backendless design. | Not a bug | If needed, evaluate a user-exported, fully redacted local diagnostic bundle in a separate privacy phase. |
@@ -47,7 +47,7 @@ The review concerns IVAI's pre-Alpha codebase. The current release decision rema
 
 ## Confirmed Work Order
 
-ER-01 through ER-05, ER-10, ER-13, ER-14, ER-15, ER-17, ER-22, ER-24, and ER-25 were reproduced, fixed, and merged in standalone PRs. Any other P3 work requires a separate evidence-confirmed increment.
+ER-01 through ER-05, ER-10, ER-13, ER-14, ER-15, ER-17, ER-22, ER-24, and ER-25 were reproduced, fixed, and merged in standalone PRs. ER-16 was audited after ER-17 and closed as no-change because its theoretical equality behavior has no current comparison call-site. Any other P3 work requires a separate evidence-confirmed increment.
 
 | Order | Candidate | Why separated |
 |---|---|---|
@@ -63,7 +63,8 @@ ER-01 through ER-05, ER-10, ER-13, ER-14, ER-15, ER-17, ER-22, ER-24, and ER-25 
 | 10 | ER-10 — literal SSE data-field whitespace | Closed in PR #63 with literal whitespace regressions for both active SSE readers. |
 | 11 | ER-13 — local credential availability naming | Closed in PR #65 with a behavior-preserving rename and no-transport regression. |
 | 12 | ER-17 — close-once provider exchange lifecycle | Closed in PR #67 with deterministic close-count regressions for both active gates. |
-| 13 | Remaining P3 candidates | Next work resumes only with another evidence-confirmed candidate; no batch hardening. |
+| 13 | ER-16 — encrypted payload `ByteArray` equality | Closed as no-change after full call-site audit found no whole-payload production/test comparison. |
+| 14 | Remaining P3 candidates | Next work resumes only with another evidence-confirmed candidate; no batch hardening. |
 
 ## Non-Negotiable Deferrals
 
