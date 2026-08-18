@@ -30,7 +30,7 @@ Room `2.8.4` is selected for the relational workspace store, its KSP compiler, c
 
 ## Out of scope
 
-No real provider key entry screen, API request, OpenRouter/Gemini adapter, Room-to-UI migration, encrypted backup, export/import, Google Drive, app-wide theme persistence wiring, agent tools, or telemetry is included. No raw secret, prompt, response, or internal reasoning is logged.
+No real provider key entry screen, API request, OpenRouter/Gemini adapter, Room-to-UI migration, encrypted backup, export/import, cloud-drive backup, app-wide theme persistence wiring, agent tools, or telemetry is included. No raw secret, prompt, response, or internal reasoning is logged.
 
 ## Security constraints
 

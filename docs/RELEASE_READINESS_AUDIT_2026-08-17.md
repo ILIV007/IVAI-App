@@ -40,7 +40,7 @@ All scans below were run against `app/src/main`. Descriptive Settings copy and A
 
 | Gate | Result | Evidence summary |
 |---|---|---|
-| No hardcoded secret | Pass | No Google/OpenAI-style key or literal API-key assignment found. |
+| No hardcoded secret | Pass | No common provider credential pattern or literal API-key assignment found. |
 | No cleartext/trust bypass | Pass | No cleartext opt-in, trust-all code, permissive trust manager, or hostname-verifier bypass found. |
 | No implicit target/provider | Pass | No default/auto/implicit provider, model, Combo, or target-selection pattern found. |
 | No hosted telemetry/backend SDK | Pass | No Firebase, Sentry, Amplitude, Mixpanel, PostHog, OpenReplay, Matomo, or Clarity SDK import found. |

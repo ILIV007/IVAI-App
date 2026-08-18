@@ -40,7 +40,7 @@ A dark-theme record-mode capture of the streaming scenario was reviewed at `app/
 | Unit test suite | `./gradlew testDebugUnitTest` succeeded with **90 tests**, **0 failures**, **0 errors**, and **0 skipped**. |
 | Lint | `./gradlew lintDebug` succeeded with **0 Error/Fatal** findings. The report contains 19 non-fatal warnings, unchanged as a release-blocking threshold because the project gate is zero Error/Fatal. |
 | Whitespace | `git diff --check` passed. |
-| Secret scan | No Google-style or `sk-` credential pattern was found in `app/src/main`. |
+| Secret scan | No common provider credential pattern or `sk-` credential pattern was found in `app/src/main`. |
 | Transport/trust scan | No new cleartext-traffic exception, trust-all implementation, or `X509TrustManager` use was found in `app/src/main`. |
 | Launcher-only scan | No launcher brand reference was found in Java/Kotlin production or test sources. |
 

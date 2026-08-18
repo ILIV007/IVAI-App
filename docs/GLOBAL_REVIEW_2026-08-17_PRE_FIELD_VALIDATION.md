@@ -19,7 +19,7 @@ No Provider/Router/Agent/Data runtime source, Room schema, credential flow, endp
 | Clean Android quality gate | `./gradlew clean assembleDebug testDebugUnitTest lintDebug --no-daemon --console=plain` with JDK 21 and Android SDK 36.1 | Build successful; lint report generated; worktree clean. |
 | Independent unit execution | `./gradlew testDebugUnitTest --rerun-tasks --no-daemon --console=plain` | **124 tests**, **0 failures**, **0 errors**, **0 skipped**. |
 | Lint | `lintDebug` report | **0 Error**, **0 Fatal**; 14 deferred toolchain/resource notices retained as documented in [Phase 7.5 Hardening Audit](PHASE7_5_HARDENING_AUDIT.md). |
-| Secret scan | Source regex for common Google/OpenAI-style keys and literal API-key assignment | Clean. |
+| Secret scan | Source regex for common provider credential patterns and literal API-key assignment | Clean. |
 | Transport policy | Source scan for cleartext opt-in, trust-all code, permissive trust manager, hostname-verifier bypass, and executable `http://` literal | Clean. Android XML namespace URLs were explicitly excluded as non-network metadata. |
 | Provider neutrality | Source scan for default/implicit/auto-selected provider or target patterns | Clean. |
 | Backend/telemetry | Hosted analytics/telemetry SDK import scan and dependency review | Clean. A Settings sentence saying that IVAI has no analytics was reviewed as explanatory copy, not a runtime integration. |

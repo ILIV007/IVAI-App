@@ -177,7 +177,7 @@ The listed feedback/analytics tools must not be embedded into IVAI during Phase 
 
 | Method | Goal | Suggested neutral tool class | Participant prompt / metric |
 |---|---|---|---|
-| Discovery survey | Identify provider setup anxiety, vocabulary and trust expectations. | Google Forms, LimeSurvey CE, Formbricks survey link. | `What would you expect “Combo”, “Connection”, and “Trust local endpoint” to mean?` |
+| Discovery survey | Identify provider setup anxiety, vocabulary and trust expectations. | Privacy-preserving external survey tool or self-hosted questionnaire. | `What would you expect “Combo”, “Connection”, and “Trust local endpoint” to mean?` |
 | Open card sort | Test information architecture labels and grouping. | kardSort, xSort, spreadsheet-moderated card sort. | Group: Chat history, Projects, Providers, Models, Combos, Agent profiles, Runs, Settings. |
 | Tree test | Validate proposed five-destination navigation. | Paper/Figma prototype or external tree-testing service. | Find: `Change model`, `Review write`, `See provider trust`, `Open project chat`. |
 | Moderated task test | Validate core safety flows with early prototype. | Screen share / prototype; no product instrumentation. | Completion, confusion points, recovery success, trust comprehension. |

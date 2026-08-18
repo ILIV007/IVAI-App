@@ -1,12 +1,12 @@
-# Gemini Adapter — IVAI
+# IVAI Development Guide
 
 ## Purpose
 
-Use this file as a concise adapter when assisting with IVAI. It complements `AGENTS.md`; it does not replace the product roadmap or security documents.
+Use this file as a concise implementation guide for IVAI. It complements the product roadmap and security documents; it does not replace their release, architecture, or provider-neutral requirements.
 
 ## Environment
 
-Use a full JDK 17 or later and configure an Android SDK matching `compileSdk 36.1`. Verify the project with:
+Use JDK 21 and an Android SDK matching `compileSdk 36.1`. Verify the project with:
 
 ```bash
 ./gradlew clean assembleDebug

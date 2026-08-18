@@ -7,7 +7,7 @@
 | Owner | IVAI implementation agent |
 | Prerequisite branches | `feat/ui-rtl-foundation` and `feat/local-data-security` must merge to `main` |
 | Target phase | Phase 3 — One-provider Chat Vertical Slice |
-| Proposed first provider | Google Gemini, as specified by the Phase 3 roadmap |
+| Proposed first provider | Gemini adapter, as specified by the Phase 3 roadmap |
 
 ## Goal
 
@@ -68,6 +68,6 @@ The Network Gate is the only call site permitted to receive decrypted credential
 
 ## References
 
-[1]: https://ai.google.dev/gemini-api/docs "Google AI for Developers — Gemini API documentation"
+[1]: https://ai.google.dev/gemini-api/docs "Gemini API documentation"
 [2]: https://developer.android.com/topic/performance/threads "Android Developers — threading guidance"
 [3]: https://developer.android.com/jetpack/androidx/releases/room "Android Developers — Room persistence guidance"
