@@ -1,6 +1,6 @@
 {
   "name": "IVAI",
-  "description": "Native Android local-first BYOK workspace for chat and basic bounded agents",
+  "description": "Native Android Local-first, Backendless, BYOK Agent Harness for user-managed providers and bounded local agents",
   "requestFramePermissions": [],
-  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+  "majorCapabilities": ["MAJOR_CAPABILITY_LOCAL_BYOK_AGENT_HARNESS"]
 }

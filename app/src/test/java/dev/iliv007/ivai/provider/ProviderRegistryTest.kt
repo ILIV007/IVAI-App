@@ -42,7 +42,9 @@ class ProviderRegistryTest {
         val presets = ProviderPresetCatalog.all
 
         assertEquals(presets.size, presets.map { it.id }.toSet().size)
-        assertTrue(presets.any { it.id == "gemini" && it.kind == ProviderKind.GEMINI })
+        val geminiPreset = presets.single { it.id == "gemini" }
+        assertEquals(ProviderKind.GEMINI, geminiPreset.kind)
+        assertEquals("Gemini", geminiPreset.displayName)
         assertTrue(presets.any { it.id == "openrouter" && it.kind == ProviderKind.OPENROUTER })
         val cloudPresets = presets.filter { it.kind == ProviderKind.CUSTOM_OPENAI_COMPATIBLE }
         assertTrue(cloudPresets.map { it.id }.containsAll(setOf("openai", "groq", "mistral", "together", "deepseek", "fireworks", "xai")))

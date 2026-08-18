@@ -22,7 +22,7 @@ header: magic (IVAI) | format version (1) | payload size | SHA-256(payload)
 payload: created-at | projects | threads | messages | workspace files
 ```
 
-Checksum فقط integrity تصادفی/خرابی فایل را بررسی می‌کند و امضای هویت یا encryption نیست. Archive فاز Alpha به‌صورت محلی است و هیچ Secret، DataStore preference یا Keystore key را دربرنمی‌گیرد. Backup رمزنگاری‌شده و Google Drive خارج از محدودهٔ Alpha باقی می‌مانند.
+Checksum فقط integrity تصادفی/خرابی فایل را بررسی می‌کند و امضای هویت یا encryption نیست. Archive فاز Alpha به‌صورت محلی است و هیچ Secret، DataStore preference یا Keystore key را دربرنمی‌گیرد. Backup رمزنگاری‌شده و cloud-drive backup خارج از محدودهٔ Alpha باقی می‌مانند.
 
 ## معیار پذیرش
 

@@ -40,7 +40,7 @@ data class ProviderPreset(
  */
 object ProviderPresetCatalog {
     val all: List<ProviderPreset> = listOf(
-        ProviderPreset("gemini", "Google Gemini", ProviderKind.GEMINI, null, "https://ai.google.dev/gemini-api/docs", "Gemini API"),
+        ProviderPreset("gemini", "Gemini", ProviderKind.GEMINI, null, "https://ai.google.dev/gemini-api/docs", "Gemini API"),
         ProviderPreset("openrouter", "OpenRouter", ProviderKind.OPENROUTER, null, "https://openrouter.ai/docs", "OpenRouter API"),
         cloudOpenAiCompatible("openai", "OpenAI", "https://api.openai.com/v1", "https://platform.openai.com/docs/api-reference"),
         cloudOpenAiCompatible("groq", "Groq", "https://api.groq.com/openai/v1", "https://console.groq.com/docs/openai"),

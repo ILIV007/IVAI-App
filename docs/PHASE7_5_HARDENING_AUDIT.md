@@ -11,7 +11,7 @@
 | Build and test baseline | After Phase 7.4, a clean build/test/lint pass and a separate `testDebugUnitTest --rerun-tasks` run executed all **122** baseline tests with 0 failures, 0 errors, and 0 skipped. Phase 7.5 hardening raised the clean baseline to **123** tests. After the global review and [PR #39](https://github.com/ILIV007/IVAI-App/pull/39), a clean main validation executed **124** tests with 0 failures, 0 errors, and 0 skipped. | Verified |
 | No-backup policy — Android 11 and lower | `android:allowBackup="false"` remains present. `android:fullBackupContent` now points to `ivai_full_backup_rules.xml`, which excludes all app-private storage domains. | Verified by resource test and lint |
 | No-transfer policy — Android 12+ | `android:dataExtractionRules` points to `ivai_data_extraction_rules.xml`; both cloud backup and device-to-device transfer exclude every app-private storage domain. This closes the Android 12+ configuration ambiguity while preserving the existing local-only data policy. | Verified by resource test and lint |
-| No hardcoded secret | Regex scan for Google/OpenAI-style key patterns and literal API-key assignments returned no result. | Verified |
+| No hardcoded secret | Regex scan for common provider credential patterns and literal API-key assignments returned no result. | Verified |
 | Transport and TLS trust | Scan for cleartext opt-ins, permissive trust managers, hostname-verifier bypasses, and trust-all code returned no result. | Verified |
 | Prohibited execution/storage | Scan for process execution, accessibility automation, unrestricted storage, and background work returned no result. | Verified |
 | Provider-neutral execution | Scan for implicit/default provider selection returned no result. | Verified |

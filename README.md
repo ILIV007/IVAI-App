@@ -1,6 +1,6 @@
 # IVAI — Local-first BYOK Agent Harness for Android
 
-> **Alpha status:** The repository is buildable and continuously validated, but a public GitHub Alpha release has not been created yet. IVAI is intentionally local-first, backendless, and BYOK; it is **not** a Gemini-first client or a hosted agent service. The current release decision, exact gates, and deterministic audit are documented in the [Release Readiness Checklist](docs/RELEASE_READINESS_CHECKLIST.md) and [Release Readiness Audit](docs/RELEASE_READINESS_AUDIT_2026-08-17.md).
+> **Alpha status:** The repository is buildable and continuously validated, but a public GitHub Alpha release has not been created yet. IVAI is intentionally local-first, backendless, and BYOK; it is **not** a single-provider client or a hosted agent service. The current release decision, exact gates, and deterministic audit are documented in the [Release Readiness Checklist](docs/RELEASE_READINESS_CHECKLIST.md) and [Release Readiness Audit](docs/RELEASE_READINESS_AUDIT_2026-08-17.md). The latest [provider-neutral repository cleanup](docs/PROVIDER_NEUTRALITY_CLEANUP_2026-08-18.md) records the removed nonfunctional branding and retained technical adapter/build references.
 
 IVAI is an Android harness for configuring, routing, and running bounded AI-agent workflows using connections and credentials that remain under the user's control. The user owns the provider connection, account, endpoint, model, capability metadata, ordered fallback Combo, chat execution target, Agent profile, and project workspace. The app creates no central IVAI account, mandatory backend, telemetry service, or implicit provider configuration.
 
@@ -35,7 +35,7 @@ Room schema history is exported under `app/schemas/`. Migration and reopen cover
 
 ## Explicit Alpha boundaries
 
-The following capabilities are intentionally **not** part of Alpha: Shell/Termux execution, Shizuku, Accessibility automation, unrestricted storage access, unrestricted HTTP POST tools, MCP process/server execution, autonomous background agents, multi-agent swarms, local model inference, cloud backup, multi-device synchronization, voice, Google Play distribution, or a central IVAI backend.
+The following capabilities are intentionally **not** part of Alpha: Shell/Termux execution, Shizuku, Accessibility automation, unrestricted storage access, unrestricted HTTP POST tools, MCP process/server execution, autonomous background agents, multi-agent swarms, local model inference, cloud backup, multi-device synchronization, voice, public app-store distribution, or a central IVAI backend.
 
 Safe workspace read/list/search tooling is implemented within the bounded local runtime. The full RTL/accessibility/device evidence matrix remains planned hardening work; see [the roadmap](docs/ROADMAP.md), [the Alpha release checklist](docs/ALPHA_RELEASE.md), and the [Phase 6 hardening readiness audit](docs/PHASE6_HARDENING_AUDIT.md).
 

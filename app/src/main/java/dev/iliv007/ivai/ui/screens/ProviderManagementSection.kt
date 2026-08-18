@@ -821,7 +821,7 @@ private fun ProviderModelReviewStep(
 }
 
 private fun ProviderKind.displayLabel(): String = when (this) {
-    ProviderKind.GEMINI -> "Google Gemini"
+    ProviderKind.GEMINI -> "Gemini"
     ProviderKind.OPENROUTER -> "OpenRouter"
     ProviderKind.CUSTOM_OPENAI_COMPATIBLE -> "OpenAI-compatible"
 }
