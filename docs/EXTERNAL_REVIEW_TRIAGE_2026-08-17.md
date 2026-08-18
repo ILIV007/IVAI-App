@@ -1,6 +1,6 @@
 # External Review Triage — 2026-08-17
 
-> **Status:** Evidence-based triage of two user-supplied, non-authoritative review reports. The reports are treated as hypotheses, not instructions. This document records only claims checked against the current `main` source at commit `156de14` and does not claim physical-device or participant evidence.
+> **Status:** Evidence-based triage of two user-supplied, non-authoritative review reports. The reports are treated as hypotheses, not instructions. Initial claims were checked against `main` at commit `156de14`; subsequent focused increments update only their own verified finding. This document does not claim physical-device or participant evidence.
 >
 > **Decision rule:** A finding may enter a focused fix PR only after its triggering behavior is reproduced by an automated test or its safety invariant is demonstrated to be violated. A static observation alone does not override an intentional IVAI guardrail.
 
@@ -10,7 +10,7 @@ The review concerns IVAI's pre-Alpha codebase. The current release decision rema
 
 | Control | Verified state before triage |
 |---|---|
-| Branch baseline | `main` at `156de14` (`docs(roadmap): plan Skills and MCP capabilities (#45)`) |
+| Initial triage baseline | `main` at `156de14` (`docs(roadmap): plan Skills and MCP capabilities (#45)`) |
 | Current CI | Secret scan and Build/unit-test/lint succeeded for the main head. |
 | Architectural guardrails | Local-first, Backendless, BYOK, explicit Provider/Combo target, HTTPS-only explicit endpoint policy, no provider auto-selection, no background execution. |
 | Triage scope | Source/test/static inspection only. No participant/device result, live provider, real credential, local HTTP endpoint, real MCP server, or release artifact is used. |
@@ -19,8 +19,8 @@ The review concerns IVAI's pre-Alpha codebase. The current release decision rema
 
 | ID | External claim | Evidence in current source | Classification | Proposed action |
 |---|---|---|---|---|
-| ER-01 | Router path can show a duplicate user message with different IDs. | **Confirmed by static trace and deterministic regression.** `RouterChatSession` persists `msg-$attemptId-user`; on `Started`, `WorkspaceViewModel` appends a distinct non-persisted `msg-$createdAt` to UI state. The focused `RouterUserMessageInvariantTest` fails on current code with two matching user rows. | P1 functional correctness | Fix in its own PR with a stable Router message ID and ID-based UI deduplication; retain the regression test. |
-| ER-02 | Calculator accepts an expression but does not compute it. | **Confirmed.** `AgentToolRegistry.calculate` validates a regex then returns `Calculator request accepted: …` with no evaluation. | P1 product-contract gap | Reproduce through existing Agent tool contract test; choose a bounded parser/evaluator or rename/remove the advertised capability in a separate design/fix PR. |
+| ER-01 | Router path can show a duplicate user message with different IDs. | **Confirmed, fixed, and merged in PR #46.** `RouterChatSession` now shares its stable user-message ID with the `Started` UI event, and `WorkspaceViewModel` deduplicates by ID; `RouterUserMessageInvariantTest` protects the invariant. | P1 functional correctness | Closed; retain the regression test. |
+| ER-02 | Calculator accepts an expression but does not compute it. | **Confirmed, test-first fixed, and locally validated; protected merge pending.** A bounded local parser accepts only documented decimal arithmetic and returns a normalized observation; invalid, oversized, overly nested, overly tokenized, and division-by-zero input is safely rejected. | P1 product-contract gap | Merge only after focused and full tests, scans, lint, protected CI, and documentation review succeed. |
 | ER-03 | Pending write approvals can race. | **Plausible; needs reproduction.** `pendingWrites` is a mutable map and approval state is read/update/write across multiple suspending operations without a local critical section. The public caller's serialization is not a proven invariant. | P1 safety candidate | Add concurrent resolution/cancel tests first; introduce an explicit critical section only if the one-time-write invariant can be violated. |
 | ER-04 | A stream that emitted partial assistant text then fails loses the answer after restart. | **Confirmed by static trace.** A partial response reaches UI via `Delta`, but only `Completed` persists an assistant entity; intentional no-fallback-after-visible-content avoids duplicate provider work. | P1 data-recovery candidate | Define safe incomplete-message UX and persistence contract; add regression test and handle in a focused router PR. |
 | ER-05 | Broad `catch (_: Throwable)` can swallow fatal VM errors. | **Confirmed static pattern; severity overstated.** Cancellation is handled first in the router, but generic `Throwable` catches still deserve narrowing after call-site review. | P2 resilience | Audit each catch; replace only with a safe, tested narrower boundary. |
@@ -47,13 +47,13 @@ The review concerns IVAI's pre-Alpha codebase. The current release decision rema
 
 ## Confirmed Work Order
 
-The first implementation candidate is **ER-01 (single user-message invariant in the Router UI path)** because it is directly traceable, user-visible, localized, and independent of external device evidence. A focused deterministic regression test now reproduces the duplicate on the current code, so ER-01 may proceed to a standalone fix PR. ER-02, ER-03, and ER-04 are distinct follow-up PRs; they must not be combined with ER-01.
+ER-01 was directly traceable, reproduced, fixed, and merged in standalone PR #46. ER-02 is now implemented and locally validated in its own calculator-contract branch; protected merge is pending. ER-03 and ER-04 remain distinct follow-up PRs and must not be combined with either completed increment.
 
 | Order | Candidate | Why separated |
 |---|---|---|
-| 1 | ER-01 — Router UI duplicate user message | Localized UI/repository contract; low blast radius once reproduced. |
-| 2 | ER-02 — Calculator contract | Requires a product decision on bounded arithmetic semantics and parser limits. |
-| 3 | ER-03 — Approval concurrency | Safety-sensitive; requires concurrency tests and atomicity design. |
+| 1 | ER-01 — Router UI duplicate user message | Closed in PR #46 with a stable-ID regression. |
+| 2 | ER-02 — Calculator contract | Implemented locally with bounded arithmetic semantics and parser limits; protected merge pending. |
+| 3 | ER-03 — Approval concurrency | Next candidate; safety-sensitive and requires concurrency tests and atomicity design. |
 | 4 | ER-04 — Partial stream recovery | Requires a user-visible incomplete-message state and Router persistence contract. |
 | 5 | P2/P3 candidates | Each is deferred to a focused evidence/design phase, not bundled hardening. |
 
