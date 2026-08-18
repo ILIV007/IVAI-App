@@ -16,7 +16,8 @@
 | Prohibited execution/storage | Scan for process execution, accessibility automation, unrestricted storage, and background work returned no result. | Verified |
 | Provider-neutral execution | Scan for implicit/default provider selection returned no result. | Verified |
 | Global RTL direction | No global forced-LTR override exists in the shell or theme. | Verified |
-| Narrow LTR exceptions | Four overrides are confined to message footer action/timestamp rows, `TerminalCodeBlock`, and `MarkdownCodeBlock`. | Verified as bounded |
+| Narrow LTR exceptions | Four overrides are confined to message footer action/timestamp rows, `TerminalCodeBlock`, and `MarkdownCodeBlock`; `scripts/check_rtl_bounded_exceptions.sh` verifies exactly those locations and no unreviewed production override. | Verified by deterministic guard |
+| Device RTL/accessibility evidence | The bounded static exception policy does not replace Force-RTL, TalkBack, large-font-scale, or touch-target validation on physical devices. | Pending external evidence |
 | Launcher-art boundary | No product-UI reuse of launcher artwork was introduced. [PR #39](https://github.com/ILIV007/IVAI-App/pull/39) adds a dedicated monochrome vector only to the two adaptive launcher entries; the existing bitmap artwork remains unchanged. | Verified |
 | Data/runtime isolation | The deterministic review/hardening increments change UI tokens, test fixtures, manifest/resources, regression tests, and validation documentation only; no Provider/Router/Agent/Data code, Room schema, permission, endpoint, or runtime contract changed. | Verified |
 
