@@ -68,6 +68,16 @@ class OpenAiCompatibleProtocolTest {
     }
 
     @Test
+    fun `SSE reader removes only the optional single space after data colon`() {
+        val reader = OpenAiCompatibleSseReader(
+            BufferedReader(StringReader("data:  leading-space\n\ndata:\tleading-tab\n\n"))
+        )
+
+        assertEquals(" leading-space", reader.next()?.data)
+        assertEquals("\tleading-tab", reader.next()?.data)
+    }
+
+    @Test
     fun `http status normalizes auth rate and timeout`() {
         assertEquals(ProviderErrorKind.AUTHENTICATION, OpenAiCompatibleProtocol.decodeHttpError(401).kind)
         assertEquals(ProviderErrorKind.RATE_LIMIT, OpenAiCompatibleProtocol.decodeHttpError(429).kind)
