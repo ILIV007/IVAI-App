@@ -225,7 +225,7 @@ internal class OpenAiCompatibleSseReader(private val reader: BufferedReader) {
                 line.isEmpty() -> dispatchOrNull()?.let { return it }
                 line.startsWith("data:") -> {
                     if (data.isNotEmpty()) data.append('\n')
-                    data.append(line.substringAfter(':').trimStart())
+                    data.append(line.substringAfter(':').removePrefix(" "))
                 }
                 line.startsWith(':') -> Unit
             }

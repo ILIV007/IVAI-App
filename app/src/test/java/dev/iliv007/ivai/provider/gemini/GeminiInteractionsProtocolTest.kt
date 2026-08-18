@@ -105,6 +105,16 @@ class GeminiInteractionsProtocolTest {
     }
 
     @Test
+    fun `sse reader removes only the optional single space after data colon`() {
+        val reader = GeminiSseReader(
+            BufferedReader(StringReader("data:  leading-space\n\ndata:\tleading-tab\n\n"))
+        )
+
+        assertEquals(" leading-space", reader.next()?.data)
+        assertEquals("\tleading-tab", reader.next()?.data)
+    }
+
+    @Test
     fun `http status maps to safe normalized categories`() {
         assertEquals(ProviderErrorKind.AUTHENTICATION, GeminiInteractionsProtocol.decodeHttpError(401).kind)
         assertEquals(ProviderErrorKind.RATE_LIMIT, GeminiInteractionsProtocol.decodeHttpError(429).kind)

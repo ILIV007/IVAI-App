@@ -49,7 +49,7 @@ git status --short
 |---|---|---|---|
 | Clean debug quality gate | Console log and generated reports | `BUILD SUCCESSFUL`; debug APK, unit-test report, and lint report exist. | Pending |
 | Minified release validation | Candidate console log, unsigned APK listing, and `mapping.txt` | `assembleRelease` runs R8 successfully; release artifact and mapping exist for the exact candidate. This is not signing or publication. | Pending |
-| Independent unit execution | Forced-rerun log and report totals | Zero failures, errors, and skipped tests. Current baseline is 139 tests and must not regress without a documented review. | Pending |
+| Independent unit execution | Forced-rerun log and report totals | Zero failures, errors, and skipped tests. Current baseline is 141 tests and must not regress without a documented review. | Pending |
 | Android lint | `lintDebug` XML/HTML report | Zero Error and Fatal findings; every Warning has an owner, disposition, and no hidden safety impact. | Pending |
 | Whitespace and source state | `git diff --check`, `git status --short` | No whitespace error; clean candidate worktree. | Pending |
 | Screenshot and semantics regression | Roborazzi/JVM reports and test output | Existing representative UI regression tests pass; evidence is not substituted for device accessibility testing. | Pending |
