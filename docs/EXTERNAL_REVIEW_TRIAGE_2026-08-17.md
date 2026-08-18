@@ -33,7 +33,7 @@ The review concerns IVAI's pre-Alpha codebase. The current release decision rema
 | ER-12 | `substringBeforeLast('-')` corrupts router attempt IDs. | **Contradicted by current construction.** Candidate entries are created as `$attemptId-${position}`, so removing the final suffix restores the known parent attempt ID. | Not a current bug | Prefer explicit parent ID only if future ID formats change; no behavior fix now. |
 | ER-13 | Credential presence method name is misleading. | **Minor naming/design observation; needs current call-site audit.** | P3 | Defer until a semantic rename can be made without misleading behavior changes. |
 | ER-14 | Release minification is disabled. | **Confirmed configuration.** This is a release-hardening decision, not a safe one-line toggle; R8 rules and full release validation are required. | P2 release hardening | Plan a separate release-build hardening phase before public Alpha, never enable blindly. |
-| ER-15 | `first { … }` can crash if the registry changes. | **Confirmed by deterministic regression and locally fixed; protected merge pending.** Removing the resolved connection before the candidate opens previously threw `NoSuchElementException`. Router now revalidates connection/account/model with `firstOrNull` and emits a safe `INVALID_REQUEST` failure with a failed attempt trace. | P2 resilience | Merge only after focused/full tests, scans, lint, protected CI, and documentation review succeed. |
+| ER-15 | `first { … }` can crash if the registry changes. | **Confirmed, fixed, and merged in PR #55.** Removing the resolved connection before the candidate opens previously threw `NoSuchElementException`. Router revalidates connection/account/model with `firstOrNull` and emits a safe `INVALID_REQUEST` failure with a failed attempt trace. | P2 resilience | Closed; retain stale-catalog safe-failure regression. |
 | ER-16 | `ByteArray` equality in a data class is reference-based. | **Language behavior confirmed, product impact unproven.** | P3 test ergonomics | Add content-equality assertion only if current code/tests compare payload objects. |
 | ER-17 | Network exchange may be closed twice. | **Needs exact call-site review; no observed failure.** | P3 cleanup | Do not change resource lifecycle without a targeted test. |
 | ER-18 | HTTPS-only local endpoint policy causes Ollama/LM Studio friction. | **Intentional security boundary.** HTTP, mDNS and discovery remain explicitly excluded. | UX research item | Test comprehension of HTTPS-only guidance on a physical device; do not add HTTP exception. |
@@ -47,7 +47,7 @@ The review concerns IVAI's pre-Alpha codebase. The current release decision rema
 
 ## Confirmed Work Order
 
-ER-01 through ER-05 were reproduced, fixed, and merged in standalone PRs. ER-15 is reproduced and locally fixed in its own stale-catalog branch; protected merge is pending. Remaining P2 and P3 work remains separate from this Router resilience increment.
+ER-01 through ER-05 and ER-15 were reproduced, fixed, and merged in standalone PRs. Remaining P2 and P3 work remains separate from the completed Router resilience increment.
 
 | Order | Candidate | Why separated |
 |---|---|---|
@@ -56,7 +56,7 @@ ER-01 through ER-05 were reproduced, fixed, and merged in standalone PRs. ER-15 
 | 3 | ER-03 — Approval concurrency | Closed in PR #50 with deterministic approval-lifecycle serialization. |
 | 4 | ER-04 — Partial stream recovery | Closed in PR #51 with a Room v6 incomplete-message marker and recovery regressions. |
 | 5 | ER-05 — exception boundaries | Closed in PR #53 with fatal-propagation regressions across Router, Gemini, and OpenAI-compatible boundaries. |
-| 6 | ER-15 — safe Router registry lookup | Deterministically reproduced and locally fixed with revalidation and a safe failed trace; protected merge pending. |
+| 6 | ER-15 — safe Router registry lookup | Closed in PR #55 with revalidation and a safe failed trace. |
 | 7 | Remaining P2/P3 candidates | Next work resumes with a focused ER-22 archive malformed-input test or another evidence-confirmed candidate; no batch hardening. |
 
 ## Non-Negotiable Deferrals
