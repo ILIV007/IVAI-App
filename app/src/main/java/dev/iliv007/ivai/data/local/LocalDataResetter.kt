@@ -19,7 +19,7 @@ class LocalDataResetter(
                 if (failure == null) {
                     failure = currentFailure
                 } else {
-                    failure?.addSuppressed(currentFailure)
+                    failure.addSuppressed(currentFailure)
                 }
             }
         }

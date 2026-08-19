@@ -127,7 +127,7 @@ class EncryptedSecretVault(
                     if (keyDeletionFailure == null) {
                         keyDeletionFailure = failure
                     } else {
-                        keyDeletionFailure?.addSuppressed(failure)
+                        keyDeletionFailure.addSuppressed(failure)
                     }
                 }
         }
