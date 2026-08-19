@@ -100,6 +100,7 @@ private const val NoExecutionTarget = "No execution target selected"
 fun ChatsScreen(
     previewState: UiPreviewState,
     onResetState: () -> Unit,
+    modifier: Modifier = Modifier,
     threads: List<ChatThread> = emptyList(),
     selectedThreadId: String = threads.firstOrNull()?.id ?: "",
     onSelectThread: (String) -> Unit = {},
@@ -119,8 +120,7 @@ fun ChatsScreen(
     providerManagementState: ProviderManagementState = ProviderManagementState(),
     onSelectComboTarget: (String, String, String) -> Unit = { _, _, _ -> },
     onSelectDirectTarget: (String, String, String, String, String) -> Unit = { _, _, _, _, _ -> },
-    onOpenConnections: () -> Unit = {},
-    modifier: Modifier = Modifier
+    onOpenConnections: () -> Unit = {}
 ) {
     val currentThread = threads.find { it.id == selectedThreadId } ?: threads.firstOrNull() ?: ChatThread(
         id = "chat-fallback",

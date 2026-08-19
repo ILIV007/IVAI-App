@@ -60,11 +60,11 @@ import dev.iliv007.ivai.ui.theme.rememberIvaiSemanticColors
  */
 @Composable
 fun SettingsScreen(
+    modifier: Modifier = Modifier,
     isDarkTheme: Boolean = false,
     onToggleTheme: () -> Unit = {},
     onDeleteAllLocalData: () -> Unit = {},
-    onOpenConnections: () -> Unit = {},
-    modifier: Modifier = Modifier
+    onOpenConnections: () -> Unit = {}
 ) {
     var deleteConfirmationOpen by remember { mutableStateOf(false) }
 
