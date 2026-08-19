@@ -102,7 +102,7 @@ class IvaiDatabaseTest {
     }
 
     @Test
-    fun `provider connection cascade deletes accounts and models while retaining only credential reference`() = runBlocking {
+    fun `provider connection retains multiple accounts and models then cascade deletes them while retaining only credential references`() = runBlocking {
         val repository = LocalWorkspaceRepository(database)
         repository.saveProviderConnection(
             ProviderConnectionEntity(
@@ -126,6 +126,17 @@ class IvaiDatabaseTest {
                 updatedAtEpochMs = 20L
             )
         )
+        repository.saveProviderAccount(
+            ProviderAccountEntity(
+                id = "custom-account-work",
+                connectionId = "custom-primary",
+                displayName = "Work key",
+                credentialReference = "provider.custom-primary.work",
+                isEnabled = true,
+                createdAtEpochMs = 11L,
+                updatedAtEpochMs = 21L
+            )
+        )
         repository.saveProviderModel(
             ProviderModelEntity(
                 id = "custom-model",
@@ -139,10 +150,26 @@ class IvaiDatabaseTest {
             )
         )
 
+        repository.saveProviderModel(
+            ProviderModelEntity(
+                id = "custom-model-fast",
+                connectionId = "custom-primary",
+                providerModelId = "gpt-example-fast",
+                displayName = "Example fast model",
+                capabilitiesCsv = "TEXT,STREAMING",
+                isManual = true,
+                isSelectable = true,
+                updatedAtEpochMs = 21L
+            )
+        )
+
         val snapshot = repository.observeProviderRegistry().first()
         assertEquals(listOf("custom-primary"), snapshot.connections.map { it.id })
-        assertEquals(listOf("provider.custom-primary.primary"), snapshot.accounts.map { it.credentialReference })
-        assertEquals(listOf("gpt-example"), snapshot.models.map { it.providerModelId })
+        assertEquals(
+            listOf("provider.custom-primary.work", "provider.custom-primary.primary"),
+            snapshot.accounts.map { it.credentialReference }
+        )
+        assertEquals(listOf("gpt-example-fast", "gpt-example"), snapshot.models.map { it.providerModelId })
 
         repository.deleteProviderConnection("custom-primary")
         assertTrue(database.providerAccountDao().listAll().isEmpty())

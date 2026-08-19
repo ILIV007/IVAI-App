@@ -86,6 +86,8 @@ fun RouterScreen(
         String?
     ) -> Unit,
     onDeleteProvider: (String) -> Unit,
+    onAddAccountToConnection: (String, String, ProviderAccountAuthMode, String?) -> Unit,
+    onAddModelToConnection: (String, String, Set<ProviderCapability>) -> Unit,
     onSetProviderEnabled: (String, Boolean) -> Unit,
     onDismissProviderError: () -> Unit,
     onCreateCombo: (String, String, List<RouterCandidateSelection>) -> Unit,
@@ -114,6 +116,8 @@ fun RouterScreen(
                 state = providers,
                 onAddProvider = onAddProvider,
                 onDeleteProvider = onDeleteProvider,
+                onAddAccountToConnection = onAddAccountToConnection,
+                onAddModelToConnection = onAddModelToConnection,
                 onSetProviderEnabled = onSetProviderEnabled,
                 onDismissError = onDismissProviderError,
                 modifier = Modifier.testTag("connections_provider_management")
@@ -129,7 +133,7 @@ fun RouterScreen(
             item {
                 IvaiStateCard(
                     title = "Build an ordered Combo when ready",
-                    message = "First save a user-managed connection with an account and declared model. Then choose the candidates and their exact fallback order. IVAI never adds an implicit provider.",
+                    message = "First save a user-managed connection with an account, then add one or more declared models under it. Finally choose the candidates and their exact fallback order. IVAI never adds an implicit provider.",
                     tone = IvaiStateTone.NEUTRAL,
                     icon = Icons.Default.Layers,
                     action = {
