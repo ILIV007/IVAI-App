@@ -25,7 +25,7 @@ Record these fields before running any quality command. The candidate must be ge
 | Check | Evidence to retain | Pass condition | Initial state |
 |---|---|---|---|
 | Candidate commit | Full SHA and `git status --short` output | Clean worktree; source is `main` or an approved release branch. | Pending |
-| Toolchain provenance | JDK version, Android SDK/platform/build-tools, Gradle and AGP versions | Matches repository instructions and protected CI: JDK 21, Android platform 36.1, Gradle/AGP versions pinned in source. | Pending |
+| Toolchain provenance | JDK version, Android SDK/platform/build-tools, Gradle and AGP versions | Matches repository instructions and protected CI: JDK 21, Android platform 37, and Gradle/AGP versions pinned in source. | Pending |
 | Protected workflow | PR URL, approvals, CI links, protection snapshot | Required Secret scan and Android quality jobs pass; linear history and branch protection remain enabled. | Pending |
 | Scope review | PR description and changed-file list | No unreviewed provider, Agent, data, permission, network, migration, dependency, or release-signing scope expansion. | Pending |
 | Repository integrity | `git fsck --full --no-reflogs`, tracked-file review | No corruption; no tracked key, certificate, `local.properties`, or environment-secret file. | Pending |
