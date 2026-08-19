@@ -7,6 +7,7 @@ import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performTextInput
 import com.github.takahirom.roborazzi.RobolectricDeviceQualifiers
 import com.github.takahirom.roborazzi.captureRoboImage
 import dev.iliv007.ivai.ui.components.IvaiNavigationMode
@@ -159,6 +160,45 @@ class ChatFoundationTest {
 
         composeTestRule.onNodeWithTag("chat_onboarding_no_target").assertIsDisplayed()
         composeTestRule.onRoot().captureRoboImage(filePath = "build/roborazzi/phase71_chat_compact_choose_target_dark.png")
+    }
+
+    @Test
+    fun target_ready_composer_uses_product_prompt_and_visible_send_affordance() {
+        composeTestRule.setContent {
+            IvaiTheme(darkTheme = false) {
+                ChatsScreen(
+                    previewState = UiPreviewState.NORMAL,
+                    onResetState = {},
+                    threads = listOf(chatThread(modelOrCombo = "Research Combo")),
+                    selectedThreadId = "thread-1",
+                    routerManagementState = configuredResearchComboState()
+                )
+            }
+        }
+
+        composeTestRule.onNodeWithText("Do anything…").assertIsDisplayed()
+        composeTestRule.onNodeWithTag("input_message_text").assertIsDisplayed()
+        composeTestRule.onNodeWithContentDescription("Send message").assertIsDisplayed()
+        composeTestRule.onRoot().captureRoboImage(filePath = "build/roborazzi/r3_chat_composer_light.png")
+    }
+
+    @Test
+    fun draft_without_target_routes_to_explicit_target_selection() {
+        composeTestRule.setContent {
+            IvaiTheme(darkTheme = false) {
+                ChatsScreen(
+                    previewState = UiPreviewState.NORMAL,
+                    onResetState = {},
+                    threads = listOf(chatThread(modelOrCombo = "No execution target selected")),
+                    selectedThreadId = "thread-1",
+                    routerManagementState = configuredResearchComboState()
+                )
+            }
+        }
+
+        composeTestRule.onNodeWithTag("input_message_text").performTextInput("Draft before choosing a target")
+        composeTestRule.onNodeWithContentDescription("Choose target before sending").performClick()
+        composeTestRule.onNodeWithTag("target_selection_sheet").assertIsDisplayed()
     }
 
     @Test
