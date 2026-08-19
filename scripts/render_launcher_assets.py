@@ -8,7 +8,7 @@ from PIL import Image, ImageDraw
 
 ROOT = Path(__file__).resolve().parents[1]
 RES = ROOT / "app" / "src" / "main" / "res"
-REFERENCE = RES / "drawable-nodpi" / "ivai_brand_reference.png"
+REFERENCE = ROOT / "scripts" / "assets" / "ivai_brand_reference.png"
 SAFE_FOREGROUND = RES / "drawable-nodpi" / "ivai_launcher_foreground_safe.png"
 BACKGROUND_RGB = (0x10, 0x18, 0x32)
 SAFE_CANVAS_SIZE = 1200
