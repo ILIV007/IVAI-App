@@ -14,9 +14,9 @@ This record supports a controlled dependency/toolchain compatibility phase after
 | KSP | 2.3.11 |
 | Compose BOM | 2024.09.00 |
 | Lifecycle | 2.8.7 |
-| Activity Compose | 1.10.1 |
-| Navigation Compose | 2.8.9 |
-| Roborazzi | 1.59.0 |
+| Activity Compose | 1.13.0 |
+| Navigation Compose | 2.9.8 |
+| Roborazzi | 1.72.0 |
 | Room / DataStore | 2.8.4 / 1.2.1 |
 
 ## Official Compatibility Findings
@@ -36,6 +36,14 @@ This phase deliberately avoids a broad AGP/Gradle/Kotlin/KSP/Compose stack updat
 
 The safe candidate surface is therefore narrowed to dependency versions that do not require an AGP/Kotlin/KSP migration. Each candidate remains subject to compilation, test, lint, screenshot artifact, release build, and CI verification before merge.
 
+## Completed Focused Refresh and CI Maintenance
+
+The focused AndroidX/screenshot refresh is complete in [PR #97](https://github.com/ILIV007/IVAI-App/pull/97). Activity Compose 1.13.0, Navigation Compose 2.9.8, and Roborazzi 1.72.0 passed the project’s targeted unit, screenshot-baseline, minified-release, lint, and protected-CI checks. Core 1.19.0 remains intentionally excluded because it requires `compileSdk 37`; IVAI remains on `compileSdk 36.1`. Room, DataStore, Lifecycle, the Compose BOM, and the AGP/Gradle/Kotlin/KSP tuple are unchanged.
+
+The final runner-runtime warning was removed in [PR #99](https://github.com/ILIV007/IVAI-App/pull/99) by advancing `android-actions/setup-android` from v3 to v4. The official v4 action metadata specifies `using: node24`; the merged-main Android quality run completed successfully without a Node.js 20 deprecation annotation. This CI-only maintenance change does not alter application source, dependencies, Provider behavior, network policy, secrets, or release gates.
+
+> **Current lint snapshot:** the post-#99 local `lintDebug` report records **0 errors, 17 warnings, and 2 hints**. The source/dependency diff for PR #99 is empty: this snapshot is not attributed to the CI action upgrade. The warnings are eight `ModifierParameter`, five `GradleDependency`, two `AndroidGradlePluginVersion`, one `NewerVersionAvailable`, and one deliberate launcher `ObsoleteSdkInt`; the two hints are `AutoboxingStateCreation`. They are non-blocking, but should be reconciled only in dedicated UI-quality or documented toolchain/launcher decisions rather than folded into CI maintenance.
+
 ## Sources
 
 1. [Android Gradle Plugin 9.3 release notes](https://developer.android.com/build/releases/agp-9-3-0-release-notes)
@@ -47,3 +55,6 @@ The safe candidate surface is therefore narrowed to dependency versions that do 
 7. [AndroidX Lifecycle release notes](https://developer.android.com/jetpack/androidx/releases/lifecycle)
 8. [AndroidX Navigation release notes](https://developer.android.com/jetpack/androidx/releases/navigation)
 9. [AndroidX release index](https://developer.android.com/jetpack/androidx/versions/all-channel)
+10. [PR #97 — Compatibility refresh](https://github.com/ILIV007/IVAI-App/pull/97)
+11. [PR #99 — Node 24 Android setup action](https://github.com/ILIV007/IVAI-App/pull/99)
+12. [Merged-main Android quality run after PR #99](https://github.com/ILIV007/IVAI-App/actions/runs/32263321814)
