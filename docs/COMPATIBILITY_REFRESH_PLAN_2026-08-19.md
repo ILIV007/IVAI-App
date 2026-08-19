@@ -2,7 +2,7 @@
 
 ## Status
 
-> **Status: focused library-refresh candidate.** This plan does not authorize a broad Gradle/AGP/Kotlin/KSP migration and does not alter IVAI runtime, local-first/BYOK, Provider, data, or release contracts.
+> **Historical record — superseded for current baseline.** This plan captured the focused library-refresh candidate before IVAI completed the dedicated AGP/Gradle/API, Core/Lifecycle, Compose/Kotlin and launcher compatibility migrations in PRs #105–#110. It remains a decision record and does not authorize additional runtime, local-first/BYOK, Provider, data, or release-contract changes. The current validated baseline and migration evidence are canonical in [Compatibility Research](COMPATIBILITY_RESEARCH_2026-08-19.md).
 
 ## Compatibility Decision
 
@@ -30,7 +30,7 @@ The research record identifies a constrained build-system matrix: AGP 9.3 requir
 
 ## Deferred Migration
 
-A future toolchain migration must establish an exact supported AGP/Gradle/Kotlin/KSP tuple, verify Foojay resolver compatibility, inspect all dependency resolution changes, test configuration cache and Roborazzi baselines, run release R8, and collect the usual physical-device evidence. It is intentionally not combined with this library refresh.
+The toolchain migration described here was completed later through bounded validation PRs rather than in this focused refresh: AGP/Gradle/API in PR #105, Core/Lifecycle in PR #106, Compose BOM and test API in PRs #107–#108, Kotlin compatibility in PR #109, and launcher policy in PR #110. Future migrations must again establish an exact supported AGP/Gradle/Kotlin/KSP tuple, inspect dependency resolution, test configuration cache and Roborazzi baselines, run release R8, and collect the usual physical-device evidence.
 
 ## References
 
