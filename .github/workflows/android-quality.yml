@@ -55,6 +55,8 @@ jobs:
         run: bash scripts/test_release_candidate_package_verifier.sh
       - name: Run launcher icon safe-zone regression
         run: bash scripts/test_launcher_icon_assets.sh
+      - name: Run semantic theme contrast regression
+        run: python3 scripts/test_theme_contrast.py
       - name: Build debug and minified release APKs
         run: ./gradlew clean assembleDebug assembleRelease --no-daemon --stacktrace
       - name: Run unit tests

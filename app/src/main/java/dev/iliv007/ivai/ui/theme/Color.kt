@@ -15,7 +15,7 @@ val LightBorderSubtle = Color(0xFFE9E5F7)      // Ultra-soft violet divider
 
 val LightTextPrimary = Color(0xFF0D1829)       // Deep slate navy for headings & high readability
 val LightTextSecondary = Color(0xFF4A5568)     // Readable body text
-val LightTextMuted = Color(0xFF718096)         // Subtle caption text
+val LightTextMuted = Color(0xFF667085)       // AA-readable subtle caption text
 
 val JadePrimaryLight = Color(0xFF08795D)       // Brand emerald with AA contrast against white
 val JadeBrightLight = Color(0xFF14C79A)        // Vibrant emerald/aqua
@@ -31,8 +31,8 @@ val CyanContainerLight = Color(0xFFDAF7F7)     // Soft aqua container
 val CyanOnContainerLight = Color(0xFF064B5C)   // Deep aqua text
 
 val IvaiErrorLight = Color(0xFFE11D48)         // Vibrant Rose/Crimson
-val IvaiWarningLight = Color(0xFFD97706)       // Deep Amber Gold
-val IvaiSuccessLight = Color(0xFF059669)       // Mint emerald
+val IvaiWarningLight = Color(0xFFB45309)       // AA-readable deep amber
+val IvaiSuccessLight = Color(0xFF047857)       // AA-readable deep emerald
 
 // ==========================================
 // IVAI Dark Palette (Cyber Obsidian & Neon Aurora)
