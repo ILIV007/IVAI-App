@@ -49,6 +49,8 @@ jobs:
         run: bash scripts/check_rtl_bounded_exceptions.sh
       - name: Run Phase 8.0 architecture-readiness guard
         run: bash scripts/check_phase80_architecture_readiness.sh
+      - name: Run gated Provider/Model test readiness guard
+        run: bash scripts/check_provider_model_test_readiness.sh
       - name: Run Phase 7.5 research-package verifier regression
         run: bash scripts/test_phase75_research_package_verifier.sh
       - name: Run Release Candidate package verifier regression
