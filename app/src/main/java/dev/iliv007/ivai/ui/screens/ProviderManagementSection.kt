@@ -74,11 +74,11 @@ import dev.iliv007.ivai.ui.viewmodel.ProviderManagementState
 private const val ADVANCED_CUSTOM_PRESET_ID = "advanced-custom"
 private const val LOCAL_LOOPBACK_HTTPS_PRESET_ID = "local-loopback-https"
 private const val LOCAL_LAN_HTTPS_PRESET_ID = "local-lan-https"
-private const val PROVIDER_SETUP_TOTAL_STEPS = 4
+private const val PROVIDER_SETUP_TOTAL_STEPS = 3
 
 /**
- * Phase 7.2 Connections presentation. It reads existing provider cards and invokes only the
- * existing ViewModel callbacks. Persistent provider creation still occurs exclusively at final save.
+ * R4 connection-first presentation. A saved Connection owns explicit Account and Model records;
+ * creation and addition remain local foreground actions and never discover or test a target automatically.
  */
 @Composable
 fun ProviderManagementSection(
@@ -96,11 +96,15 @@ fun ProviderManagementSection(
         String?
     ) -> Unit,
     onDeleteProvider: (String) -> Unit,
+    onAddAccountToConnection: (String, String, ProviderAccountAuthMode, String?) -> Unit,
+    onAddModelToConnection: (String, String, Set<ProviderCapability>) -> Unit,
     onSetProviderEnabled: (String, Boolean) -> Unit,
     onDismissError: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     var showSetupSheet by remember { mutableStateOf(false) }
+    var addAccountConnectionId by remember { mutableStateOf<String?>(null) }
+    var addModelConnectionId by remember { mutableStateOf<String?>(null) }
 
     Column(
         modifier = modifier,
@@ -116,7 +120,7 @@ fun ProviderManagementSection(
         if (state.connections.isEmpty()) {
             IvaiStateCard(
                 title = "Start with a connection",
-                message = "Choose a provider family, review its HTTPS trust boundary, add an account and credential, then declare the model you want IVAI to use.",
+                message = "Choose a provider family, review its HTTPS trust boundary, then add an account and credential. Add one or more models to the saved connection when you are ready.",
                 tone = IvaiStateTone.INFO,
                 icon = Icons.Default.Add,
                 action = {
@@ -132,6 +136,8 @@ fun ProviderManagementSection(
                 ProviderConnectionCardItem(
                     connection = connection,
                     onDeleteProvider = onDeleteProvider,
+                    onAddAccount = { addAccountConnectionId = connection.connectionId },
+                    onAddModel = { addModelConnectionId = connection.connectionId },
                     onSetProviderEnabled = onSetProviderEnabled
                 )
             }
@@ -165,7 +171,7 @@ fun ProviderManagementSection(
         AlertDialog(
             onDismissRequest = onDismissError,
             confirmButton = { TextButton(onClick = onDismissError) { Text("Dismiss") } },
-            title = { Text("Connection was not saved") },
+            title = { Text("Connection change was not saved") },
             text = { Text(error) }
         )
     }
@@ -173,14 +179,14 @@ fun ProviderManagementSection(
     if (showSetupSheet) {
         ProviderSetupSheet(
             onDismiss = { showSetupSheet = false },
-            onSave = { kind, name, endpoint, account, model, capabilities, trustMode, trustConfirmed, authMode, secret ->
+            onSave = { kind, name, endpoint, account, trustMode, trustConfirmed, authMode, secret ->
                 onAddProvider(
                     kind,
                     name,
                     endpoint,
                     account,
-                    model,
-                    capabilities,
+                    "",
+                    emptySet(),
                     trustMode,
                     trustConfirmed,
                     authMode,
@@ -189,6 +195,39 @@ fun ProviderManagementSection(
                 showSetupSheet = false
             }
         )
+    }
+
+    addAccountConnectionId?.let { connectionId ->
+        val connection = state.connections.firstOrNull { it.connectionId == connectionId }
+        if (connection == null) {
+            addAccountConnectionId = null
+        } else {
+            ProviderAdditionalAccountSheet(
+                connectionName = connection.displayName,
+                trustMode = connection.endpointTrustMode,
+                onDismiss = { addAccountConnectionId = null },
+                onSave = { accountName, authMode, rawSecret ->
+                    onAddAccountToConnection(connectionId, accountName, authMode, rawSecret)
+                    addAccountConnectionId = null
+                }
+            )
+        }
+    }
+
+    addModelConnectionId?.let { connectionId ->
+        val connection = state.connections.firstOrNull { it.connectionId == connectionId }
+        if (connection == null) {
+            addModelConnectionId = null
+        } else {
+            ProviderModelSetupSheet(
+                connectionName = connection.displayName,
+                onDismiss = { addModelConnectionId = null },
+                onSave = { modelId, capabilities ->
+                    onAddModelToConnection(connectionId, modelId, capabilities)
+                    addModelConnectionId = null
+                }
+            )
+        }
     }
 }
 
@@ -220,7 +259,7 @@ private fun ProviderProgressionCard(state: ProviderManagementState) {
             )
             Text(
                 text = if (modelCount == 0) {
-                    "Progression: connection → account/credential → declared model → Combo"
+                    "Next: add a model beneath a saved connection, then intentionally add it to a Combo."
                 } else {
                     "Declared models are ready to be intentionally added to an ordered Combo."
                 },
@@ -235,6 +274,8 @@ private fun ProviderProgressionCard(state: ProviderManagementState) {
 private fun ProviderConnectionCardItem(
     connection: ProviderConnectionCard,
     onDeleteProvider: (String) -> Unit,
+    onAddAccount: () -> Unit,
+    onAddModel: () -> Unit,
     onSetProviderEnabled: (String, Boolean) -> Unit
 ) {
     val selectableModels = connection.manualModels.filter { it.selectable }
@@ -326,9 +367,35 @@ private fun ProviderConnectionCardItem(
                 }
             )
             ConnectionReadinessRow(
+                label = "Accounts",
+                value = connection.accounts.joinToString { it.displayName }.ifBlank { "No saved account" }
+            )
+            ConnectionReadinessRow(
                 label = "Declared models",
                 value = if (selectableModels.isEmpty()) "No selectable model" else selectableModels.joinToString { it.displayName }
             )
+            OutlinedButton(
+                onClick = onAddAccount,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .heightIn(min = IvaiLayoutTokens.MinimumTouchTarget)
+                    .testTag("button_add_account_${connection.connectionId}")
+            ) {
+                Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(IvaiIconSizeTokens.Inline))
+                Spacer(Modifier.width(IvaiSpacing.XxSmall))
+                Text("Add account")
+            }
+            OutlinedButton(
+                onClick = onAddModel,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .heightIn(min = IvaiLayoutTokens.MinimumTouchTarget)
+                    .testTag("button_add_model_${connection.connectionId}")
+            ) {
+                Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(IvaiIconSizeTokens.Inline))
+                Spacer(Modifier.width(IvaiSpacing.XxSmall))
+                Text("Add model")
+            }
         }
     }
 }
@@ -350,8 +417,6 @@ private fun ProviderSetupSheet(
         String,
         String?,
         String,
-        String,
-        Set<ProviderCapability>,
         ProviderEndpointTrustMode,
         Boolean,
         ProviderAccountAuthMode,
@@ -364,11 +429,9 @@ private fun ProviderSetupSheet(
     var displayName by remember { mutableStateOf("") }
     var endpoint by remember { mutableStateOf("") }
     var accountName by remember { mutableStateOf("") }
-    var modelId by remember { mutableStateOf("") }
     var apiKey by remember { mutableStateOf("") }
     var authMode by remember { mutableStateOf(ProviderAccountAuthMode.API_KEY) }
     var localTrustConfirmed by remember { mutableStateOf(false) }
-    var capabilities by remember { mutableStateOf(setOf(ProviderCapability.TEXT, ProviderCapability.STREAMING)) }
     var validationError by remember { mutableStateOf<String?>(null) }
 
     val selectedPreset = selectedPresetId?.let(ProviderPresetCatalog::find)
@@ -387,11 +450,9 @@ private fun ProviderSetupSheet(
         displayName = name
         endpoint = baseUrl.orEmpty()
         accountName = ""
-        modelId = ""
         apiKey = ""
         authMode = ProviderAccountAuthMode.API_KEY
         localTrustConfirmed = false
-        capabilities = setOf(ProviderCapability.TEXT, ProviderCapability.STREAMING)
         validationError = null
     }
 
@@ -403,14 +464,9 @@ private fun ProviderSetupSheet(
             isLocalEndpoint && !localTrustConfirmed -> "Confirm that you trust this exact local HTTPS endpoint."
             else -> null
         }
-        3 -> when {
+        else -> when {
             accountName.isBlank() -> "An account label is required."
             authMode == ProviderAccountAuthMode.API_KEY && apiKey.isBlank() -> "An API key is required for this account."
-            else -> null
-        }
-        else -> when {
-            modelId.isBlank() -> "A model ID selected by you is required."
-            capabilities.isEmpty() -> "Choose at least one declared model capability."
             else -> null
         }
     }
@@ -461,7 +517,7 @@ private fun ProviderSetupSheet(
                     localTrustConfirmed = localTrustConfirmed,
                     onTrustConfirmationChange = { localTrustConfirmed = it }
                 )
-                3 -> ProviderAccountStep(
+                else -> ProviderAccountStep(
                     accountName = accountName,
                     onAccountNameChange = { accountName = it },
                     isLocalEndpoint = isLocalEndpoint,
@@ -472,17 +528,6 @@ private fun ProviderSetupSheet(
                     },
                     apiKey = apiKey,
                     onApiKeyChange = { apiKey = it }
-                )
-                else -> ProviderModelReviewStep(
-                    kind = kind,
-                    displayName = displayName,
-                    trustMode = trustMode,
-                    accountName = accountName,
-                    authMode = authMode,
-                    modelId = modelId,
-                    onModelIdChange = { modelId = it },
-                    capabilities = capabilities,
-                    onCapabilitiesChange = { capabilities = it }
                 )
             }
 
@@ -523,8 +568,6 @@ private fun ProviderSetupSheet(
                                 displayName,
                                 endpoint.takeIf { requiresEndpoint },
                                 accountName,
-                                modelId,
-                                capabilities,
                                 trustMode,
                                 localTrustConfirmed,
                                 authMode,
@@ -758,64 +801,179 @@ private fun ProviderAccountStep(
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun ProviderModelReviewStep(
-    kind: ProviderKind?,
-    displayName: String,
+private fun ProviderAdditionalAccountSheet(
+    connectionName: String,
     trustMode: ProviderEndpointTrustMode,
-    accountName: String,
-    authMode: ProviderAccountAuthMode,
-    modelId: String,
-    onModelIdChange: (String) -> Unit,
-    capabilities: Set<ProviderCapability>,
-    onCapabilitiesChange: (Set<ProviderCapability>) -> Unit
+    onDismiss: () -> Unit,
+    onSave: (String, ProviderAccountAuthMode, String?) -> Unit
 ) {
-    Text("4. Declare model and review", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-    Text(
-        text = "Model discovery is not automatic. Declare the specific model and capabilities you intend to use.",
-        style = MaterialTheme.typography.bodySmall,
-        color = MaterialTheme.colorScheme.onSurfaceVariant
-    )
-    OutlinedTextField(
-        value = modelId,
-        onValueChange = onModelIdChange,
-        label = { Text("Model ID selected by you") },
-        singleLine = true,
-        modifier = Modifier.fillMaxWidth().testTag("input_provider_model_id")
-    )
-    Text("Declared model capabilities", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold)
-    ProviderCapability.entries.forEach { capability ->
-        FilterChip(
-            selected = capability in capabilities,
-            onClick = {
-                onCapabilitiesChange(
-                    if (capability in capabilities) capabilities - capability else capabilities + capability
-                )
-            },
-            label = { Text(capability.name) },
-            modifier = Modifier.fillMaxWidth().testTag("provider_capability_${capability.name.lowercase()}")
-        )
-    }
-    Surface(
-        shape = RoundedCornerShape(IvaiShapeTokens.Card),
-        color = MaterialTheme.colorScheme.surfaceVariant,
-        modifier = Modifier.fillMaxWidth().testTag("provider_setup_final_review")
+    var accountName by remember { mutableStateOf("") }
+    var apiKey by remember { mutableStateOf("") }
+    var authMode by remember { mutableStateOf(ProviderAccountAuthMode.API_KEY) }
+    var validationError by remember { mutableStateOf<String?>(null) }
+    val isLocalEndpoint = trustMode != ProviderEndpointTrustMode.REMOTE_HTTPS
+
+    ModalBottomSheet(
+        onDismissRequest = { apiKey = ""; onDismiss() },
+        modifier = Modifier.testTag("provider_account_setup_sheet")
     ) {
         Column(
-            modifier = Modifier.padding(IvaiSpacing.Small),
-            verticalArrangement = Arrangement.spacedBy(IvaiSpacing.XxSmall)
+            modifier = Modifier
+                .fillMaxWidth()
+                .verticalScroll(rememberScrollState())
+                .padding(horizontal = IvaiSpacing.Small)
+                .padding(bottom = IvaiSpacing.Large),
+            verticalArrangement = Arrangement.spacedBy(IvaiSpacing.Small)
         ) {
-            Text("Final review", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold)
-            ConnectionReadinessRow("Family", kind?.displayLabel() ?: "Not selected")
-            ConnectionReadinessRow("Connection", displayName.ifBlank { "Not named" })
-            ConnectionReadinessRow("Trust", trustMode.displayLabel())
-            ConnectionReadinessRow("Account", accountName.ifBlank { "Not named" })
-            ConnectionReadinessRow(
-                "Credential",
-                if (authMode == ProviderAccountAuthMode.NONE) "No-auth explicitly selected" else "API key will be encrypted after save"
+            Text("Add account", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
+            Text(
+                text = "Add another account under $connectionName. IVAI will not contact the connection or change any declared model automatically.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
             )
-            ConnectionReadinessRow("Model", modelId.ifBlank { "Not declared" })
-            ConnectionReadinessRow("Capabilities", capabilities.joinToString().ifBlank { "None selected" })
+            OutlinedTextField(
+                value = accountName,
+                onValueChange = { accountName = it; validationError = null },
+                label = { Text("Account label") },
+                singleLine = true,
+                modifier = Modifier.fillMaxWidth().testTag("input_provider_additional_account_name")
+            )
+            if (isLocalEndpoint) {
+                FilterChip(
+                    selected = authMode == ProviderAccountAuthMode.NONE,
+                    onClick = {
+                        authMode = if (authMode == ProviderAccountAuthMode.NONE) ProviderAccountAuthMode.API_KEY else ProviderAccountAuthMode.NONE
+                        if (authMode == ProviderAccountAuthMode.NONE) apiKey = ""
+                        validationError = null
+                    },
+                    label = { Text("This local server requires no API key") },
+                    modifier = Modifier.fillMaxWidth().testTag("additional_account_no_auth_selector")
+                )
+            }
+            if (authMode == ProviderAccountAuthMode.API_KEY) {
+                OutlinedTextField(
+                    value = apiKey,
+                    onValueChange = { apiKey = it; validationError = null },
+                    label = { Text("API key") },
+                    supportingText = { Text("Stored only after final save; never shown again.") },
+                    singleLine = true,
+                    visualTransformation = PasswordVisualTransformation(),
+                    modifier = Modifier.fillMaxWidth().testTag("input_provider_additional_account_api_key")
+                )
+            }
+            validationError?.let { error ->
+                Text(
+                    text = error,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.error,
+                    modifier = Modifier.testTag("provider_account_validation_error")
+                )
+            }
+            Button(
+                onClick = {
+                    val error = when {
+                        accountName.isBlank() -> "An account label is required."
+                        authMode == ProviderAccountAuthMode.API_KEY && apiKey.isBlank() -> "An API key is required for this account."
+                        else -> null
+                    }
+                    if (error == null) {
+                        onSave(accountName.trim(), authMode, apiKey.takeIf { authMode == ProviderAccountAuthMode.API_KEY })
+                        apiKey = ""
+                    } else {
+                        validationError = error
+                    }
+                },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .heightIn(min = IvaiLayoutTokens.MinimumTouchTarget)
+                    .testTag("button_provider_account_save")
+            ) { Text("Save account") }
+            TextButton(
+                onClick = { apiKey = ""; onDismiss() },
+                modifier = Modifier.align(Alignment.CenterHorizontally).testTag("button_provider_account_cancel")
+            ) { Text("Cancel") }
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun ProviderModelSetupSheet(
+    connectionName: String,
+    onDismiss: () -> Unit,
+    onSave: (String, Set<ProviderCapability>) -> Unit
+) {
+    var modelId by remember { mutableStateOf("") }
+    var capabilities by remember { mutableStateOf(emptySet<ProviderCapability>()) }
+    var validationError by remember { mutableStateOf<String?>(null) }
+
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        modifier = Modifier.testTag("provider_model_setup_sheet")
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .verticalScroll(rememberScrollState())
+                .padding(horizontal = IvaiSpacing.Small)
+                .padding(bottom = IvaiSpacing.Large),
+            verticalArrangement = Arrangement.spacedBy(IvaiSpacing.Small)
+        ) {
+            Text("Add model", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
+            Text(
+                text = "Add a model under $connectionName. IVAI will not discover models, select a target, or contact this connection automatically.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            OutlinedTextField(
+                value = modelId,
+                onValueChange = { modelId = it; validationError = null },
+                label = { Text("Model ID selected by you") },
+                singleLine = true,
+                modifier = Modifier.fillMaxWidth().testTag("input_provider_model_id")
+            )
+            Text("Declared model capabilities", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold)
+            ProviderCapability.entries.forEach { capability ->
+                FilterChip(
+                    selected = capability in capabilities,
+                    onClick = {
+                        capabilities = if (capability in capabilities) capabilities - capability else capabilities + capability
+                        validationError = null
+                    },
+                    label = { Text(capability.name) },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .testTag("provider_model_capability_${capability.name.lowercase()}")
+                )
+            }
+            validationError?.let { error ->
+                Text(
+                    text = error,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.error,
+                    modifier = Modifier.testTag("provider_model_validation_error")
+                )
+            }
+            Button(
+                onClick = {
+                    val error = when {
+                        modelId.isBlank() -> "A model ID selected by you is required."
+                        capabilities.isEmpty() -> "Choose at least one declared model capability."
+                        else -> null
+                    }
+                    if (error == null) onSave(modelId.trim(), capabilities) else validationError = error
+                },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .heightIn(min = IvaiLayoutTokens.MinimumTouchTarget)
+                    .testTag("button_provider_model_save")
+            ) { Text("Save model") }
+            TextButton(
+                onClick = onDismiss,
+                modifier = Modifier.align(Alignment.CenterHorizontally).testTag("button_provider_model_cancel")
+            ) { Text("Cancel") }
         }
     }
 }

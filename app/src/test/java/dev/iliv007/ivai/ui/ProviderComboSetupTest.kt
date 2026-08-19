@@ -12,6 +12,7 @@ import androidx.compose.ui.test.performTextInput
 import com.github.takahirom.roborazzi.RobolectricDeviceQualifiers
 import com.github.takahirom.roborazzi.captureRoboImage
 import dev.iliv007.ivai.provider.ProviderAccountAuthMode
+import dev.iliv007.ivai.provider.ProviderCapability
 import dev.iliv007.ivai.provider.ProviderEndpointTrustMode
 import dev.iliv007.ivai.provider.ProviderKind
 import dev.iliv007.ivai.ui.screens.RouterScreen
@@ -46,6 +47,8 @@ class ProviderComboSetupTest {
                     providers = ProviderManagementState(),
                     onAddProvider = { _, _, _, _, _, _, _, _, _, _ -> },
                     onDeleteProvider = {},
+                    onAddAccountToConnection = { _, _, _, _ -> },
+                    onAddModelToConnection = { _, _, _ -> },
                     onSetProviderEnabled = { _, _ -> },
                     onDismissProviderError = {},
                     onCreateCombo = { _, _, _ -> },
@@ -61,7 +64,7 @@ class ProviderComboSetupTest {
     }
 
     @Test
-    fun provider_is_created_only_after_final_review_save() {
+    fun connection_is_created_after_account_save_without_forcing_a_model() {
         var saveCalls = 0
         var savedKind: ProviderKind? = null
         var savedModel = ""
@@ -76,6 +79,8 @@ class ProviderComboSetupTest {
                         savedModel = model
                     },
                     onDeleteProvider = {},
+                    onAddAccountToConnection = { _, _, _, _ -> },
+                    onAddModelToConnection = { _, _, _ -> },
                     onSetProviderEnabled = { _, _ -> },
                     onDismissProviderError = {},
                     onCreateCombo = { _, _, _ -> },
@@ -98,21 +103,101 @@ class ProviderComboSetupTest {
         composeTestRule.onNodeWithTag("input_provider_account_name").performTextInput("Personal")
         composeTestRule.onNodeWithTag("input_provider_api_key").performClick()
         composeTestRule.onNodeWithTag("input_provider_api_key").performTextInput("x")
-        composeTestRule.onNodeWithTag("button_provider_setup_next").performClick()
-
-        composeTestRule.onNodeWithTag("provider_setup_step_4").assertIsDisplayed()
-        composeTestRule.onNodeWithTag("provider_setup_final_review").performScrollTo().assertIsDisplayed()
-        composeTestRule.onNodeWithText("API key will be encrypted after save").assertIsDisplayed()
+        composeTestRule.onNodeWithText("Stored only after final save; never shown again.").assertIsDisplayed()
         assertEquals(0, saveCalls)
-        composeTestRule.onNodeWithTag("input_provider_model_id").performScrollTo().performClick()
-        composeTestRule.onNodeWithTag("input_provider_model_id").performTextInput("gemini-demo-model")
-        composeTestRule.waitForIdle()
-        composeTestRule.onRoot().captureRoboImage(filePath = "build/roborazzi/phase72_provider_final_review_dark.png")
         composeTestRule.onNodeWithTag("button_provider_setup_final_save").performScrollTo().performClick()
 
         assertEquals(1, saveCalls)
         assertEquals(ProviderKind.GEMINI, savedKind)
-        assertEquals("gemini-demo-model", savedModel)
+        assertEquals("", savedModel)
+    }
+
+    @Test
+    fun account_is_added_to_existing_connection_without_creating_another_provider() {
+        var providerSaveCalls = 0
+        var savedConnectionId = ""
+        var savedAccountName = ""
+        var savedAuthMode: ProviderAccountAuthMode? = null
+        var savedRawSecret: String? = null
+        composeTestRule.setContent {
+            IvaiTheme(darkTheme = true) {
+                RouterScreen(
+                    state = RouterManagementState(),
+                    providers = providerStateWithConnectionWithoutModels(),
+                    onAddProvider = { _, _, _, _, _, _, _, _, _, _ -> providerSaveCalls += 1 },
+                    onDeleteProvider = {},
+                    onAddAccountToConnection = { connectionId, accountName, authMode, rawSecret ->
+                        savedConnectionId = connectionId
+                        savedAccountName = accountName
+                        savedAuthMode = authMode
+                        savedRawSecret = rawSecret
+                    },
+                    onAddModelToConnection = { _, _, _ -> },
+                    onSetProviderEnabled = { _, _ -> },
+                    onDismissProviderError = {},
+                    onCreateCombo = { _, _, _ -> },
+                    onDismissError = {}
+                )
+            }
+        }
+
+        composeTestRule.onNodeWithTag("button_add_account_connection-1").performClick()
+        composeTestRule.onNodeWithTag("provider_account_setup_sheet").assertIsDisplayed()
+        composeTestRule.onNodeWithTag("button_provider_account_save").performClick()
+        composeTestRule.onNodeWithTag("provider_account_validation_error").assertExists()
+        composeTestRule.onNodeWithTag("input_provider_additional_account_name").performTextInput("Work")
+        composeTestRule.onNodeWithTag("input_provider_additional_account_api_key").performTextInput("x")
+        composeTestRule.onRoot().captureRoboImage(filePath = "build/roborazzi/r4_add_account_dark.png")
+        composeTestRule.onNodeWithTag("button_provider_account_save").performClick()
+
+        assertEquals(0, providerSaveCalls)
+        assertEquals("connection-1", savedConnectionId)
+        assertEquals("Work", savedAccountName)
+        assertEquals(ProviderAccountAuthMode.API_KEY, savedAuthMode)
+        assertEquals("x", savedRawSecret)
+    }
+
+    @Test
+    fun model_is_added_to_existing_connection_without_creating_another_provider() {
+        var providerSaveCalls = 0
+        var savedConnectionId = ""
+        var savedModelId = ""
+        var savedCapabilities = emptySet<ProviderCapability>()
+        composeTestRule.setContent {
+            IvaiTheme(darkTheme = true) {
+                RouterScreen(
+                    state = RouterManagementState(),
+                    providers = providerStateWithConnectionWithoutModels(),
+                    onAddProvider = { _, _, _, _, _, _, _, _, _, _ -> providerSaveCalls += 1 },
+                    onDeleteProvider = {},
+                    onAddAccountToConnection = { _, _, _, _ -> },
+                    onAddModelToConnection = { connectionId, modelId, capabilities ->
+                        savedConnectionId = connectionId
+                        savedModelId = modelId
+                        savedCapabilities = capabilities
+                    },
+                    onSetProviderEnabled = { _, _ -> },
+                    onDismissProviderError = {},
+                    onCreateCombo = { _, _, _ -> },
+                    onDismissError = {}
+                )
+            }
+        }
+
+        composeTestRule.onNodeWithTag("button_add_model_connection-1").performClick()
+        composeTestRule.onNodeWithTag("provider_model_setup_sheet").assertIsDisplayed()
+        composeTestRule.onNodeWithTag("button_provider_model_save").performClick()
+        composeTestRule.onNodeWithTag("provider_model_validation_error").assertExists()
+        composeTestRule.onNodeWithTag("input_provider_model_id").performClick()
+        composeTestRule.onNodeWithTag("input_provider_model_id").performTextInput("model-two")
+        composeTestRule.onNodeWithTag("provider_model_capability_text").performClick()
+        composeTestRule.onRoot().captureRoboImage(filePath = "build/roborazzi/r4_add_model_dark.png")
+        composeTestRule.onNodeWithTag("button_provider_model_save").performClick()
+
+        assertEquals(0, providerSaveCalls)
+        assertEquals("connection-1", savedConnectionId)
+        assertEquals("model-two", savedModelId)
+        assertEquals(setOf(ProviderCapability.TEXT), savedCapabilities)
     }
 
     @Test
@@ -124,6 +209,8 @@ class ProviderComboSetupTest {
                     providers = ProviderManagementState(),
                     onAddProvider = { _, _, _, _, _, _, _, _, _, _ -> },
                     onDeleteProvider = {},
+                    onAddAccountToConnection = { _, _, _, _ -> },
+                    onAddModelToConnection = { _, _, _ -> },
                     onSetProviderEnabled = { _, _ -> },
                     onDismissProviderError = {},
                     onCreateCombo = { _, _, _ -> },
@@ -158,6 +245,8 @@ class ProviderComboSetupTest {
                     providers = ProviderManagementState(),
                     onAddProvider = { _, _, _, _, _, _, _, _, _, _ -> },
                     onDeleteProvider = {},
+                    onAddAccountToConnection = { _, _, _, _ -> },
+                    onAddModelToConnection = { _, _, _ -> },
                     onSetProviderEnabled = { _, _ -> },
                     onDismissProviderError = {},
                     onCreateCombo = { _, _, _ -> },
@@ -184,6 +273,8 @@ class ProviderComboSetupTest {
                     providers = providerStateWithTwoModels(),
                     onAddProvider = { _, _, _, _, _, _, _, _, _, _ -> },
                     onDeleteProvider = {},
+                    onAddAccountToConnection = { _, _, _, _ -> },
+                    onAddModelToConnection = { _, _, _ -> },
                     onSetProviderEnabled = { _, _ -> },
                     onDismissProviderError = {},
                     onCreateCombo = { _, _, candidates -> savedCandidates = candidates },
@@ -207,6 +298,10 @@ class ProviderComboSetupTest {
 
         assertEquals(listOf("model-b", "model-a"), savedCandidates.map { it.modelId })
     }
+
+    private fun providerStateWithConnectionWithoutModels() = providerStateWithTwoModels().copy(
+        connections = providerStateWithTwoModels().connections.map { it.copy(manualModels = emptyList()) }
+    )
 
     private fun providerStateWithTwoModels() = ProviderManagementState(
         connections = listOf(

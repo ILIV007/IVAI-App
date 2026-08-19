@@ -418,7 +418,9 @@ class WorkspaceViewModel(
         viewModelScope.launch {
             var storedReference: String? = null
             runCatching {
-                require(modelCapabilities.isNotEmpty()) { "Choose at least one model capability." }
+                require(manualModelId.isBlank() || modelCapabilities.isNotEmpty()) {
+                    "Choose at least one model capability when declaring an initial model."
+                }
                 require((endpointTrustMode != ProviderEndpointTrustMode.REMOTE_HTTPS) == localTrustConfirmed) {
                     "Local endpoint trust confirmation must match the selected endpoint mode."
                 }
@@ -458,21 +460,119 @@ class WorkspaceViewModel(
                         authMode = authMode.name
                     )
                 )
+                manualModelId.trim().takeIf(String::isNotBlank)?.let { modelId ->
+                    repository.saveProviderModel(
+                        ProviderModelEntity(
+                            id = "$safeId-model",
+                            connectionId = safeId,
+                            providerModelId = modelId,
+                            displayName = modelId,
+                            capabilitiesCsv = modelCapabilities.sortedBy { it.name }.joinToString(",") { it.name },
+                            isManual = true,
+                            isSelectable = true,
+                            updatedAtEpochMs = now
+                        )
+                    )
+                }
+            }.onFailure { failure ->
+                storedReference?.let { reference -> runCatching { vault.clear(reference) } }
+                _providerManagementState.update { it.copy(operationError = failure.message ?: "Provider could not be saved.") }
+            }
+        }
+    }
+
+    /** Adds an account to an existing user-managed connection; the raw secret crosses only this save boundary. */
+    fun addAccountToConnection(
+        connectionId: String,
+        accountDisplayName: String,
+        authMode: ProviderAccountAuthMode,
+        rawSecret: String? = null
+    ) {
+        val repository = workspaceRepository ?: return
+        val vault = secretVault ?: return
+        val normalizedName = accountDisplayName.trim()
+        val now = System.currentTimeMillis()
+        val nonce = System.nanoTime()
+        viewModelScope.launch {
+            var storedReference: String? = null
+            runCatching {
+                require(normalizedName.isNotBlank()) { "An account label is required." }
+                val registry = repository.currentProviderRegistry()
+                val connection = registry.connections.firstOrNull { it.id == connectionId }
+                    ?: error("Unknown provider connection.")
+                require(registry.accounts.none {
+                    it.connectionId == connectionId && it.displayName.equals(normalizedName, ignoreCase = true)
+                }) { "An account with this label already exists for the selected connection." }
+                val accountId = "account-${connectionId}-${now}-${nonce}"
+                val credentialReference = when (authMode) {
+                    ProviderAccountAuthMode.API_KEY -> {
+                        val secret = requireNotNull(rawSecret).trim()
+                        require(secret.isNotBlank()) { "An API key is required for this account." }
+                        val reference = "provider.${connection.providerKind.lowercase().replace('_', '.')}.${now}-${nonce}"
+                        vault.store(reference, secret)
+                        storedReference = reference
+                        reference
+                    }
+                    ProviderAccountAuthMode.NONE -> {
+                        require(rawSecret.isNullOrBlank()) { "No-auth accounts must not retain an API key." }
+                        noAuthCredentialMarker(accountId)
+                    }
+                }
+                repository.saveProviderAccount(
+                    ProviderAccountEntity(
+                        id = accountId,
+                        connectionId = connectionId,
+                        displayName = normalizedName,
+                        credentialReference = credentialReference,
+                        isEnabled = true,
+                        createdAtEpochMs = now,
+                        updatedAtEpochMs = now,
+                        authMode = authMode.name
+                    )
+                )
+            }.onFailure { failure ->
+                storedReference?.let { reference -> runCatching { vault.clear(reference) } }
+                _providerManagementState.update {
+                    it.copy(operationError = failure.message ?: "Account could not be saved.")
+                }
+            }
+        }
+    }
+
+    /** Adds an explicitly declared model to an existing user-managed connection; no discovery or test runs occur. */
+    fun addModelToConnection(
+        connectionId: String,
+        modelId: String,
+        capabilities: Set<ProviderCapability>
+    ) {
+        val repository = workspaceRepository ?: return
+        val normalizedModelId = modelId.trim()
+        val now = System.currentTimeMillis()
+        viewModelScope.launch {
+            runCatching {
+                require(normalizedModelId.isNotBlank()) { "A model ID selected by you is required." }
+                require(capabilities.isNotEmpty()) { "Choose at least one declared model capability." }
+                val registry = repository.currentProviderRegistry()
+                require(registry.connections.any { it.id == connectionId }) { "Unknown provider connection." }
+                require(registry.models.none {
+                    it.connectionId == connectionId && it.providerModelId.equals(normalizedModelId, ignoreCase = true)
+                }) { "This model is already declared for the selected connection." }
                 repository.saveProviderModel(
                     ProviderModelEntity(
-                        id = "$safeId-model",
-                        connectionId = safeId,
-                        providerModelId = manualModelId.trim(),
-                        displayName = manualModelId.trim(),
-                        capabilitiesCsv = modelCapabilities.joinToString(",") { it.name },
+                        id = "model-${connectionId}-${now}-${System.nanoTime()}",
+                        connectionId = connectionId,
+                        providerModelId = normalizedModelId,
+                        displayName = normalizedModelId,
+                        capabilitiesCsv = capabilities.sortedBy { it.name }.joinToString(",") { it.name },
                         isManual = true,
                         isSelectable = true,
                         updatedAtEpochMs = now
                     )
                 )
             }.onFailure { failure ->
-                storedReference?.let { reference -> runCatching { vault.clear(reference) } }
-                _providerManagementState.update { it.copy(operationError = failure.message ?: "Provider could not be saved.") }
+                _providerManagementState.update {
+                    it.copy(operationError = failure.message ?: "Model could not be saved.")
+                }
             }
         }
     }

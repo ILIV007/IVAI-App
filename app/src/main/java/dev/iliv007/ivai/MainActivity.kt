@@ -136,6 +136,8 @@ fun IvaiMainApp(
                     providers = providerManagementState,
                     onAddProvider = resolvedViewModel::addProviderConnection,
                     onDeleteProvider = resolvedViewModel::deleteProviderConnection,
+                    onAddAccountToConnection = resolvedViewModel::addAccountToConnection,
+                    onAddModelToConnection = resolvedViewModel::addModelToConnection,
                     onSetProviderEnabled = resolvedViewModel::setProviderConnectionEnabled,
                     onDismissProviderError = resolvedViewModel::clearProviderOperationError,
                     onCreateCombo = resolvedViewModel::createRouterCombo,
