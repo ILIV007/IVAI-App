@@ -91,6 +91,70 @@ class LocalDataResetterTest {
         assertFalse(preferencesFile.readBytes().decodeToString().contains("credential-never-exported"))
     }
 
+    @Test
+    fun `delete all data clears persisted Agent profiles runs steps and approvals`() = runBlocking {
+        database.agentProfileDao().upsert(
+            AgentProfileEntity(
+                id = "agent-reset",
+                name = "Local agent",
+                instructions = "Do not retain this profile.",
+                targetKind = "COMBO",
+                targetId = "removed-target",
+                accountId = null,
+                projectId = null,
+                enabledToolsCsv = "CALCULATE",
+                maxSteps = 1,
+                maxToolCalls = 1,
+                maxRuntimeMs = 1_000L,
+                isEnabled = true,
+                createdAtEpochMs = 10L,
+                updatedAtEpochMs = 10L
+            )
+        )
+        database.agentRunDao().upsert(
+            AgentRunEntity(
+                id = "run-reset",
+                agentId = "agent-reset",
+                goal = "Do not retain this run.",
+                status = "AWAITING_APPROVAL",
+                startedAtEpochMs = 11L,
+                completedAtEpochMs = null,
+                safeErrorMessage = null
+            )
+        )
+        database.agentRunStepDao().upsert(
+            AgentRunStepEntity(
+                id = "run-reset-step-1",
+                runId = "run-reset",
+                position = 1,
+                stepKind = "WRITE_PROJECT_FILE",
+                status = "AWAITING_APPROVAL",
+                safeSummary = "Do not retain this trace.",
+                createdAtEpochMs = 12L,
+                completedAtEpochMs = null
+            )
+        )
+        database.agentApprovalDao().upsert(
+            AgentApprovalEntity(
+                id = "run-reset-approval-1",
+                runId = "run-reset",
+                toolKind = "WRITE_PROJECT_FILE",
+                targetPath = "notes/private.md",
+                preview = "Do not retain this preview.",
+                status = "PENDING",
+                createdAtEpochMs = 13L,
+                resolvedAtEpochMs = null
+            )
+        )
+
+        LocalDataResetter(repository, workspace, vault).deleteAllData()
+
+        assertTrue(database.agentProfileDao().observeAll().first().isEmpty())
+        assertTrue(database.agentRunDao().observeAll().first().isEmpty())
+        assertTrue(database.agentRunStepDao().observeForRun("run-reset").first().isEmpty())
+        assertTrue(database.agentApprovalDao().observeForRun("run-reset").first().isEmpty())
+    }
+
     private class RecordingCipherFactory {
         private val ciphers = mutableMapOf<String, RecordingCipher>()
 
