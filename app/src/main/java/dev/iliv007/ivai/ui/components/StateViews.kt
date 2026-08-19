@@ -60,8 +60,8 @@ import dev.iliv007.ivai.ui.theme.TextSecondary
 
 @Composable
 fun LoadingStateView(
-    message: String = "Loading IVAI workspace...",
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    message: String = "Loading IVAI workspace..."
 ) {
     Column(
         modifier = modifier
@@ -132,11 +132,11 @@ fun LoadingStateView(
 
 @Composable
 fun EmptyStateView(
+    modifier: Modifier = Modifier,
     title: String = "No Items in Workspace",
     description: String = "Start a new chat or select a test corpus from the menu.",
     actionLabel: String? = "Start New Chat",
-    onActionClick: (() -> Unit)? = null,
-    modifier: Modifier = Modifier
+    onActionClick: (() -> Unit)? = null
 ) {
     Column(
         modifier = modifier
@@ -207,10 +207,10 @@ fun EmptyStateView(
 
 @Composable
 fun ErrorStateView(
-    title: String = "Operation Failed",
-    errorMessage: String = "HTTP 429 rate limit reached on primary provider. Router fallback is configured.",
     onRetryClick: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    title: String = "Operation Failed",
+    errorMessage: String = "HTTP 429 rate limit reached on primary provider. Router fallback is configured."
 ) {
     Column(
         modifier = modifier

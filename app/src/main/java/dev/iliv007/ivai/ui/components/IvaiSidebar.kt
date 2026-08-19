@@ -79,6 +79,7 @@ import dev.iliv007.ivai.ui.theme.PurpleDark
 fun IvaiSidebarContent(
     currentDestination: NavDestination,
     onDestinationSelected: (NavDestination) -> Unit,
+    modifier: Modifier = Modifier,
     threads: List<ChatThread> = emptyList(),
     selectedThreadId: String = threads.firstOrNull()?.id ?: "",
     onSelectThread: (String) -> Unit = {},
@@ -91,8 +92,7 @@ fun IvaiSidebarContent(
     executionStatusDetail: String = "Configure Provider or Router to begin.",
     executionTargetAvailable: Boolean = false,
     isDarkTheme: Boolean = false,
-    onToggleTheme: () -> Unit = {},
-    modifier: Modifier = Modifier
+    onToggleTheme: () -> Unit = {}
 ) {
     var searchQuery by remember { mutableStateOf("") }
     var activeProjectFilter by remember { mutableStateOf(selectedProjectId) }

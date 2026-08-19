@@ -62,8 +62,8 @@ fun IvaiScreenScaffold(
 @Composable
 fun IvaiPageHeader(
     title: String,
-    subtitle: String? = null,
     modifier: Modifier = Modifier,
+    subtitle: String? = null,
     testTag: String? = null,
     actions: @Composable RowScope.() -> Unit = {}
 ) {

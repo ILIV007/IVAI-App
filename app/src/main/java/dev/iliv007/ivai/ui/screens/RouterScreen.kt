@@ -39,6 +39,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -304,7 +305,7 @@ private fun CreateComboSheet(
     onDismiss: () -> Unit,
     onSave: (String, String, List<RouterCandidateSelection>) -> Unit
 ) {
-    var step by remember { mutableStateOf(1) }
+    var step by remember { mutableIntStateOf(1) }
     var name by remember { mutableStateOf("") }
     var description by remember { mutableStateOf("") }
     var selectedCandidates by remember { mutableStateOf(emptyList<RouterUiCandidate>()) }

@@ -54,13 +54,13 @@ import dev.iliv007.ivai.ui.theme.rememberIvaiSemanticColors
 @Composable
 fun ProjectsScreen(
     projects: List<WorkspaceProject>,
+    modifier: Modifier = Modifier,
     selectedProjectId: String? = null,
     previewState: UiPreviewState = UiPreviewState.NORMAL,
     onSelectProject: (String?) -> Unit = {},
     onStartProjectChat: (String) -> Unit = {},
     onOpenChats: () -> Unit = {},
-    onOpenAgents: () -> Unit = {},
-    modifier: Modifier = Modifier
+    onOpenAgents: () -> Unit = {}
 ) {
     val semanticColors = rememberIvaiSemanticColors()
     val visibleProjects = if (previewState == UiPreviewState.EMPTY) emptyList() else projects
