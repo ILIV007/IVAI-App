@@ -175,6 +175,27 @@ class AgentWorkspaceExperienceTest {
     }
 
     @Test
+    fun pending_write_approval_is_prioritized_above_profile_library_without_auto_resolution() {
+        var resolved: Boolean? = null
+        val pendingApproval = approval()
+        render(
+            state = AgentManagementState(
+                availableTargets = listOf(target()),
+                profiles = listOf(profile()),
+                pendingApprovals = listOf(pendingApproval)
+            ),
+            onResolve = { _, allowOnce -> resolved = allowOnce }
+        )
+
+        composeTestRule.onNodeWithTag("agent_pending_approvals_priority").assertIsDisplayed()
+        composeTestRule.onNodeWithTag("agent_profile_library").assertIsDisplayed()
+        composeTestRule.onRoot().captureRoboImage(filePath = "build/roborazzi/r5_agent_pending_approval_dark.png")
+        assertEquals(null, resolved)
+        composeTestRule.onNodeWithTag("button_review_approval_${pendingApproval.approvalId}").performClick()
+        assertEquals(null, resolved)
+    }
+
+    @Test
     fun approval_sheet_requires_explicit_allow_once_or_deny() {
         var resolved: Boolean? = null
         val approval = approval()

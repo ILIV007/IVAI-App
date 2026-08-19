@@ -97,6 +97,40 @@ fun AgentsScreen(
             verticalArrangement = Arrangement.spacedBy(IvaiSpacing.Medium)
         ) {
             item { AgentSafetyNotice() }
+            if (state.pendingApprovals.isNotEmpty()) {
+                item {
+                    PendingApprovalPrioritySection(
+                        approvals = state.pendingApprovals,
+                        onReview = { approval ->
+                            lastApprovalOutcome = null
+                            approvalToReview = approval
+                        }
+                    )
+                }
+            }
+            lastApprovalOutcome?.let { outcome ->
+                item {
+                    IvaiStateCard(
+                        title = if (outcome.allowedOnce) "Write approved once" else "Write denied",
+                        message = if (outcome.allowedOnce) {
+                            "The reviewed write for ${outcome.targetPath} was approved once. No permission was remembered."
+                        } else {
+                            "The reviewed write for ${outcome.targetPath} was denied. The file remains unchanged."
+                        },
+                        tone = if (outcome.allowedOnce) IvaiStateTone.SUCCESS else IvaiStateTone.WARNING,
+                        testTag = "agent_approval_resolved"
+                    )
+                }
+            }
+            selectedRun?.let { run ->
+                item {
+                    AgentRunWorkspace(
+                        run = run,
+                        trace = state.selectedRunTrace,
+                        onCancel = { onCancelRun(run.runId) }
+                    )
+                }
+            }
             item {
                 AgentProfileLibrary(
                     profiles = state.profiles,
@@ -133,51 +167,19 @@ fun AgentsScreen(
                     )
                 }
             }
-            selectedRun?.let { run ->
-                item {
-                    AgentRunWorkspace(
-                        run = run,
-                        trace = state.selectedRunTrace,
-                        onCancel = { onCancelRun(run.runId) }
-                    )
-                }
-            }
-            item {
-                IvaiPageHeader(
-                    title = "Write approvals",
-                    subtitle = "A project-file write never proceeds without a visible preview and one-time decision.",
-                    testTag = "agent_approvals_header"
-                )
-            }
-            lastApprovalOutcome?.let { outcome ->
-                item {
-                    IvaiStateCard(
-                        title = if (outcome.allowedOnce) "Write approved once" else "Write denied",
-                        message = if (outcome.allowedOnce) {
-                            "The reviewed write for ${outcome.targetPath} was approved once. No permission was remembered."
-                        } else {
-                            "The reviewed write for ${outcome.targetPath} was denied. The file remains unchanged."
-                        },
-                        tone = if (outcome.allowedOnce) IvaiStateTone.SUCCESS else IvaiStateTone.WARNING,
-                        testTag = "agent_approval_resolved"
-                    )
-                }
-            }
             if (state.pendingApprovals.isEmpty()) {
                 item {
+                    IvaiPageHeader(
+                        title = "Write approvals",
+                        subtitle = "A project-file write never proceeds without a visible preview and one-time decision.",
+                        testTag = "agent_approvals_header"
+                    )
                     IvaiStateCard(
                         title = "No approval is waiting",
                         message = "There are no pending local file modifications.",
                         tone = IvaiStateTone.NEUTRAL,
                         testTag = "agent_approvals_empty"
                     )
-                }
-            } else {
-                items(state.pendingApprovals, key = { it.approvalId }) { approval ->
-                    ApprovalPreviewCard(approval = approval, onReview = {
-                        lastApprovalOutcome = null
-                        approvalToReview = approval
-                    })
                 }
             }
         }
@@ -239,6 +241,40 @@ private fun AgentSafetyNotice() {
         icon = Icons.Default.Security,
         testTag = "agent_notice_banner"
     )
+}
+
+@Composable
+private fun PendingApprovalPrioritySection(
+    approvals: List<AgentApprovalCard>,
+    onReview: (AgentApprovalCard) -> Unit
+) {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .testTag("agent_pending_approvals_priority"),
+        shape = RoundedCornerShape(IvaiShapeTokens.Card),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer)
+    ) {
+        Column(
+            modifier = Modifier.padding(IvaiSpacing.Small),
+            verticalArrangement = Arrangement.spacedBy(IvaiSpacing.XSmall)
+        ) {
+            Text(
+                text = "One-time write review required",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold
+            )
+            Text(
+                text = "${approvals.size} pending local file ${if (approvals.size == 1) "write" else "writes"}. Nothing changes until you review and decide once.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSecondaryContainer,
+                modifier = Modifier.testTag("agent_approvals_header")
+            )
+            approvals.forEach { approval ->
+                ApprovalPreviewCard(approval = approval, onReview = { onReview(approval) })
+            }
+        }
+    }
 }
 
 @Composable

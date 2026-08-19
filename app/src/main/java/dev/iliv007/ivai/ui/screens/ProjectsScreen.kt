@@ -128,7 +128,7 @@ fun ProjectsScreen(
             } else {
                 selectedProject?.let { project ->
                     item {
-                        SelectedProjectContext(
+                        SelectedProjectDetail(
                             project = project,
                             onClear = { onSelectProject(null) }
                         )
@@ -155,8 +155,8 @@ fun ProjectsScreen(
                 }
 
                 item {
-                    ProjectActivityRoutes(
-                        fileCount = visibleProjects.sumOf(WorkspaceProject::fileCount),
+                    WorkspaceContinuationRoutes(
+                        selectedProject = selectedProject,
                         onOpenChats = onOpenChats,
                         onOpenAgents = onOpenAgents
                     )
@@ -167,7 +167,7 @@ fun ProjectsScreen(
 }
 
 @Composable
-private fun SelectedProjectContext(
+private fun SelectedProjectDetail(
     project: WorkspaceProject,
     onClear: () -> Unit
 ) {
@@ -175,48 +175,72 @@ private fun SelectedProjectContext(
     Surface(
         modifier = Modifier
             .fillMaxWidth()
-            .testTag("projects_selected_context")
-            .semantics { stateDescription = "Selected project: ${project.name}" },
+            .testTag("workspace_selected_project_detail")
+            .semantics { stateDescription = "Selected local project: ${project.name}" },
         shape = RoundedCornerShape(IvaiShapeTokens.Card),
         color = semanticColors.surfaceInteractive,
         border = BorderStroke(IvaiStrokeTokens.Default, semanticColors.actionPrimary.copy(alpha = 0.6f)),
         tonalElevation = IvaiElevationTokens.Active
     ) {
-        Row(
+        Column(
             modifier = Modifier.padding(IvaiSpacing.Small),
-            horizontalArrangement = Arrangement.spacedBy(IvaiSpacing.XSmall),
-            verticalAlignment = Alignment.CenterVertically
+            verticalArrangement = Arrangement.spacedBy(IvaiSpacing.XSmall)
         ) {
-            Icon(
-                imageVector = Icons.Default.FolderOpen,
-                contentDescription = null,
-                tint = semanticColors.actionPrimary,
-                modifier = Modifier.size(IvaiIconSizeTokens.Inline)
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(IvaiSpacing.XSmall),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Icon(
+                    imageVector = Icons.Default.FolderOpen,
+                    contentDescription = null,
+                    tint = semanticColors.actionPrimary,
+                    modifier = Modifier.size(IvaiIconSizeTokens.Inline)
+                )
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = "Selected local project",
+                        style = MaterialTheme.typography.labelLarge,
+                        color = semanticColors.textPrimary
+                    )
+                    Text(
+                        text = project.name,
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.SemiBold,
+                        color = semanticColors.textPrimary,
+                        modifier = Modifier.testTag("project_detail_name_${project.id}")
+                    )
+                }
+                OutlinedButton(
+                    onClick = onClear,
+                    modifier = Modifier
+                        .heightIn(min = IvaiLayoutTokens.MinimumTouchTarget)
+                        .testTag("projects_clear_context")
+                ) {
+                    Text("Clear")
+                }
+            }
+            Text(
+                project.description,
+                style = MaterialTheme.typography.bodyMedium,
+                color = semanticColors.textSecondary,
+                modifier = Modifier.testTag("project_detail_description_${project.id}")
             )
-            Column(
-                modifier = Modifier.weight(1f),
-                verticalArrangement = Arrangement.spacedBy(IvaiSpacing.XxxSmall)
-            ) {
-                Text(
-                    text = "Project context selected",
-                    style = MaterialTheme.typography.labelLarge,
-                    color = semanticColors.textPrimary
-                )
-                Text(
-                    text = project.name,
-                    style = MaterialTheme.typography.bodyMedium,
-                    fontWeight = FontWeight.SemiBold,
-                    color = semanticColors.textSecondary
-                )
-            }
-            OutlinedButton(
-                onClick = onClear,
-                modifier = Modifier
-                    .heightIn(min = IvaiLayoutTokens.MinimumTouchTarget)
-                    .testTag("projects_clear_context")
-            ) {
-                Text("Clear")
-            }
+            Text(
+                text = "${project.fileCount} known local files",
+                style = MaterialTheme.typography.labelLarge,
+                color = semanticColors.actionSecondary,
+                modifier = Modifier.testTag("project_detail_file_count_${project.id}")
+            )
+            Text(
+                text = "Last modified ${project.lastModified}",
+                style = MaterialTheme.typography.labelSmall,
+                color = semanticColors.textSecondary
+            )
+            Text(
+                text = "This detail summarizes only local project fields already stored on this device.",
+                style = MaterialTheme.typography.labelSmall,
+                color = semanticColors.textSecondary
+            )
         }
     }
 }
@@ -347,8 +371,8 @@ private fun ProjectMetadata(fileCount: Int) {
 }
 
 @Composable
-private fun ProjectActivityRoutes(
-    fileCount: Int,
+private fun WorkspaceContinuationRoutes(
+    selectedProject: WorkspaceProject?,
     onOpenChats: () -> Unit,
     onOpenAgents: () -> Unit
 ) {
@@ -356,7 +380,7 @@ private fun ProjectActivityRoutes(
     Surface(
         modifier = Modifier
             .fillMaxWidth()
-            .testTag("projects_activity_routes"),
+            .testTag("workspace_activity_routes"),
         shape = RoundedCornerShape(IvaiShapeTokens.Card),
         color = semanticColors.surfaceRaised,
         border = BorderStroke(IvaiStrokeTokens.Default, semanticColors.borderSubtle),
@@ -367,13 +391,17 @@ private fun ProjectActivityRoutes(
             verticalArrangement = Arrangement.spacedBy(IvaiSpacing.XSmall)
         ) {
             Text(
-                text = "Project activity",
+                text = if (selectedProject == null) "Continue in IVAI" else "Continue with this project",
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.SemiBold,
                 color = semanticColors.textPrimary
             )
             Text(
-                text = "$fileCount local files are summarized above. Chat history and Agent profile scope are reviewed in their own workspaces.",
+                text = if (selectedProject == null) {
+                    "Open Chat or Agents intentionally. Each surface keeps its own local scope."
+                } else {
+                    "Starting a chat applies this selected project only through your explicit next action. Agent profiles keep their own explicit project scope."
+                },
                 style = MaterialTheme.typography.bodyMedium,
                 color = semanticColors.textSecondary
             )

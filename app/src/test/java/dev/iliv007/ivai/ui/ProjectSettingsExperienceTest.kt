@@ -70,7 +70,7 @@ class ProjectSettingsExperienceTest {
             }
         }
 
-        composeTestRule.onNodeWithTag("projects_selected_context").assertIsDisplayed()
+        composeTestRule.onNodeWithTag("workspace_selected_project_detail").assertIsDisplayed()
         composeTestRule.onNodeWithTag("projects_clear_context").performClick()
         composeTestRule.onNodeWithTag("projects_open_chats").performClick()
         composeTestRule.onNodeWithTag("projects_open_agents").performClick()
@@ -78,6 +78,26 @@ class ProjectSettingsExperienceTest {
         assertEquals(null, selectedProjectId)
         assertTrue(chatsOpened)
         assertTrue(agentsOpened)
+    }
+
+    @Test
+    fun selected_project_detail_exposes_only_known_local_workspace_facts() {
+        composeTestRule.setContent {
+            IvaiTheme(darkTheme = true) {
+                ProjectsScreen(
+                    projects = sampleProjects,
+                    selectedProjectId = "project-1"
+                )
+            }
+        }
+
+        composeTestRule.onNodeWithTag("workspace_selected_project_detail").assertIsDisplayed()
+        composeTestRule.onNodeWithTag("project_detail_name_project-1").assertIsDisplayed()
+        composeTestRule.onNodeWithTag("project_detail_description_project-1").assertIsDisplayed()
+        composeTestRule.onNodeWithTag("project_detail_file_count_project-1").assertIsDisplayed()
+        composeTestRule.onNodeWithTag("workspace_activity_routes").assertIsDisplayed()
+        composeTestRule.onRoot().captureRoboImage(filePath = "build/roborazzi/r5_workspace_detail_dark.png")
+        composeTestRule.onNodeWithText("Continue with this project").assertIsDisplayed()
     }
 
     @Test
