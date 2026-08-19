@@ -419,6 +419,10 @@ class LocalWorkspaceRepository(
 
     suspend fun deleteAllWorkspaceData() {
         database.withTransaction {
+            agentApprovalDao.deleteAll()
+            agentRunStepDao.deleteAll()
+            agentRunDao.deleteAll()
+            agentProfileDao.deleteAll()
             routerAttemptEntryDao.deleteAll()
             routerAttemptDao.deleteAll()
             threadExecutionTargetDao.deleteAll()
