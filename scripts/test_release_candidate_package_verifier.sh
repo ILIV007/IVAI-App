@@ -38,7 +38,7 @@ Short commit: $short_commit
 Version name: $version_name
 Build type: minified unsigned release candidate
 Release status: local preparation only; not signed, tagged, uploaded, public, or stable-approved
-Unit tests: 142 total, 0 failures, 0 errors, 0 skipped
+Unit tests: 143 total, 0 failures, 0 errors, 0 skipped
 EOF
 
 cat > "$fixture/README.txt" <<'EOF'
