@@ -2,7 +2,7 @@
 
 > **وضعیت:** این سند، تصمیم‌های مبتنی بر evidence برای lint و gateهای انتشار را ثبت می‌کند. هیچ نتیجهٔ participant، device، accessibility، network، signing یا Alpha در آن ساخته یا استنباط نشده است.
 >
-> **baseline:** `main` commit `0ca3a4771c6c0cdefa7b1a2b2e6748fd648a63b6` پس از [PR #101](https://github.com/ILIV007/IVAI-App/pull/101). Android quality و Secret scan برای همین commit موفق بوده‌اند.[1]
+> **baseline:** `main` commit `1d743c0de99051a2c9b57ab97f7a99afa6702610` پس از [PR #103](https://github.com/ILIV007/IVAI-App/pull/103). Android quality و Secret scan برای همین commit موفق بوده‌اند.[1]
 
 ## مرز تصمیم
 
@@ -10,37 +10,37 @@ IVAI همچنان یک **Agent Harness محلی، Backendless، BYOK و Provider
 
 ## 1. Snapshot واقعی lint
 
-اجرای `lintDebug` روی baseline، **0 error، 17 warning و 2 hint** گزارش کرد. در نتیجه، وضعیت lint از نظر Error/Fatal سبز است، اما همهٔ warningها پیش از تصمیم Alpha باید owner و disposition روشن داشته باشند.[2]
+اجرای `lintDebug` روی baseline، **0 error، 9 warning و 0 hint** گزارش کرد. [PR #103](https://github.com/ILIV007/IVAI-App/pull/103) تمام 10 finding کم‌ریسک UI-quality را با quality gate کامل و CI محافظت‌شده رفع کرد. همهٔ warningهای باقی‌مانده پیش از تصمیم Alpha باید owner و disposition روشن داشته باشند.[2]
 
-| دسته | تعداد | findingهای دقیق | تصمیم | فاز/گیت بعدی |
+| دسته | تعداد فعلی | findingهای دقیق | تصمیم/وضعیت | فاز/گیت بعدی |
 |---|---:|---|---|---|
-| `ModifierParameter` | 8 warning | `ChatsScreen`، `IvaiPageHeader`، `IvaiSidebar`، `ProjectsScreen`، `SettingsScreen`، `LoadingStateView`، `EmptyStateView` و `ErrorStateView` | **P2 UI-quality — اصلاح شود.** `Modifier` باید نخستین پارامتر optional و پس از پارامترهای mandatory باشد. جابه‌جایی فقط signature composable و call-siteهای نام‌دار را مرور می‌کند؛ semantics، navigation، data و network نباید تغییر کنند. | PR کوچک «UI lint hygiene» با Compose/unit/Roborazzi regression و `lintDebug`. |
-| `AutoboxingStateCreation` | 2 hint | state گام wizard در `ProviderManagementSection` و `CreateComboSheet` | **P3 performance hygiene — اصلاح شود.** جایگزینی `mutableStateOf(1)` با `mutableIntStateOf(1)` بدون تغییر transition، step یا persistence. | همراه PR UI lint hygiene؛ تست wizard/Combo و screenshot موجود باید سبز بماند. |
+| `ModifierParameter` | 0 | هشت composable triage‌شده در `ChatsScreen`، foundation/sidebar، Projects/Settings و state viewها | **Resolved در PR #103.** `Modifier` اکنون نخستین optional parameter است؛ data، navigation و network تغییر نکردند. | Regression در quality gateهای هر candidate بعدی. |
+| `AutoboxingStateCreation` | 0 | state گام wizard در `ProviderManagementSection` و `CreateComboSheet` | **Resolved در PR #103.** هر دو state با `mutableIntStateOf(1)` بدون تغییر transition یا persistence جایگزین شدند. | Regression در quality gateهای هر candidate بعدی. |
 | Gradle/AGP/Compose/Lifecycle/Core updates | 8 warning | Gradle 9.7، AGP 9.3.1، Core 1.19، سه Lifecycle 2.11، Compose BOM 2026.08.00، Kotlin Compose 2.4.10 | **Deferred — خارج از UI-quality.** این‌ها migrationهای version هستند، نه نقص UI. Core 1.19 نیازمند `compileSdk 37` است؛ Lifecycle 2.11 و migration toolchain نیز matrix سازگار جداگانه می‌خواهند. | فقط در compatibility/build-system phase مستقل طبق [Compatibility Research](COMPATIBILITY_RESEARCH_2026-08-19.md). |
 | `ObsoleteSdkInt` | 1 warning | `mipmap-anydpi-v26` با `minSdk 29` | **Deferred — تصمیم launcher policy.** انتقال نابهنگام XML به `mipmap-anydpi` قبلاً با `IconMixed` تعارض داشته است. | بعد از evidence launcher روی دستگاه و یک تصمیم محدود minSdk/fallback. |
 
-> **نتیجهٔ اجرایی UI-quality:** ده finding اول (8 warning + 2 hint) برای یک increment جداگانه، local و presentation-only مناسب‌اند. 9 finding دیگر نباید برای صفر کردن ظاهری lint در همان PR دستکاری شوند، چون risk compatibility یا launcher را بالا می‌برند.
+> **نتیجهٔ اجرایی UI-quality:** increment کم‌ریسک کامل شده است. 9 warning باقی‌مانده عمداً برای صفر کردن ظاهری lint دستکاری نمی‌شوند، زیرا risk compatibility یا launcher را بالا می‌برند.
 
-## 2. گیت و scope پیشنهادی برای UI lint hygiene
+## 2. گیت و scope اجراشدهٔ UI lint hygiene
 
 | مورد | قرارداد |
 |---|---|
-| Goal | حذف 8 `ModifierParameter` warning و 2 `AutoboxingStateCreation` hint بدون تغییر محصول یا مرزهای ایمنی. |
-| In scope | فقط signature/composable call-siteهای نام‌دار، دو state primitive، importهای لازم و regression test/screenshotِ واقعاً متاثر. |
+| Goal | حذف 8 `ModifierParameter` warning و 2 `AutoboxingStateCreation` hint بدون تغییر محصول یا مرزهای ایمنی — **Pass در PR #103**. |
+| In scope | فقط signature/composable call-siteهای نام‌دار، دو state primitive، importهای لازم و regression test/screenshotِ واقعاً متاثر — **به‌طور کامل رعایت شد**. |
 | خارج از scope | dependency/toolchain، launcher resource، Provider/Account/Model/Combo/Agent، Room/Vault، network/endpoint، credential، telemetry، Settings reset و Phase 8 runtime. |
-| گیت پذیرش | `lintDebug` نباید این 10 finding را گزارش کند؛ کیفیت debug/release، 155 unit test بدون failure/error/skipped، Roborazzi/semantics مرتبط، guardهای Provider-neutral/RTL/contrast و CI محافظت‌شده باید سبز باشند. |
+| گیت پذیرش | `lintDebug` این 10 finding را گزارش نمی‌کند؛ کیفیت debug/release، 155 unit test بدون failure/error/skipped، Roborazzi/semantics مرتبط، guardهای Provider-neutral/RTL/contrast و CI محافظت‌شده سبز هستند. |
 | ریسک کنترل‌شده | پیش از جابه‌جایی parameter، تمام call-siteها بررسی می‌شوند؛ callهای positional باید به named arguments یا ترتیب صحیح تبدیل شوند. هیچ suppress blanket اضافه نمی‌شود. |
 
 ## 3. P0 Monitor — Phase 7.5 و Alpha
 
 ### 3.1 Evidence deterministic آماده
 
-| P0/gate | evidence برای `0ca3a47` | وضعیت واقعی |
+| P0/gate | evidence برای `1d743c0` | وضعیت واقعی |
 |---|---|---|
 | CI محافظت‌شده | Secret scan و Android quality برای commit baseline موفق.[1] | **Pass برای baseline**؛ باید روی هر candidate آینده تکرار شود. |
-| Release-candidate deterministic package | بستهٔ محلی unsigned با R8 release، `mapping.txt`، APK debug، reportهای unit/lint، checksum و manifest ساخته و verifier آن پاس شد. | **Ready / not a release pass.** 155 test، 0 failure/error/skipped؛ 10 artifact checksum شد. |
+| Release-candidate deterministic package | بستهٔ محلی unsigned همین commit با R8 release، `mapping.txt`، APK debug، reportهای unit/lint، checksum و manifest ساخته و verifier آن پاس شد. | **Ready / not a release pass.** 155 test، 0 failure/error/skipped؛ 10 artifact checksum شد. |
 | Signed/public boundary | verifier صراحتاً APK release را unsigned تشخیص داد. هیچ tag، upload، GitHub Release یا binary عمومی ایجاد نشد. | **Pending / blocked for Alpha.** |
-| Phase 7.5 research package | بستهٔ debug کنترل‌شده برای baseline آماده و checksum-verifier آن پاس شد؛ worksheet عمداً blank است. | **Ready / no participant or device result.** |
+| Phase 7.5 research package | بستهٔ debug کنترل‌شده برای همین commit آماده و checksum-verifier آن پاس شد؛ worksheet عمداً blank است. | **Ready / no participant or device result.** |
 | Security/architecture static evidence | scanهای candidate: credential pattern، cleartext/trust bypass، execution ممنوع، implicit Provider selection و global forced-LTR shell همگی پاس شدند. | **Pass برای baseline**؛ جایگزین test فیزیکی نیست. |
 | Contrast، launcher safe zone، Provider-neutral، RTL و Phase 8/R8 readiness guards | guardهای repository روی baseline پاس شدند. | **Pass deterministic.** |
 
@@ -57,7 +57,7 @@ IVAI همچنان یک **Agent Harness محلی، Backendless، BYOK و Provider
 
 ## 4. اقدامات بعدی و قواعد پایش
 
-1. **UI lint hygiene** باید پس از این triage به‌صورت PR focused شروع شود؛ 10 finding UI-only در آن fix می‌شوند و 9 finding compatibility/launcher intentionally untouched می‌مانند.
+1. **UI lint hygiene** در [PR #103](https://github.com/ILIV007/IVAI-App/pull/103) کامل شد؛ 10 finding UI-only رفع شدند و 9 warning compatibility/launcher intentionally untouched مانده‌اند.
 2. **Phase 7.5** فقط با controlled research package و app state پاک اجرا می‌شود. هیچ participant نباید credential وارد کند، Provider request بفرستد یا Agent write انجام دهد.[3]
 3. **Device/network evidence** نتیجهٔ واقعی است، نه یک checklist تیک‌خورده. هر failure P0/P1 باید scenario را متوقف، یک remediation focused ایجاد و سپس با evidence تازه retest کند.
 4. **Alpha** تا تکمیل participant/device/accessibility/network، signed artifact، SHA-256، tag، notes و owner approval، **Not approved** باقی می‌ماند.[4]
@@ -65,7 +65,7 @@ IVAI همچنان یک **Agent Harness محلی، Backendless، BYOK و Provider
 
 ## References
 
-[1] [Android quality run for main commit `0ca3a47`](https://github.com/ILIV007/IVAI-App/actions/runs/32274369142)
+[1] [Android quality run for main commit `1d743c0`](https://github.com/ILIV007/IVAI-App/actions/runs/32277336734)
 
 [2] [Release Readiness Checklist](RELEASE_READINESS_CHECKLIST.md)
 
