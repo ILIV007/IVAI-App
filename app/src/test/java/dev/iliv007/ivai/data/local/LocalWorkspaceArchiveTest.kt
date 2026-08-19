@@ -17,6 +17,8 @@ import org.junit.rules.TemporaryFolder
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
+import java.io.ByteArrayOutputStream
+import java.io.DataOutputStream
 import java.io.File
 import java.nio.ByteBuffer
 import java.security.MessageDigest
@@ -67,6 +69,44 @@ class LocalWorkspaceArchiveTest {
         assertEquals("original", workspace.readText("project-1", "notes/readme.txt"))
         assertFalse(restored.projects.any { it.id == "later" })
         assertTrue(export.isFile)
+    }
+
+    @Test
+    fun `archive round trip preserves incomplete assistant marker`() = runBlocking {
+        seedWorkspace("original")
+        repository.appendMessage(
+            ChatMessageEntity(
+                id = "partial-message",
+                threadId = "thread-1",
+                sender = MessageSender.ASSISTANT.name,
+                text = "Visible partial response",
+                createdAtEpochMs = 31L,
+                contentType = MessageContentType.TEXT.name,
+                codeSnippet = null,
+                modelBadge = "local-mock",
+                latencyMs = 1L,
+                isIncomplete = true
+            )
+        )
+        val export = File(temporaryFolder.root, "workspace.ivai")
+
+        archive.exportTo(export)
+        archive.importFrom(export)
+
+        val restored = repository.snapshotForArchive().messages.single { it.id == "partial-message" }
+        assertTrue(restored.isIncomplete)
+    }
+
+    @Test
+    fun `legacy v1 archive imports messages with a safe complete marker`() = runBlocking {
+        val legacy = File(temporaryFolder.root, "legacy-v1.ivai")
+        legacy.writeBytes(legacyV1Archive())
+
+        archive.importFrom(legacy)
+
+        val restored = repository.snapshotForArchive().messages.single { it.id == "legacy-message" }
+        assertFalse(restored.isIncomplete)
+        assertEquals("Legacy local message", restored.text)
     }
 
     @Test
@@ -157,6 +197,59 @@ class LocalWorkspaceArchiveTest {
             )
         )
         workspace.writeText("project-1", "notes/readme.txt", fileContent)
+    }
+
+    private fun legacyV1Archive(): ByteArray {
+        val payload = ByteArrayOutputStream().also { buffer ->
+            DataOutputStream(buffer).use { output ->
+                output.writeLong(123L)
+                output.writeInt(1)
+                output.writeArchiveString("legacy-project")
+                output.writeArchiveString("Legacy project")
+                output.writeArchiveString("")
+                output.writeInt(0)
+                output.writeLong(10L)
+                output.writeInt(1)
+                output.writeArchiveString("legacy-thread")
+                output.writeArchiveString("Legacy thread")
+                output.writeArchiveString("")
+                output.writeLong(20L)
+                output.writeArchiveString("legacy-target")
+                output.writeNullableArchiveString("legacy-project")
+                output.writeInt(1)
+                output.writeArchiveString("legacy-message")
+                output.writeArchiveString("legacy-thread")
+                output.writeArchiveString(MessageSender.ASSISTANT.name)
+                output.writeArchiveString("Legacy local message")
+                output.writeLong(30L)
+                output.writeArchiveString(MessageContentType.TEXT.name)
+                output.writeNullableArchiveString(null)
+                output.writeNullableArchiveString(null)
+                output.writeBoolean(false)
+                output.writeInt(0)
+            }
+        }.toByteArray()
+        val checksum = MessageDigest.getInstance("SHA-256").digest(payload)
+        return ByteArrayOutputStream().also { buffer ->
+            DataOutputStream(buffer).use { output ->
+                output.writeInt(0x49564149)
+                output.writeInt(1)
+                output.writeInt(payload.size)
+                output.write(checksum)
+                output.write(payload)
+            }
+        }.toByteArray()
+    }
+
+    private fun DataOutputStream.writeArchiveString(value: String) {
+        val bytes = value.toByteArray(Charsets.UTF_8)
+        writeInt(bytes.size)
+        write(bytes)
+    }
+
+    private fun DataOutputStream.writeNullableArchiveString(value: String?) {
+        writeBoolean(value != null)
+        if (value != null) writeArchiveString(value)
     }
 
     private companion object {
