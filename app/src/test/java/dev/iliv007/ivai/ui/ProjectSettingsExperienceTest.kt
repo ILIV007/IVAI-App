@@ -182,17 +182,17 @@ class ProjectSettingsExperienceTest {
     }
 
     @Test
-    fun settings_exposes_only_explicit_theme_connections_and_local_data_actions() {
+    fun settings_exposes_only_explicit_theme_connections_and_confirmed_local_data_deletion() {
         var themeToggled = false
         var connectionsOpened = false
-        var localDataDeleteRequested = false
+        var localDataDeleteRequestCount = 0
         composeTestRule.setContent {
-            IvaiTheme {
+            IvaiTheme(darkTheme = true) {
                 SettingsScreen(
-                    isDarkTheme = false,
+                    isDarkTheme = true,
                     onToggleTheme = { themeToggled = true },
                     onOpenConnections = { connectionsOpened = true },
-                    onDeleteAllLocalData = { localDataDeleteRequested = true }
+                    onDeleteAllLocalData = { localDataDeleteRequestCount += 1 }
                 )
             }
         }
@@ -201,10 +201,19 @@ class ProjectSettingsExperienceTest {
         composeTestRule.onNodeWithTag("switch_theme_mode").performClick()
         composeTestRule.onNodeWithTag("button_open_connections_from_settings").performClick()
         composeTestRule.onNodeWithTag("button_delete_all_data").performScrollTo().performClick()
+        composeTestRule.onNodeWithTag("local_data_delete_confirmation").assertIsDisplayed()
+        composeTestRule.onNodeWithText("This action is permanent on this device.").assertIsDisplayed()
+        composeTestRule.onRoot().captureRoboImage(filePath = "build/roborazzi/r6_delete_confirmation_dark.png")
+        assertEquals(0, localDataDeleteRequestCount)
+        composeTestRule.onNodeWithTag("button_cancel_delete_all_data").performClick()
+        assertEquals(0, localDataDeleteRequestCount)
+
+        composeTestRule.onNodeWithTag("button_delete_all_data").performScrollTo().performClick()
+        composeTestRule.onNodeWithTag("button_confirm_delete_all_data").performClick()
 
         assertTrue(themeToggled)
         assertTrue(connectionsOpened)
-        assertTrue(localDataDeleteRequested)
+        assertEquals(1, localDataDeleteRequestCount)
     }
 
     @Test

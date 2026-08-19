@@ -17,6 +17,8 @@ import androidx.compose.material.icons.filled.DeleteOutline
 import androidx.compose.material.icons.filled.Key
 import androidx.compose.material.icons.filled.LightMode
 import androidx.compose.material.icons.filled.Shield
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -25,7 +27,12 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
@@ -59,6 +66,8 @@ fun SettingsScreen(
     onOpenConnections: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
+    var deleteConfirmationOpen by remember { mutableStateOf(false) }
+
     IvaiScreenScaffold(modifier = modifier, testTag = "settings_screen") {
         LazyColumn(
             contentPadding = PaddingValues(IvaiSpacing.Small),
@@ -107,10 +116,20 @@ fun SettingsScreen(
                     title = "Local data",
                     description = "Review the consequence before removing data from this device."
                 ) {
-                    LocalDataSettingsCard(onDeleteAllLocalData = onDeleteAllLocalData)
+                    LocalDataSettingsCard(onRequestDelete = { deleteConfirmationOpen = true })
                 }
             }
         }
+    }
+
+    if (deleteConfirmationOpen) {
+        LocalDataDeleteConfirmationDialog(
+            onCancel = { deleteConfirmationOpen = false },
+            onConfirm = {
+                deleteConfirmationOpen = false
+                onDeleteAllLocalData()
+            }
+        )
     }
 }
 
@@ -316,7 +335,7 @@ private fun PrivacyCommitmentCard(
 }
 
 @Composable
-private fun LocalDataSettingsCard(onDeleteAllLocalData: () -> Unit) {
+private fun LocalDataSettingsCard(onRequestDelete: () -> Unit) {
     val semanticColors = rememberIvaiSemanticColors()
     IvaiStateCard(
         title = "Delete all local data",
@@ -325,7 +344,7 @@ private fun LocalDataSettingsCard(onDeleteAllLocalData: () -> Unit) {
         icon = Icons.Default.DeleteOutline,
         action = {
             OutlinedButton(
-                onClick = onDeleteAllLocalData,
+                onClick = onRequestDelete,
                 colors = ButtonDefaults.outlinedButtonColors(contentColor = semanticColors.stateError),
                 modifier = Modifier
                     .fillMaxWidth()
@@ -336,6 +355,59 @@ private fun LocalDataSettingsCard(onDeleteAllLocalData: () -> Unit) {
             }
         },
         testTag = "settings_local_data"
+    )
+}
+
+@Composable
+private fun LocalDataDeleteConfirmationDialog(
+    onCancel: () -> Unit,
+    onConfirm: () -> Unit
+) {
+    val semanticColors = rememberIvaiSemanticColors()
+    AlertDialog(
+        onDismissRequest = onCancel,
+        modifier = Modifier.testTag("local_data_delete_confirmation"),
+        title = {
+            Text(
+                text = "Permanently delete local data?",
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.Bold
+            )
+        },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(IvaiSpacing.XSmall)) {
+                Text("This action is permanent on this device.", style = MaterialTheme.typography.bodyMedium)
+                Text("It removes only IVAI data stored here:", style = MaterialTheme.typography.bodySmall)
+                Text("• Local workspace project files", style = MaterialTheme.typography.bodySmall)
+                Text("• Local database records, including chats, projects, Agents, Connections, Accounts, Models and Combos", style = MaterialTheme.typography.bodySmall)
+                Text("• Encrypted stored provider credentials", style = MaterialTheme.typography.bodySmall)
+                Text(
+                    "It does not delete remote provider data, system backups, external files or data from other apps.",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = semanticColors.textSecondary
+                )
+            }
+        },
+        dismissButton = {
+            TextButton(
+                onClick = onCancel,
+                modifier = Modifier.testTag("button_cancel_delete_all_data")
+            ) {
+                Text("Cancel")
+            }
+        },
+        confirmButton = {
+            Button(
+                onClick = onConfirm,
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = semanticColors.stateError,
+                    contentColor = MaterialTheme.colorScheme.onError
+                ),
+                modifier = Modifier.testTag("button_confirm_delete_all_data")
+            ) {
+                Text("Delete permanently")
+            }
+        }
     )
 }
 
