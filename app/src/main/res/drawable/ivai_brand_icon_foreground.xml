@@ -2,4 +2,4 @@
 <bitmap xmlns:android="http://schemas.android.com/apk/res/android"
     android:antialias="true"
     android:gravity="center"
-    android:src="@drawable/ivai_brand_reference" />
+    android:src="@drawable/ivai_launcher_foreground_safe" />
