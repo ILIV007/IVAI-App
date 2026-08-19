@@ -21,7 +21,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
-import dev.iliv007.ivai.ui.components.ChatSessionDrawerContent
+import dev.iliv007.ivai.ui.components.IvaiProductSidebar
 import dev.iliv007.ivai.ui.components.IvaiAdaptiveDestinationScaffold
 import dev.iliv007.ivai.ui.components.IvaiTopBar
 import dev.iliv007.ivai.ui.navigation.NavDestination
@@ -74,11 +74,11 @@ fun IvaiMainApp(
     val providerManagementState by resolvedViewModel.providerManagementState.collectAsStateWithLifecycle()
     val routerManagementState by resolvedViewModel.routerManagementState.collectAsStateWithLifecycle()
     val agentManagementState by resolvedViewModel.agentManagementState.collectAsStateWithLifecycle()
-    val chatDrawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
+    val sidebarState = rememberDrawerState(initialValue = DrawerValue.Closed)
     val scope = rememberCoroutineScope()
 
-    fun closeChatDrawer() {
-        scope.launch { chatDrawerState.close() }
+    fun closeSidebar() {
+        scope.launch { sidebarState.close() }
     }
 
     @Composable
@@ -160,19 +160,11 @@ fun IvaiMainApp(
                 IvaiTopBar(
                     title = "IVAI",
                     subtitle = uiState.destination.title,
-                    currentState = uiState.previewState,
-                    onStateSelected = resolvedViewModel::selectPreviewState,
-                    onOpenSidebar = if (uiState.destination == NavDestination.CHATS) {
-                        {
-                            scope.launch {
-                                if (chatDrawerState.isClosed) chatDrawerState.open() else chatDrawerState.close()
-                            }
+                    onOpenSidebar = {
+                        scope.launch {
+                            if (sidebarState.isClosed) sidebarState.open() else sidebarState.close()
                         }
-                    } else {
-                        null
-                    },
-                    isDarkTheme = isDarkTheme,
-                    onToggleTheme = onToggleTheme
+                    }
                 )
             }
         ) { contentModifier, _ ->
@@ -180,32 +172,33 @@ fun IvaiMainApp(
         }
     }
 
-    if (uiState.destination == NavDestination.CHATS) {
-        ModalNavigationDrawer(
-            drawerState = chatDrawerState,
-            gesturesEnabled = true,
-            drawerContent = {
-                ChatSessionDrawerContent(
-                    threads = uiState.threads,
-                    selectedThreadId = uiState.selectedThreadId,
-                    projects = uiState.projects,
-                    selectedProjectId = uiState.selectedProjectId,
-                    onSelectThread = {
-                        resolvedViewModel.selectThread(it)
-                        closeChatDrawer()
-                    },
-                    onSelectProject = resolvedViewModel::selectProject,
-                    onNewChat = {
-                        resolvedViewModel.createNewChat()
-                        closeChatDrawer()
-                    },
-                    onDeleteThread = resolvedViewModel::deleteThread
-                )
-            }
-        ) {
-            AppShell()
+    ModalNavigationDrawer(
+        drawerState = sidebarState,
+        gesturesEnabled = true,
+        drawerContent = {
+            IvaiProductSidebar(
+                currentDestination = uiState.destination,
+                onDestinationSelected = { destination ->
+                    resolvedViewModel.selectDestination(destination)
+                    closeSidebar()
+                },
+                threads = uiState.threads,
+                selectedThreadId = uiState.selectedThreadId,
+                projects = uiState.projects,
+                selectedProjectId = uiState.selectedProjectId,
+                onSelectThread = { threadId ->
+                    resolvedViewModel.selectThread(threadId)
+                    closeSidebar()
+                },
+                onSelectProject = resolvedViewModel::selectProject,
+                onNewChat = {
+                    resolvedViewModel.createNewChat()
+                    closeSidebar()
+                },
+                onDeleteThread = resolvedViewModel::deleteThread
+            )
         }
-    } else {
+    ) {
         AppShell()
     }
 }

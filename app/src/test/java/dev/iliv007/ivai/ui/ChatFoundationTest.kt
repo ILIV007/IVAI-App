@@ -37,7 +37,7 @@ class ChatFoundationTest {
 
     @Test
     fun navigation_mode_breakpoints_keep_compact_medium_and_expanded_rules() {
-        assertEquals(IvaiNavigationMode.COMPACT_BOTTOM_BAR, ivaiNavigationModeFor(599.dp))
+        assertEquals(IvaiNavigationMode.COMPACT_SIDEBAR, ivaiNavigationModeFor(599.dp))
         assertEquals(IvaiNavigationMode.MEDIUM_RAIL, ivaiNavigationModeFor(600.dp))
         assertEquals(IvaiNavigationMode.MEDIUM_RAIL, ivaiNavigationModeFor(839.dp))
         assertEquals(IvaiNavigationMode.EXPANDED_RAIL, ivaiNavigationModeFor(840.dp))

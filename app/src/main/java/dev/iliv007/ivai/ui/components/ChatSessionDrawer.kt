@@ -9,7 +9,6 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -30,7 +29,6 @@ import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.ModalDrawerSheet
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -56,11 +54,11 @@ import dev.iliv007.ivai.ui.theme.IvaiSpacing
 import dev.iliv007.ivai.ui.theme.IvaiStrokeTokens
 
 /**
- * Chat-only history drawer. It intentionally owns thread search and project filtering so global
- * navigation remains limited to the five destination-level product areas.
+ * Local Chat history section for the product sidebar. It owns thread search and project filtering
+ * but is embedded below the shared destination navigation rather than creating a second drawer.
  */
 @Composable
-fun ChatSessionDrawerContent(
+fun ChatSessionDrawerSection(
     threads: List<ChatThread>,
     selectedThreadId: String,
     projects: List<WorkspaceProject>,
@@ -83,20 +81,12 @@ fun ChatSessionDrawerContent(
         }
     }
 
-    ModalDrawerSheet(
+    Column(
         modifier = modifier
-            .width(IvaiLayoutTokens.ChatDrawerWidth)
-            .fillMaxHeight()
+            .padding(IvaiSpacing.XSmall)
             .testTag("chat_session_drawer"),
-        drawerContainerColor = MaterialTheme.colorScheme.surface,
-        drawerShape = RoundedCornerShape(topEnd = IvaiShapeTokens.Sheet, bottomEnd = IvaiShapeTokens.Sheet)
+        verticalArrangement = Arrangement.spacedBy(IvaiSpacing.XSmall)
     ) {
-        Column(
-            modifier = Modifier
-                .fillMaxHeight()
-                .padding(IvaiSpacing.XSmall),
-            verticalArrangement = Arrangement.spacedBy(IvaiSpacing.XSmall)
-        ) {
             IvaiPageHeader(
                 title = "Chats",
                 subtitle = "Local conversation history",
@@ -213,7 +203,6 @@ fun ChatSessionDrawerContent(
                     }
                 }
             }
-        }
     }
 }
 

@@ -22,21 +22,21 @@ import dev.iliv007.ivai.ui.theme.IvaiSpacing
 
 /** The shell arrangement is visual only; routes and destinations remain unchanged. */
 enum class IvaiNavigationMode {
-    COMPACT_BOTTOM_BAR,
+    COMPACT_SIDEBAR,
     MEDIUM_RAIL,
     EXPANDED_RAIL
 }
 
 fun ivaiNavigationModeFor(availableWidth: Dp): IvaiNavigationMode = when {
-    availableWidth < IvaiLayoutTokens.MediumBreakpoint -> IvaiNavigationMode.COMPACT_BOTTOM_BAR
+    availableWidth < IvaiLayoutTokens.MediumBreakpoint -> IvaiNavigationMode.COMPACT_SIDEBAR
     availableWidth < IvaiLayoutTokens.ExpandedBreakpoint -> IvaiNavigationMode.MEDIUM_RAIL
     else -> IvaiNavigationMode.EXPANDED_RAIL
 }
 
 /**
- * An adaptive five-destination app shell. Compact layouts use the bottom bar; medium and expanded
- * layouts use a rail so the conversation has more vertical space. No screen business logic lives
- * here.
+ * An adaptive five-destination app shell. Compact layouts reserve destination navigation for the
+ * product sidebar; medium and expanded layouts use a rail so the conversation has more vertical
+ * space. No screen business logic lives here.
  */
 @Composable
 fun IvaiAdaptiveDestinationScaffold(
@@ -49,17 +49,8 @@ fun IvaiAdaptiveDestinationScaffold(
     BoxWithConstraints(modifier = modifier.fillMaxSize()) {
         val mode = ivaiNavigationModeFor(maxWidth)
         when (mode) {
-            IvaiNavigationMode.COMPACT_BOTTOM_BAR -> {
-                Scaffold(
-                    topBar = topBar,
-                    bottomBar = {
-                        IvaiNavBar(
-                            currentDestination = currentDestination,
-                            onDestinationSelected = onDestinationSelected,
-                            modifier = Modifier.testTag("ivai_compact_navigation")
-                        )
-                    }
-                ) { innerPadding ->
+            IvaiNavigationMode.COMPACT_SIDEBAR -> {
+                Scaffold(topBar = topBar) { innerPadding ->
                     content(Modifier.padding(innerPadding), mode)
                 }
             }

@@ -3,8 +3,10 @@ package dev.iliv007.ivai
 import android.content.Context
 import android.content.pm.ApplicationInfo
 import org.xmlpull.v1.XmlPullParser
+import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
 import androidx.test.core.app.ApplicationProvider
@@ -151,33 +153,38 @@ class ExampleRobolectricTest {
     }
 
     @Test
-    fun `verify navigation across all five destinations`() {
+    fun `verify navigation across all five destinations through one product sidebar`() {
         composeTestRule.setContent {
             IvaiTheme {
                 IvaiMainApp()
             }
         }
 
-        // Pixel 8 uses compact navigation. Destination controls remain persistent in the bottom bar.
-        composeTestRule.onNodeWithTag("input_message_text").assertIsDisplayed()
-        composeTestRule.onNodeWithTag("ivai_compact_navigation").assertIsDisplayed()
+        fun openSidebar() {
+            composeTestRule.onNodeWithTag("button_open_product_sidebar").performClick()
+            composeTestRule.waitForIdle()
+            composeTestRule.onNodeWithTag("ivai_product_sidebar").assertIsDisplayed()
+        }
 
-        // Navigate to Agents through the destination control.
+        composeTestRule.onNodeWithTag("input_message_text").assertIsDisplayed()
+        composeTestRule.onAllNodesWithTag("ivai_compact_navigation").assertCountEquals(0)
+
+        openSidebar()
         composeTestRule.onNodeWithTag("nav_item_agents").performClick()
         composeTestRule.waitForIdle()
         composeTestRule.onNodeWithTag("agent_notice_banner").assertExists()
 
-        // Navigate to Workspace through the destination control.
+        openSidebar()
         composeTestRule.onNodeWithTag("nav_item_projects").performClick()
         composeTestRule.waitForIdle()
         composeTestRule.onNodeWithTag("projects_screen").assertExists()
 
-        // Navigate to Connections through the destination control.
+        openSidebar()
         composeTestRule.onNodeWithTag("nav_item_router").performClick()
         composeTestRule.waitForIdle()
         composeTestRule.onNodeWithTag("connections_hub").assertExists()
 
-        // Navigate to Settings through the destination control.
+        openSidebar()
         composeTestRule.onNodeWithTag("nav_item_settings").performClick()
         composeTestRule.waitForIdle()
         composeTestRule.onNodeWithTag("settings_connections_shortcut").assertExists()
@@ -185,23 +192,23 @@ class ExampleRobolectricTest {
         composeTestRule.waitForIdle()
         composeTestRule.onNodeWithTag("connections_hub").assertExists()
 
-        // Return to Chat through the destination control.
+        openSidebar()
         composeTestRule.onNodeWithTag("nav_item_chats").performClick()
         composeTestRule.waitForIdle()
         composeTestRule.onNodeWithTag("input_message_text").assertExists()
     }
 
     @Test
-    fun `verify top bar state switcher interaction`() {
+    fun `verify top bar exposes only product sidebar navigation`() {
         composeTestRule.setContent {
             IvaiTheme {
                 IvaiMainApp()
             }
         }
 
-        // Click on state switcher button
-        composeTestRule.onNodeWithTag("button_state_switcher").assertIsDisplayed()
-        composeTestRule.onNodeWithTag("button_state_switcher").performClick()
+        composeTestRule.onNodeWithTag("button_open_product_sidebar").assertIsDisplayed()
+        composeTestRule.onAllNodesWithTag("button_toggle_theme").assertCountEquals(0)
+        composeTestRule.onAllNodesWithTag("button_state_switcher").assertCountEquals(0)
     }
 
     @Test
