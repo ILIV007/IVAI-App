@@ -93,7 +93,7 @@ class LocalWorkspaceArchive(
         val checksum = sha256(payload)
         DataOutputStream(BufferedOutputStream(FileOutputStream(destination))).use { output ->
             output.writeInt(MAGIC)
-            output.writeInt(FORMAT_VERSION)
+            output.writeInt(CURRENT_FORMAT_VERSION)
             output.writeInt(payload.size)
             output.write(checksum)
             output.write(payload)
@@ -103,7 +103,8 @@ class LocalWorkspaceArchive(
     private fun readArchive(source: File): WorkspaceArchivePayload =
         DataInputStream(BufferedInputStream(FileInputStream(source))).use { input ->
             require(input.readInt() == MAGIC) { "Unsupported local archive" }
-            require(input.readInt() == FORMAT_VERSION) { "Unsupported local archive version" }
+            val formatVersion = input.readInt()
+            require(formatVersion in SUPPORTED_FORMAT_VERSIONS) { "Unsupported local archive version" }
             val payloadSize = input.readInt()
             require(payloadSize in 1..MAX_ARCHIVE_BYTES) { "Archive payload size is invalid" }
             val expectedChecksum = ByteArray(SHA256_BYTES)
@@ -112,7 +113,7 @@ class LocalWorkspaceArchive(
             input.readFully(payload)
             require(input.read() == -1) { "Archive contains trailing data" }
             require(MessageDigest.isEqual(expectedChecksum, sha256(payload))) { "Archive checksum mismatch" }
-            decodePayload(payload)
+            decodePayload(payload, formatVersion)
         }
 
     private fun encodePayload(archive: WorkspaceArchivePayload): ByteArray {
@@ -144,6 +145,7 @@ class LocalWorkspaceArchive(
                 output.writeNullableString(message.codeSnippet)
                 output.writeNullableString(message.modelBadge)
                 output.writeNullableLong(message.latencyMs)
+                output.writeBoolean(message.isIncomplete)
             }
             writeCollection(output, archive.files) { file ->
                 output.writeString(file.projectId)
@@ -155,7 +157,7 @@ class LocalWorkspaceArchive(
         return buffer.toByteArray()
     }
 
-    private fun decodePayload(payload: ByteArray): WorkspaceArchivePayload =
+    private fun decodePayload(payload: ByteArray, formatVersion: Int): WorkspaceArchivePayload =
         DataInputStream(payload.inputStream()).use { input ->
             val createdAtEpochMs = input.readLong()
             val projects = readCollection(input) {
@@ -187,7 +189,8 @@ class LocalWorkspaceArchive(
                     contentType = input.readString(),
                     codeSnippet = input.readNullableString(),
                     modelBadge = input.readNullableString(),
-                    latencyMs = input.readNullableLong()
+                    latencyMs = input.readNullableLong(),
+                    isIncomplete = if (formatVersion >= CURRENT_FORMAT_VERSION) input.readBoolean() else false
                 )
             }
             val files = readCollection(input) {
@@ -263,7 +266,9 @@ class LocalWorkspaceArchive(
 
     private companion object {
         const val MAGIC = 0x49564149 // IVAI
-        const val FORMAT_VERSION = 1
+        const val LEGACY_FORMAT_VERSION = 1
+        const val CURRENT_FORMAT_VERSION = 2
+        val SUPPORTED_FORMAT_VERSIONS = setOf(LEGACY_FORMAT_VERSION, CURRENT_FORMAT_VERSION)
         const val SHA256_BYTES = 32
         const val MAX_ARCHIVE_BYTES = 16 * 1024 * 1024
         const val MAX_COLLECTION_SIZE = 10_000
