@@ -19,6 +19,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
@@ -28,7 +29,6 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ArrowDownward
 import androidx.compose.material.icons.filled.Folder
 import androidx.compose.material.icons.filled.FolderOpen
-import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -55,6 +55,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.platform.testTag
@@ -277,7 +278,14 @@ fun ChatsScreen(
                     keyboardController?.hide()
                     focusManager.clearFocus()
                 },
-                onStop = onStopStreaming
+                onStop = onStopStreaming,
+                onResolveTarget = {
+                    when {
+                        !hasPersistedThread -> onNewChatInProject(selectedProjectId)
+                        hasAvailableTarget -> showTargetSheet = true
+                        else -> onOpenConnections()
+                    }
+                }
             )
         }
     }
@@ -399,12 +407,6 @@ private fun ChatContextBar(
                     tint = if (projectName == null) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.secondary
                 )
             }
-            IconButton(
-                onClick = onProjectClick,
-                modifier = Modifier.size(IvaiLayoutTokens.MinimumTouchTarget)
-            ) {
-                Icon(Icons.Default.MoreVert, contentDescription = "Conversation options")
-            }
         }
     }
 }
@@ -470,51 +472,74 @@ private fun ChatComposer(
     canSendToTarget: Boolean,
     isStreaming: Boolean,
     onSend: () -> Unit,
-    onStop: () -> Unit
+    onStop: () -> Unit,
+    onResolveTarget: () -> Unit
 ) {
-    val canSend = value.isNotBlank() && canSendToTarget && !isStreaming
+    val hasDraft = value.isNotBlank()
+    val canSend = hasDraft && canSendToTarget && !isStreaming
+    val canAct = isStreaming || hasDraft
     Surface(
-        color = MaterialTheme.colorScheme.surface,
-        modifier = Modifier.fillMaxWidth().border(IvaiStrokeTokens.Default, MaterialTheme.colorScheme.outlineVariant)
+        shape = RoundedCornerShape(IvaiShapeTokens.Card),
+        color = MaterialTheme.colorScheme.surfaceContainerHigh,
+        border = androidx.compose.foundation.BorderStroke(IvaiStrokeTokens.Default, MaterialTheme.colorScheme.outlineVariant),
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = IvaiSpacing.XSmall, vertical = IvaiSpacing.XxSmall)
+            .testTag("chat_composer")
     ) {
         Row(
             modifier = Modifier.padding(IvaiSpacing.XSmall),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(IvaiSpacing.XSmall)
         ) {
-            OutlinedTextField(
-                value = value,
-                onValueChange = onValueChange,
-                enabled = canSendToTarget && !isStreaming,
-                placeholder = {
-                    Text(
-                        when {
-                            isStreaming -> "Streaming response…"
-                            !canSendToTarget -> "Choose a target before writing a message"
-                            else -> "Type Persian, Arabic, or English message…"
-                        }
-                    )
-                },
-                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Send, capitalization = KeyboardCapitalization.Sentences),
-                keyboardActions = KeyboardActions(onSend = { if (canSend) onSend() }),
-                colors = OutlinedTextFieldDefaults.colors(
-                    focusedBorderColor = MaterialTheme.colorScheme.primary,
-                    focusedContainerColor = MaterialTheme.colorScheme.surfaceVariant,
-                    unfocusedContainerColor = MaterialTheme.colorScheme.surfaceVariant
-                ),
-                shape = RoundedCornerShape(IvaiShapeTokens.Card),
+            Box(
                 modifier = Modifier
                     .weight(1f)
-                    .heightIn(min = IvaiLayoutTokens.MinimumTouchTarget)
-                    .testTag("input_message_text")
-            )
+                    .heightIn(min = IvaiLayoutTokens.MinimumTouchTarget, max = 144.dp)
+                    .padding(horizontal = IvaiSpacing.XSmall, vertical = IvaiSpacing.XxSmall)
+            ) {
+                BasicTextField(
+                    value = value,
+                    onValueChange = onValueChange,
+                    enabled = !isStreaming,
+                    textStyle = MaterialTheme.typography.bodyLarge.copy(color = MaterialTheme.colorScheme.onSurface),
+                    cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
+                    keyboardOptions = KeyboardOptions(imeAction = ImeAction.Send, capitalization = KeyboardCapitalization.Sentences),
+                    keyboardActions = KeyboardActions(onSend = {
+                        if (canSend) onSend() else if (hasDraft) onResolveTarget()
+                    }),
+                    minLines = 1,
+                    maxLines = 4,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .testTag("input_message_text"),
+                    decorationBox = { input ->
+                        if (value.isBlank()) {
+                            Text(
+                                text = if (isStreaming) "Streaming response…" else "Do anything…",
+                                style = MaterialTheme.typography.bodyLarge,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                        input()
+                    }
+                )
+            }
             Button(
-                onClick = { if (isStreaming) onStop() else onSend() },
-                enabled = isStreaming || canSend,
+                onClick = {
+                    when {
+                        isStreaming -> onStop()
+                        canSend -> onSend()
+                        hasDraft -> onResolveTarget()
+                    }
+                },
+                enabled = canAct,
                 shape = if (isStreaming) RoundedCornerShape(IvaiShapeTokens.Control) else CircleShape,
                 colors = ButtonDefaults.buttonColors(
                     containerColor = if (isStreaming) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary,
-                    contentColor = if (isStreaming) MaterialTheme.colorScheme.onError else MaterialTheme.colorScheme.onPrimary
+                    contentColor = if (isStreaming) MaterialTheme.colorScheme.onError else MaterialTheme.colorScheme.onPrimary,
+                    disabledContainerColor = MaterialTheme.colorScheme.surfaceVariant,
+                    disabledContentColor = MaterialTheme.colorScheme.onSurfaceVariant
                 ),
                 modifier = (if (isStreaming) {
                     Modifier
@@ -523,7 +548,13 @@ private fun ChatComposer(
                 } else {
                     Modifier.size(IvaiLayoutTokens.MinimumTouchTarget)
                 })
-                    .semantics { contentDescription = if (isStreaming) "Stop streaming" else "Send message" }
+                    .semantics {
+                        contentDescription = when {
+                            isStreaming -> "Stop streaming"
+                            canSendToTarget -> "Send message"
+                            else -> "Choose target before sending"
+                        }
+                    }
                     .testTag("button_send_message")
             ) {
                 if (isStreaming) {
@@ -651,7 +682,11 @@ private fun TargetSelectionSheet(
             }
         }
     }
-    ModalBottomSheet(onDismissRequest = onDismiss, containerColor = MaterialTheme.colorScheme.surface) {
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        containerColor = MaterialTheme.colorScheme.surface,
+        modifier = Modifier.testTag("target_selection_sheet")
+    ) {
         Column(
             modifier = Modifier.padding(IvaiSpacing.Medium),
             verticalArrangement = Arrangement.spacedBy(IvaiSpacing.XSmall)
