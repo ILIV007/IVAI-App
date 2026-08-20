@@ -19,6 +19,13 @@ printf 'synthetic package artifact\n' > "$fixture/IVAI-phase75-research-debug.ap
 printf 'synthetic unit-test report\n' > "$fixture/unit-test-report.html"
 printf 'synthetic lint report\n' > "$fixture/lint-report.html"
 printf 'BUILD SUCCESSFUL\n' > "$fixture/build-quality.log"
+cat > "$fixture/CONTROLLED_SCENARIO_CARDS.md" <<'EOF'
+# Phase 7.5 — Controlled Scenario Cards
+
+> These cards are facilitator-only research material; they are **not** product screens, runtime data, test results, or evidence.
+
+Do not create the described connection, credential, target, Combo, Agent, run, approval, failure, project file, or chat content in the application.
+EOF
 
 cat > "$fixture/RESEARCH_PACKAGE_MANIFEST.txt" <<EOF
 IVAI Phase 7.5 controlled research package manifest
@@ -39,6 +46,7 @@ EOF
 
 cat > "$fixture/README.txt" <<'EOF'
 Build: debug only; not a public Alpha artifact
+Use CONTROLLED_SCENARIO_CARDS.md only to establish hypothetical task context; it is not product state and must not be entered into IVAI.
 This package does not substitute for a signed release, physical-device evidence, or Alpha approval.
 EOF
 
@@ -49,6 +57,7 @@ EOF
     unit-test-report.html \
     lint-report.html \
     build-quality.log \
+    CONTROLLED_SCENARIO_CARDS.md \
     > SHA256SUMS.txt
 )
 
