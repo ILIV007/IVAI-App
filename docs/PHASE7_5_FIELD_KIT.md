@@ -33,6 +33,7 @@ Before any participant receives a device, the facilitator must confirm all of th
 | App state | Fresh/cleared local app data; no account, credential, provider connection, endpoint, Combo, Agent target, project file, or prior chat data. |
 | Network and write safety | No real provider request, local endpoint connection, or Agent write will be initiated. |
 | Facilitator record | The blank local worksheet is used only with anonymous IDs and permitted non-sensitive outcomes; identity mapping remains outside the repository. |
+| Controlled scenario cards | The static [controlled scenario cards](PHASE7_5_CONTROLLED_SCENARIO_CARDS.md) are available to establish hypothetical task context without adding app data or revealing a route. |
 
 ## 2. Opening Script and Consent
 
@@ -55,6 +56,10 @@ Randomize the five task prompts per participant. Do not give route hints before 
 | 5 | “A target fails. Show how you would recover, then begin a chat in a selected local project.” | Recovery path and project-chat route; no claim that a message sends automatically. |
 
 A safety-critical misunderstanding of active target, write approval, or recovery is a P1 finding. Stop the scenario rather than letting a participant enter credentials or attempt a real write.
+
+### Controlled Scenario Context
+
+The clean controlled build intentionally contains no real Provider, account, model, Combo, Agent approval, failed target, credential, file, or chat history. For each task, show the corresponding static [controlled scenario card](PHASE7_5_CONTROLLED_SCENARIO_CARDS.md) only to establish the hypothetical context. Do not create the described state in IVAI, show a route before the participant's first attempt, or treat a scenario card as a product state. The cards make safety-comprehension prompts operational while preserving the no-network/no-write/no-credential boundary.
 
 ## 4. Device and Accessibility Sweep
 

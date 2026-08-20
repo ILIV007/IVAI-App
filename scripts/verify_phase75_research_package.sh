@@ -20,6 +20,7 @@ required_files=(
   "SHA256SUMS.txt"
   "RESEARCH_PACKAGE_MANIFEST.txt"
   "RESEARCH_SESSION_WORKSHEET.md"
+  "CONTROLLED_SCENARIO_CARDS.md"
   "README.txt"
 )
 
@@ -32,6 +33,7 @@ done
 
 manifest="$package_dir/RESEARCH_PACKAGE_MANIFEST.txt"
 worksheet="$package_dir/RESEARCH_SESSION_WORKSHEET.md"
+scenario_cards="$package_dir/CONTROLLED_SCENARIO_CARDS.md"
 readme="$package_dir/README.txt"
 checksums="$package_dir/SHA256SUMS.txt"
 
@@ -68,6 +70,7 @@ expected_checksum_artifacts=(
   "unit-test-report.html"
   "lint-report.html"
   "build-quality.log"
+  "CONTROLLED_SCENARIO_CARDS.md"
 )
 mapfile -t checksum_artifacts < <(awk '{print $2}' "$checksums")
 [[ "${#checksum_artifacts[@]}" -eq "${#expected_checksum_artifacts[@]}" ]] || {
@@ -100,8 +103,24 @@ grep -Fq 'must not be committed as participant or device evidence' "$worksheet" 
   echo "Worksheet is missing its repository boundary." >&2
   exit 1
 }
+grep -Fq '# Phase 7.5 — Controlled Scenario Cards' "$scenario_cards" || {
+  echo "Scenario cards are missing their controlled-research title." >&2
+  exit 1
+}
+grep -Fq 'they are **not** product screens, runtime data, test results, or evidence' "$scenario_cards" || {
+  echo "Scenario cards are missing the non-product-state boundary." >&2
+  exit 1
+}
+grep -Fq 'Do not create the described connection, credential, target, Combo, Agent, run, approval, failure, project file, or chat content in the application.' "$scenario_cards" || {
+  echo "Scenario cards are missing the no-runtime-fixture boundary." >&2
+  exit 1
+}
 grep -Fq 'Build: debug only; not a public Alpha artifact' "$readme" || {
   echo "README is missing the debug-only Alpha boundary." >&2
+  exit 1
+}
+grep -Fq 'Use CONTROLLED_SCENARIO_CARDS.md only to establish hypothetical task context; it is not product state and must not be entered into IVAI.' "$readme" || {
+  echo "README is missing the scenario-card boundary." >&2
   exit 1
 }
 grep -Fq 'This package does not substitute for a signed release, physical-device evidence, or Alpha approval.' "$readme" || {

@@ -39,6 +39,7 @@ lint_report="$repo_root/app/build/reports/lint-results-debug.html"
 cp "$apk" "$package_dir/IVAI-phase75-research-debug.apk"
 cp "$test_report" "$package_dir/unit-test-report.html"
 cp "$lint_report" "$package_dir/lint-report.html"
+cp "$repo_root/docs/PHASE7_5_CONTROLLED_SCENARIO_CARDS.md" "$package_dir/CONTROLLED_SCENARIO_CARDS.md"
 
 (
   cd "$package_dir"
@@ -47,6 +48,7 @@ cp "$lint_report" "$package_dir/lint-report.html"
     unit-test-report.html \
     lint-report.html \
     build-quality.log \
+    CONTROLLED_SCENARIO_CARDS.md \
     > SHA256SUMS.txt
 )
 
@@ -72,6 +74,7 @@ Checksum-covered artifacts:
 - unit-test-report.html
 - lint-report.html
 - build-quality.log
+- CONTROLLED_SCENARIO_CARDS.md (facilitator-only static scenario context)
 EOF
 
 cat > "$package_dir/RESEARCH_SESSION_WORKSHEET.md" <<'EOF'
@@ -126,6 +129,7 @@ Mandatory session safety:
 - Do not send a request, connect a provider, perform an Agent write, or use a workspace containing personal data.
 - Record only de-identified outcomes in the approved validation record; never store raw participant data in the repository.
 - Run scripts/verify_phase75_research_package.sh against this package, then review RESEARCH_PACKAGE_MANIFEST.txt before every session.
+- Use CONTROLLED_SCENARIO_CARDS.md only to establish hypothetical task context; it is not product state and must not be entered into IVAI.
 - This package does not substitute for a signed release, physical-device evidence, or Alpha approval.
 
 Contents:
@@ -136,6 +140,7 @@ Contents:
 - unit-test-report.html
 - lint-report.html
 - RESEARCH_SESSION_WORKSHEET.md (blank local-only worksheet)
+- CONTROLLED_SCENARIO_CARDS.md (facilitator-only static scenario cards)
 EOF
 
 "$repo_root/scripts/verify_phase75_research_package.sh" "$package_dir"
