@@ -2,6 +2,7 @@ package dev.iliv007.ivai.data.local
 
 import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
+import dev.iliv007.ivai.router.ExecutionTargetKind
 import dev.iliv007.ivai.provider.ProviderAccountAuthMode
 import dev.iliv007.ivai.provider.ProviderCapability
 import dev.iliv007.ivai.provider.ProviderEndpointTrustMode
@@ -84,6 +85,65 @@ class LocalEndpointTrustRepositoryTest {
 
         assertEquals(listOf(model.id), resolution.candidates.map { it.modelId })
         assertTrue(resolution.candidates.single().providerModelId == "user-local-model")
+    }
+
+    @Test
+    fun `agent direct target rejects remote no-auth record that bypassed account validation`() = runBlocking {
+        val connection = ProviderConnectionEntity(
+            id = "legacy-remote",
+            providerKind = "CUSTOM_OPENAI_COMPATIBLE",
+            displayName = "Legacy remote",
+            baseUrl = "https://api.example.com/v1",
+            isEnabled = true,
+            createdAtEpochMs = 1L,
+            updatedAtEpochMs = 1L
+        )
+        val account = ProviderAccountEntity(
+            id = "legacy-no-auth",
+            connectionId = connection.id,
+            displayName = "Legacy no-auth",
+            credentialReference = noAuthCredentialMarker("legacy-no-auth"),
+            isEnabled = true,
+            createdAtEpochMs = 1L,
+            updatedAtEpochMs = 1L,
+            authMode = ProviderAccountAuthMode.NONE.name
+        )
+        val model = ProviderModelEntity(
+            id = "legacy-model",
+            connectionId = connection.id,
+            providerModelId = "legacy-model-id",
+            displayName = "Legacy model",
+            capabilitiesCsv = "TEXT,STREAMING",
+            isManual = true,
+            isSelectable = true,
+            updatedAtEpochMs = 1L
+        )
+        repository.saveProviderConnection(connection)
+        database.providerAccountDao().upsert(account)
+        repository.saveProviderModel(model)
+
+        val failure = runCatching {
+            repository.saveAgentProfile(
+                AgentProfileEntity(
+                    id = "agent-legacy",
+                    name = "Legacy agent",
+                    instructions = "Use the selected target.",
+                    targetKind = ExecutionTargetKind.DIRECT_MODEL.name,
+                    targetId = model.id,
+                    accountId = account.id,
+                    projectId = null,
+                    enabledToolsCsv = "",
+                    maxSteps = 1,
+                    maxToolCalls = 0,
+                    maxRuntimeMs = 1_000L,
+                    isEnabled = true,
+                    createdAtEpochMs = 1L,
+                    updatedAtEpochMs = 1L
+                )
+            )
+        }.exceptionOrNull()
+
+        assertTrue(failure is IllegalArgumentException)
     }
 
     @Test

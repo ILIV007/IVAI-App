@@ -189,15 +189,12 @@ class LocalWorkspaceRepository(
                 val accountId = requireNotNull(profile.accountId) { "A direct model Agent target requires an account." }
                 val model = providerModelDao.findById(profile.targetId)
                     ?: throw IllegalArgumentException("Unknown Agent model target")
-                val account = providerAccountDao.findById(accountId)
-                    ?: throw IllegalArgumentException("Unknown Agent account target")
-                val connection = providerConnectionDao.findById(model.connectionId)
-                    ?: throw IllegalArgumentException("Unknown Agent provider connection")
-                require(connection.isEnabled && account.isEnabled && model.isSelectable) {
-                    "Agent direct model target must be an enabled user-managed provider, account, and selectable model."
+                require(providerAccountDao.findById(accountId) != null) { "Unknown Agent account target" }
+                require(providerConnectionDao.findById(model.connectionId) != null) {
+                    "Unknown Agent provider connection"
                 }
-                require(account.connectionId == connection.id) {
-                    "Agent account must belong to the selected model provider connection."
+                require(isUsableRouterCandidate(model.connectionId, accountId, model.id)) {
+                    "Agent direct model target must be an enabled, locally ready user-managed provider account and selectable model."
                 }
             }
 

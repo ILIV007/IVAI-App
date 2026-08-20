@@ -949,17 +949,40 @@ class WorkspaceViewModel(
         val traceFlow = selectedAgentRunId.flatMapLatest { runId ->
             runId?.let(repository::observeAgentRunSteps) ?: flowOf(emptyList())
         }
-        val targetOptionsFlow = combine(repository.observeProviderRegistry(), repository.observeRouter()) { registry, router ->
+        val vault = secretVault
+        val registryWithCredentialStatusFlow = repository.observeProviderRegistry().flatMapLatest { registry ->
+            val statusFlows = vault?.let { availableVault ->
+                registry.accounts
+                    .filter { ProviderAccountAuthMode.valueOf(it.authMode) == ProviderAccountAuthMode.API_KEY }
+                    .map { account -> availableVault.observeStatus(account.credentialReference) }
+            }.orEmpty()
+            if (statusFlows.isEmpty()) flowOf(registry to emptyMap())
+            else combine(statusFlows) { statuses ->
+                registry to statuses.associate { it.reference to it.exists }
+            }
+        }
+        val targetOptionsFlow = combine(registryWithCredentialStatusFlow, repository.observeRouter()) {
+                (registry, credentialStatusByReference), router ->
             val connections = registry.connections.associateBy { it.id }
             val accounts = registry.accounts.associateBy { it.id }
             val models = registry.models.associateBy { it.id }
+            fun accountIsLocallyReady(account: ProviderAccountEntity, connection: ProviderConnectionEntity): Boolean =
+                when (ProviderAccountAuthMode.valueOf(account.authMode)) {
+                    ProviderAccountAuthMode.API_KEY ->
+                        if (vault == null) account.credentialReference.isNotBlank()
+                        else credentialStatusByReference[account.credentialReference] == true
+                    ProviderAccountAuthMode.NONE ->
+                        account.credentialReference == noAuthCredentialMarker(account.id) &&
+                            ProviderEndpointTrustMode.valueOf(connection.endpointTrustMode) != ProviderEndpointTrustMode.REMOTE_HTTPS
+                }
+
             val directTargets = registry.models.flatMap { model ->
                 val connection = connections[model.connectionId]
                 if (connection == null || !connection.isEnabled || !model.isSelectable) {
                     emptyList()
                 } else {
                     registry.accounts.filter { account ->
-                        account.isEnabled && account.connectionId == connection.id
+                        account.isEnabled && account.connectionId == connection.id && accountIsLocallyReady(account, connection)
                     }.map { account ->
                         AgentTargetOption(
                             targetKind = "DIRECT_MODEL",
@@ -976,7 +999,8 @@ class WorkspaceViewModel(
                     val account = accounts[entry.accountId]
                     val model = models[entry.modelId]
                     connection?.isEnabled == true && account?.isEnabled == true && model?.isSelectable == true &&
-                        account.connectionId == connection.id && model.connectionId == connection.id
+                        account.connectionId == connection.id && model.connectionId == connection.id &&
+                        accountIsLocallyReady(account, connection)
                 }
             }.map { combo ->
                 AgentTargetOption(
