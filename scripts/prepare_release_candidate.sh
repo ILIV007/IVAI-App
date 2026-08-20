@@ -56,8 +56,9 @@ for artifact in "$apk_debug" "$apk_release" "$mapping" "$test_report" "$lint_rep
   [[ -f "$artifact" ]] || { echo "Expected build artifact was not produced: $artifact" >&2; exit 1; }
 done
 
-apksigner="$ANDROID_HOME/build-tools/36.1.0/apksigner"
-[[ -x "$apksigner" ]] || { echo "Expected Android build-tools apksigner was not found: $apksigner" >&2; exit 1; }
+build_tools_version="${IVAI_BUILD_TOOLS_VERSION:-37.0.0}"
+apksigner="$ANDROID_HOME/build-tools/$build_tools_version/apksigner"
+[[ -x "$apksigner" ]] || { echo "Expected Android build-tools apksigner was not found: $apksigner (set IVAI_BUILD_TOOLS_VERSION only for a compatible installed build-tools version)." >&2; exit 1; }
 if "$apksigner" verify --verbose "$apk_release" >/dev/null 2>&1; then
   echo "Release Candidate release APK is signed; this local unsigned-candidate helper refuses signed artifacts." >&2
   exit 1
