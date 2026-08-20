@@ -82,8 +82,8 @@ skipped="$(sum_attribute skipped)"
   echo "Unit-test result is not clean: tests=$tests failures=$failures errors=$errors skipped=$skipped" >&2
   exit 1
 }
-[[ "$tests" -eq 155 ]] || {
-  echo "Unexpected unit-test baseline: expected 155, found $tests." >&2
+[[ "$tests" -eq 158 ]] || {
+  echo "Unexpected unit-test baseline: expected 158, found $tests." >&2
   exit 1
 }
 rm -f "$xml_list"

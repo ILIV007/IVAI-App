@@ -50,7 +50,7 @@ class LocalProviderChatSession(
             )
         }
         val response = StringBuilder()
-        var completed = false
+        var terminalEventReceived = false
         provider.streamChat(
             ProviderChatRequest(
                 credentialReference = credentialReference,
@@ -75,12 +75,14 @@ class LocalProviderChatSession(
                             ).toEntity(threadId, nowEpochMs())
                         )
                     }
-                    completed = true
+                    terminalEventReceived = true
                 }
+                is ProviderStreamEvent.Failed,
+                ProviderStreamEvent.Cancelled -> terminalEventReceived = true
                 else -> Unit
             }
             emit(event)
         }
-        check(completed) { "Provider stream ended without a completed event" }
+        check(terminalEventReceived) { "Provider stream ended without a terminal event" }
     }
 }
