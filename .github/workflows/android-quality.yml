@@ -43,6 +43,10 @@ jobs:
           sdkmanager "platform-tools" "platforms;android-37.1" "build-tools;37.0.0"
       - name: Verify wrapper integrity
         run: unzip -t gradle/wrapper/gradle-wrapper.jar
+      - name: Verify Android SDK provisioning contract
+        run: bash scripts/check_android_sdk_provisioning_contract.sh
+      - name: Run Android SDK provisioning contract regression
+        run: bash scripts/test_android_sdk_provisioning_contract.sh
       - name: Run provider-neutral branding guard
         run: bash scripts/check_provider_neutral_branding.sh
       - name: Run bounded RTL exception guard

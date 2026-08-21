@@ -32,7 +32,7 @@ The default package directory is:
 /tmp/ivai-release-candidates/<version>-rc-<short-commit>/
 ```
 
-The helper refuses a dirty worktree, repository-integrity failure, tracked local/signing material, failed deterministic gate, unexpected test total, non-zero test failure/error/skip count, missing R8 mapping, or invariant-scan match.
+The helper refuses a dirty worktree, repository-integrity failure, tracked local/signing material, failed deterministic gate, unexpected test total, non-zero test failure/error/skip count, missing R8 mapping, or invariant-scan match. It also verifies the repository SDK contract and requires `apksigner` from the same pinned `build-tools;37.0.0` provisioned by protected CI. `IVAI_BUILD_TOOLS_VERSION`, if set, must equal that contract; it cannot select a different local build-tools version.
 
 ## Verify Before Internal Review
 
