@@ -1,18 +1,38 @@
+# Android and Gradle generated state
 *.iml
 .gradle
 .kotlin
+/build
+/captures
+.externalNativeBuild
+.cxx
+*.apk
+*.aab
+
+# Machine-local IDE / SDK configuration
 /local.properties
+local.properties
 /.idea/caches
 /.idea/libraries
 /.idea/modules.xml
 /.idea/workspace.xml
 /.idea/navEditor.xml
 /.idea/assetWizardSettings.xml
-.DS_Store
-/build
-/captures
-.externalNativeBuild
-.cxx
-local.properties
+
+# Local environment and signing material
 .env
+.env.*
+!.env.example
+*.jks
+*.keystore
+*.p12
+*.pfx
+*.pem
+*.key
 debug.keystore
+/release-evidence/
+/release-candidates/
+
+# Operating-system residue
+.DS_Store
+Thumbs.db

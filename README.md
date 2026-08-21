@@ -1,43 +1,42 @@
-# IVAI — Local-first BYOK Agent Harness for Android
+# IVAI — Local-first, Backendless, BYOK AI Agent Harness for Android
 
-> **Alpha status:** The repository is buildable and continuously validated, but a public GitHub Alpha release has not been created yet. IVAI is intentionally local-first, backendless, and BYOK; it is **not** a single-provider client or a hosted agent service. The current release decision, exact gates, and deterministic audit are documented in the [Release Readiness Checklist](docs/RELEASE_READINESS_CHECKLIST.md) and [Release Readiness Audit](docs/RELEASE_READINESS_AUDIT_2026-08-17.md). The latest [provider-neutral repository cleanup](docs/PROVIDER_NEUTRALITY_CLEANUP_2026-08-18.md) records the removed nonfunctional branding and retained technical adapter/build references.
+> **Release status — pre-Alpha.** IVAI is buildable, continuously validated, and prepared for controlled Phase 7.5 field research. It is **not approved for a public Alpha release**. No public binary, owner-signed artifact, tag, or GitHub Release exists. The current deterministic evidence is clean at **160 unit tests, zero failures/errors/skips, and zero lint issues**; real usability, device, accessibility, network, signing, and owner-approval gates remain open. See the [Release Readiness Checklist](docs/RELEASE_READINESS_CHECKLIST.md), [Alpha Release Policy](docs/ALPHA_RELEASE.md), and [Phase 7.5 Deterministic Hardening Audit](docs/PHASE7_5_DETERMINISTIC_HARDENING_AUDIT_2026-08-21.md).
 
-IVAI is an Android harness for configuring, routing, and running bounded AI-agent workflows using connections and credentials that remain under the user's control. The user owns the provider connection, account, endpoint, model, capability metadata, ordered fallback Combo, chat execution target, Agent profile, and project workspace. The app creates no central IVAI account, mandatory backend, telemetry service, or implicit provider configuration.
-
-The supplied **VA** brand mark is reserved for the Android launcher only. The product UI uses an independent IVAI wordmark and an indigo ground with emerald/aqua and aurora-violet accents; this presentation layer does not alter provider selection, local data ownership, or any execution boundary.
+IVAI is an Android harness for configuring and executing bounded AI-agent workflows using **connections and credentials controlled by the user**. It is not a single-provider client, hosted agent service, central backend, or telemetry product.
 
 ## Product principles
 
-| Principle | IVAI Alpha behavior |
+| Principle | Current IVAI behavior |
 |---|---|
-| **Local-first** | Workspace, chats, provider metadata, router attempts, Agent profiles, runs, trace steps, and approvals are stored locally in Room. Project files stay in app-private storage. |
-| **Backendless** | The application has no IVAI server, proxy, required login, or default analytics pipeline. |
-| **BYOK** | Credentials are user supplied and referenced locally. Room stores only credential references; encrypted material is managed through an Android Keystore-backed vault. |
-| **Provider-neutral** | Gemini is a streaming proof adapter, not a fixed provider. The user can configure Gemini, OpenRouter, or a Custom OpenAI-compatible HTTPS endpoint. |
-| **Bounded agents** | Agent runs are bounded by step, tool-call, and runtime ceilings. Every action is persisted in a reviewable local trace. |
-| **Approval-first writes** | A project-file write requires a visible preview and explicit **Allow once** approval. There is no always-allow mode and no automatic replay after restart. |
+| **Local-first** | Workspace, chats, provider metadata, router attempts, Agent profiles, runs, trace steps, and approvals are stored locally in Room. Project files remain in app-private storage. |
+| **Backendless** | IVAI has no central server, proxy, mandatory account, cloud sync, or default analytics pipeline. |
+| **BYOK** | The user provides credentials. Room stores opaque references only; encrypted credential material is controlled by an Android Keystore-backed vault. |
+| **Provider-neutral** | Gemini is a proof streaming adapter, not a default or required provider. Users explicitly manage Gemini, OpenRouter, and Custom OpenAI-compatible HTTPS connections. |
+| **Explicit targets** | Users choose a Provider/Account/Model target or an ordered local Combo. IVAI never silently selects a provider or model. |
+| **Bounded agents** | Agent runs apply local step, tool-call, and runtime limits, with a reviewable local trace. |
+| **Approval-first writes** | A project-file write requires a visible preview and one explicit **Allow once** decision. There is no always-allow mode or automatic replay after restart. |
 
-## What is implemented
+The supplied **VA** mark is Android launcher artwork only. Product UI uses an independent IVAI wordmark and a semantic indigo/emerald/aqua/aurora-violet design system; visual branding never affects provider selection, data ownership, or execution controls.
 
-### Provider, chat, and router harness
+## Current capability surface
 
-The local provider registry supports user-managed connections, accounts, models, credential references, enable/disable controls, and manual model metadata. The current adapter set contains Gemini, OpenRouter, and Custom OpenAI-compatible adapters. The latter accepts only user-configured HTTPS endpoints. Chat execution can use a direct configured model or an ordered local Combo; the sequential router performs capability matching, controlled fallback, and records a local attempt trace.
+### Provider, chat, and routing harness
 
-### Local Agent Alpha
+The local registry supports user-managed Connections, Accounts, Models, credential references, enable/disable controls, and manual capability metadata. Chat can run against one explicit configured Model or an ordered Combo. The sequential router performs capability matching and bounded fallback before any user-visible output; it records a local, redacted attempt trace. A terminal provider-stream event is authoritative: malformed adapter output after `Completed`, `Failed`, or `Cancelled` is not accepted by direct or routed chat.
 
-Agent profiles are attached only to a valid, enabled user-managed Direct Model or Combo. The profile editor intentionally presents registry-derived local targets rather than accepting a free-form provider target. Current safe tools are calculation and current time; project-file writes require a review dialog with a bounded preview. Runs, steps, approvals, limits, cancellation, failures, and terminal states are persisted locally.
+Custom OpenAI-compatible endpoints are user supplied and HTTPS-only. Explicit local-device and private-LAN HTTPS modes are modeled separately. HTTP, `.local`/mDNS discovery, scanning, bundled inference, hidden defaults, and automatic network operations are out of scope.
 
-After process death, write payloads are intentionally unavailable because they are not persisted. Any unresolved approval is denied during foreground recovery, the interrupted run is stopped safely, and the trace records that no write occurred.
+### Bounded local Agent
+
+Agent profiles attach only to valid, enabled, user-managed Direct Model or Combo targets. The current safe tools are calculation, current time, and bounded project-bound read/list/literal-search; project-file writes require a bounded preview and explicit approval. Runs, steps, approvals, limits, cancellation, failures, and terminal state are persisted locally. During foreground recovery, unresolved write approvals are denied and interrupted runs stop safely; write payloads are deliberately not persisted across process death.
 
 ### Data and security
 
-Room schema history is exported under `app/schemas/`. Migration and reopen coverage includes a real legacy v1 fixture upgraded through all current migrations to v6, including endpoint trust, authentication-mode defaults, and the durable incomplete marker for a visible assistant partial interrupted before stream completion. Local export/import is versioned and secret-free. The app-private workspace rejects unsafe traversal paths. Provider diagnostics and user-visible errors are designed to avoid raw credentials, authorization headers, raw model reasoning, and unredacted secrets.
+Room schema history is exported in `app/schemas/`. Migration and recovery coverage includes a legacy v1 fixture through the current schema, endpoint-trust and authentication-mode defaults, and the durable marker for a visible assistant partial interrupted before stream completion. Local export/import is versioned and secret-free. App-private workspace paths reject unsafe traversal. User-visible provider diagnostics avoid raw credentials, authorization headers, model reasoning, and unredacted secrets.
 
-## Explicit Alpha boundaries
+## Deliberate Alpha boundaries
 
-The following capabilities are intentionally **not** part of Alpha: Shell/Termux execution, Shizuku, Accessibility automation, unrestricted storage access, unrestricted HTTP POST tools, MCP process/server execution, autonomous background agents, multi-agent swarms, local model inference, cloud backup, multi-device synchronization, voice, public app-store distribution, or a central IVAI backend.
-
-Safe workspace read/list/search tooling is implemented within the bounded local runtime. The full RTL/accessibility/device evidence matrix remains planned hardening work; see [the roadmap](docs/ROADMAP.md), [the Alpha release checklist](docs/ALPHA_RELEASE.md), and the [Phase 6 hardening readiness audit](docs/PHASE6_HARDENING_AUDIT.md).
+IVAI does **not** include Shell/Termux execution, Shizuku, Accessibility automation, unrestricted storage access, unrestricted HTTP tools, MCP process/server execution, autonomous background agents, multi-agent swarms, local-model inference, cloud backup, multi-device sync, voice, public app-store distribution, or a central IVAI backend. Future Skills and MCP work is planned as a separately gated architecture track; see [Skills and MCP Future Architecture](docs/SKILLS_MCP_FUTURE_ARCHITECTURE.md).
 
 ## Architecture
 
@@ -46,58 +45,80 @@ Compose UI
   -> WorkspaceViewModel / local UI state
   -> LocalWorkspaceRepository
   -> Room database | app-private project workspace | Keystore-backed secret vault
-  -> provider adapters selected from user-managed local registry
+  -> user-managed provider adapters and endpoint trust policy
   -> foreground, user-initiated provider request only
 ```
 
-The full architecture and security boundaries are documented in [Architecture](docs/ARCHITECTURE.md), [Security](docs/SECURITY.md), and [Provider Harness Alignment](docs/PROVIDER_HARNESS_ALIGNMENT.md).
+Read [Architecture](docs/ARCHITECTURE.md), [Security](docs/SECURITY.md), and [Provider Harness Alignment](docs/PROVIDER_HARNESS_ALIGNMENT.md) before changing a provider, network, persistence, runtime, or security boundary.
 
 ## Build and validate
 
 ### Prerequisites
 
-Use a full **JDK 21** and an Android SDK that includes platform `36` with minor API level `1`. The repository uses Android Gradle Plugin `9.1.1`, Gradle `9.3.1`, Kotlin/Compose, Room, DataStore, and Material 3. Configure `ANDROID_HOME` or `ANDROID_SDK_ROOT`; do not commit a machine-local `local.properties` file.
+Use **JDK 21** and an Android SDK containing `platforms;android-37.1` and `build-tools;37.0.0`. The repository currently uses Android Gradle Plugin **9.3.1**, Gradle **9.7.1**, Kotlin **2.4.10**, KSP **2.3.11**, Compose BOM **2026.08.00**, Core **1.19.0**, and Lifecycle **2.11.0**. Do not commit machine-local `local.properties`.
 
 ```bash
 export JAVA_HOME=/path/to/jdk-21
 export ANDROID_HOME=/path/to/android-sdk
 ```
 
-### Local quality gate
-
-Run the same practical Android validation expected by the repository workflow:
+Run the deterministic local gate before opening a pull request:
 
 ```bash
-./gradlew clean assembleDebug testDebugUnitTest lintDebug --no-daemon --console=plain
+bash scripts/check_android_sdk_provisioning_contract.sh
+bash scripts/test_android_sdk_provisioning_contract.sh
+bash scripts/test_phase75_research_package_verifier.sh
+bash scripts/test_release_candidate_package_verifier.sh
+bash scripts/test_owner_signed_release_evidence_helper.sh
+bash scripts/check_provider_neutral_branding.sh
+bash scripts/check_rtl_bounded_exceptions.sh
+bash scripts/check_phase80_architecture_readiness.sh
+bash scripts/check_provider_model_test_readiness.sh
+./gradlew clean assembleDebug assembleRelease testDebugUnitTest lintDebug --no-daemon --console=plain
 ```
 
-Build output is produced at:
+The debug APK at `app/build/outputs/apk/debug/app-debug.apk` is a development artifact, **not** a signed Alpha release artifact.
 
-```text
-app/build/outputs/apk/debug/app-debug.apk
+### Build a local unsigned Release Candidate evidence package
+
+Only a clean checkout may create a candidate package. The helper builds a minified unsigned release APK, debug APK, mapping file, test/lint reports, checksums, and security/repository evidence. It does not sign, tag, upload, or publish anything.
+
+```bash
+./scripts/prepare_release_candidate.sh /tmp/ivai-release-candidates
+./scripts/verify_release_candidate_package.sh \
+  /tmp/ivai-release-candidates/<version>-rc-<short-commit>
 ```
 
-The debug APK is a development artifact, **not** a signed Alpha release artifact. See the release checklist before publishing any APK or GitHub Release.
+The candidate package is internal provenance evidence only. Review [Release Candidate Preparation](docs/RELEASE_CANDIDATE_PREPARATION.md) and [Alpha Release Policy](docs/ALPHA_RELEASE.md) before any owner-controlled signing step.
 
-## Contribution workflow
+## Documentation map
 
-Changes are made on focused branches through pull requests. The protected `main` branch requires linear history, one approval, secret scanning, and the Android build/unit-test/lint gate. Please read [CONTRIBUTING.md](CONTRIBUTING.md) before opening a change.
-
-Every change that adds a provider, network behavior, persistent data, file access, Agent capability, or release artifact must describe its safety boundary, migration impact, and validation evidence. Do not add secrets, credentials, or personal workspace data to source control.
-
-## Current hardening status
-
-| Roadmap area | Status |
+| If you need to… | Start here |
 |---|---|
-| Governance and protected CI | Complete |
-| Local data, encrypted credential boundary, and workspace isolation | Complete with ongoing hardening |
-| Provider registry, explicit cloud preset catalog, adapters, direct target and Combo router | Complete for current Alpha scope; no provider or model is selected automatically |
-| User-operated local model server endpoints (Ollama, LM Studio, vLLM, compatible OpenAI-style servers) | Available only as an explicit, user-confirmed **HTTPS** loopback or RFC1918 IPv4 connection; the user chooses endpoint, model and API-key/no-auth mode. HTTP, `.local` discovery, scanning and bundled inference remain out of scope. |
-| Bounded Agent with explicit profile tool policy, one-time write approval, trace, budget, cancellation, target validation, and restart recovery | Complete for current Basic Agent scope |
-| Safe read/list/search Agent tools | Complete for Alpha scope: app-private, project-bound, bounded, and not persisted in Run Trace |
-| Migration and recovery coverage | Complete through Room v6, including persisted endpoint trust/account authentication defaults and an explicit durable marker for visible assistant partials interrupted before stream completion |
-| Phase 7.5 deterministic hardening | Complete in [PR #37](https://github.com/ILIV007/IVAI-App/pull/37): explicit no-backup/no-transfer rules and regression coverage are on `main` |
-| Voluntary UX research, physical-device RTL/accessibility/network evidence, and signed Alpha release | Pending before a public Alpha release; no participant or device result is claimed without evidence. See the [Release Readiness Checklist](docs/RELEASE_READINESS_CHECKLIST.md) and [Release Readiness Audit](docs/RELEASE_READINESS_AUDIT_2026-08-17.md). |
+| Understand product scope, phases, and deferred gates | [Roadmap](docs/ROADMAP.md) |
+| Understand local data, vault, provider, and Agent boundaries | [Architecture](docs/ARCHITECTURE.md) and [Security](docs/SECURITY.md) |
+| Prepare or verify an unsigned candidate | [Release Candidate Preparation](docs/RELEASE_CANDIDATE_PREPARATION.md) |
+| Review Alpha gates and signing/publication boundaries | [Alpha Release Policy](docs/ALPHA_RELEASE.md) and [Release Readiness Checklist](docs/RELEASE_READINESS_CHECKLIST.md) |
+| Run controlled usability/device research | [Phase 7.5 Field Kit](docs/PHASE7_5_FIELD_KIT.md) and [Validation Protocol](docs/PHASE7_5_UX_VALIDATION_PROTOCOL.md) |
+| Understand the next Skills/MCP architecture direction | [Skills and MCP Future Architecture](docs/SKILLS_MCP_FUTURE_ARCHITECTURE.md) |
+| Browse the complete document index | [Documentation Index](docs/README.md) |
+
+## Contribute, report, and support
+
+Use focused branches and pull requests; direct pushes to `main` are not the normal workflow. The protected branch requires one approval and the Secret scan plus Android quality gate. Read [Contributing](CONTRIBUTING.md) for scope, validation, and review expectations.
+
+Do **not** create a public issue for a suspected vulnerability, credential exposure, unsafe execution path, or release-integrity problem. Follow the private reporting process in [Security Policy](SECURITY.md). Community expectations are in the [Code of Conduct](CODE_OF_CONDUCT.md).
+
+## Release status
+
+| Area | Status |
+|---|---|
+| Local-first data, encrypted credential boundary, workspace isolation | Complete for current Alpha scope; hardening continues. |
+| Provider registry, explicit targets, adapters, direct Model and Combo routing | Complete for current Alpha scope; no automatic provider/model selection. |
+| Bounded local Agent, local trace, cancellation, recovery, and one-time write approval | Complete for current Alpha scope. |
+| Deterministic build, test, lint, CI, unsigned RC, and owner-signing handoff | Ready and continuously verified; no signed/public artifact has been produced. |
+| Phase 7.5 usability, heuristic, device, RTL, TalkBack, and real HTTPS evidence | Pending; no participant or device result is claimed without recorded evidence. |
+| Owner-controlled signing, annotated tag, GitHub Alpha Release, and public binary | Pending; blocked until every external gate is complete and the owner approves one exact candidate commit. |
 
 ## License
 

@@ -1,0 +1,19 @@
+# Normalize repository text files across contributor platforms.
+* text=auto eol=lf
+
+# Windows launcher wrapper remains CRLF-compatible.
+*.bat text eol=crlf
+
+# Android and documentation assets must never be text-normalized.
+*.apk binary
+*.aab binary
+*.jar binary
+*.jks binary
+*.keystore binary
+*.png binary
+*.webp binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.pdf binary
