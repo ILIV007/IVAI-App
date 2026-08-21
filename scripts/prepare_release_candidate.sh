@@ -14,6 +14,13 @@ prepared_at_utc="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
 [[ -n "${JAVA_HOME:-}" ]] || { echo "Set JAVA_HOME to JDK 21 before preparing a Release Candidate." >&2; exit 1; }
 [[ -n "${ANDROID_HOME:-}" ]] || { echo "Set ANDROID_HOME before preparing a Release Candidate." >&2; exit 1; }
 
+sdk_contract="$repo_root/scripts/check_android_sdk_provisioning_contract.sh"
+build_tools_version="$("$sdk_contract" --print-build-tools-version)"
+if [[ -n "${IVAI_BUILD_TOOLS_VERSION:-}" && "$IVAI_BUILD_TOOLS_VERSION" != "$build_tools_version" ]]; then
+  echo "IVAI_BUILD_TOOLS_VERSION must match the repository SDK contract ($build_tools_version)." >&2
+  exit 1
+fi
+
 output_root_absolute="$(realpath -m "$output_root")"
 case "$output_root_absolute" in
   "$repo_root"|"$repo_root"/*)
@@ -56,9 +63,8 @@ for artifact in "$apk_debug" "$apk_release" "$mapping" "$test_report" "$lint_rep
   [[ -f "$artifact" ]] || { echo "Expected build artifact was not produced: $artifact" >&2; exit 1; }
 done
 
-build_tools_version="${IVAI_BUILD_TOOLS_VERSION:-37.0.0}"
 apksigner="$ANDROID_HOME/build-tools/$build_tools_version/apksigner"
-[[ -x "$apksigner" ]] || { echo "Expected Android build-tools apksigner was not found: $apksigner (set IVAI_BUILD_TOOLS_VERSION only for a compatible installed build-tools version)." >&2; exit 1; }
+[[ -x "$apksigner" ]] || { echo "Expected Android build-tools apksigner was not found: $apksigner for the repository SDK contract." >&2; exit 1; }
 if "$apksigner" verify --verbose "$apk_release" >/dev/null 2>&1; then
   echo "Release Candidate release APK is signed; this local unsigned-candidate helper refuses signed artifacts." >&2
   exit 1
