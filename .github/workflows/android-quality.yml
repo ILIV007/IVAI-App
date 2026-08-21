@@ -73,7 +73,7 @@ jobs:
         run: ./gradlew lintDebug --no-daemon --stacktrace
       - name: Upload reports on failure
         if: failure()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: android-quality-reports
           path: |
