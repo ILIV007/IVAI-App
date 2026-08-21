@@ -43,7 +43,7 @@ Run the verifier against the exact local directory before an internal release re
   /tmp/ivai-release-candidates/<version>-rc-<short-commit>
 ```
 
-The verifier requires the expected artifact inventory, full SHA-256 match, coherent manifest identity, 158 clean unit tests, clean source/repository evidence, an `apksigner`-recorded unsigned state, and explicit unsigned/non-public boundary. A successful verification confirms package integrity only; it is **not** an approval to distribute the APK.
+The verifier requires the expected artifact inventory, full SHA-256 match, coherent manifest identity, 160 clean unit tests, clean source/repository evidence, an `apksigner`-recorded unsigned state, and explicit unsigned/non-public boundary. A successful verification confirms package integrity only; it is **not** an approval to distribute the APK.
 
 ## Gates That Remain Open
 

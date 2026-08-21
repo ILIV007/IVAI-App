@@ -120,6 +120,13 @@ sealed interface ProviderStreamEvent {
     data object Cancelled : ProviderStreamEvent
 }
 
+/** A provider stream must not produce any event after [ProviderStreamEvent.Completed], [ProviderStreamEvent.Failed], or [ProviderStreamEvent.Cancelled]. */
+internal fun ProviderStreamEvent.isTerminal(): Boolean =
+    this is ProviderStreamEvent.Completed || this is ProviderStreamEvent.Failed || this == ProviderStreamEvent.Cancelled
+
+/** Internal, allocation-light control signal used by foreground consumers to stop a malformed stream after forwarding its terminal event. */
+internal class ProviderStreamTerminalSignal : RuntimeException(null, null, false, false)
+
 data class ProviderConnectionValidation(
     val providerId: ProviderId,
     val isUsable: Boolean,
