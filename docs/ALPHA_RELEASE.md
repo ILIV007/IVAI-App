@@ -1,10 +1,10 @@
 # GitHub Alpha Release Checklist
 
-This document governs the first public GitHub Alpha release of IVAI. A debug APK, a green pull request, or a successful local build is **not** by itself a release authorization. The current hardening findings and sequencing are recorded in [PHASE6_HARDENING_AUDIT.md](PHASE6_HARDENING_AUDIT.md).
+This document governs the first public GitHub Alpha release of IVAI. A debug APK, a green pull request, or a successful local build is **not** by itself a release authorization. The current deterministic hardening baseline and deferred gates are recorded in [Phase 7.5 Deterministic Hardening Audit — 21 August 2026](PHASE7_5_DETERMINISTIC_HARDENING_AUDIT_2026-08-21.md).
 
 ## Release decision
 
-The current repository is **not yet approved for a public GitHub Alpha release**. The implementation is buildable and protected by CI, but the remaining hardening and evidence items below must be closed or explicitly accepted by the repository owner before creating a tag, GitHub Release, or downloadable APK. The complete gate definitions are maintained in the [Release Readiness Checklist](RELEASE_READINESS_CHECKLIST.md), and the latest deterministic decision is recorded in the [Release Readiness Audit](RELEASE_READINESS_AUDIT_2026-08-17.md).
+The current repository is **not yet approved for a public GitHub Alpha release**. The implementation is buildable and protected by CI, but the remaining hardening and evidence items below must be closed or explicitly accepted by the repository owner before creating a tag, GitHub Release, or downloadable APK. The complete gate definitions are maintained in the [Release Readiness Checklist](RELEASE_READINESS_CHECKLIST.md), and the latest deterministic decision is recorded in the [Phase 7.5 Deterministic Hardening Audit — 21 August 2026](PHASE7_5_DETERMINISTIC_HARDENING_AUDIT_2026-08-21.md).
 
 | Gate | Required evidence | Current status |
 |---|---|---|
@@ -45,6 +45,26 @@ sha256sum app/build/outputs/apk/release/*.apk > SHA256SUMS.txt
 ```
 
 The signing key, keystore password, alias, and related secret material must never be committed, printed in logs, copied into release notes, or placed in a GitHub issue/PR. Store them only through the repository owner's approved secure release workflow.
+
+## Owner-Controlled Signed Evidence
+
+Only after every external field/device/usability gate is actually complete may the release owner invoke the local helper below. The literal confirmation flag is an acknowledgement by that owner; it is **not** proof that any external gate passed. The helper verifies the unsigned Release Candidate package for the exact checkout commit, signs one local copy, runs `apksigner` verification, writes SHA-256 evidence, and creates neither a tag nor a network/publication action.
+
+```bash
+export JAVA_HOME=/usr/lib/jvm/java-21-openjdk-amd64
+export ANDROID_HOME=/path/to/android-sdk
+export IVAI_SIGNING_KEYSTORE=/absolute/path/outside/repository/owner-release.jks
+export IVAI_SIGNING_KEY_ALIAS=owner-release
+export IVAI_KEYSTORE_PASSWORD_FILE=/absolute/path/outside/repository/keystore-password.txt
+export IVAI_KEY_PASSWORD_FILE=/absolute/path/outside/repository/key-password.txt
+
+./scripts/prepare_owner_signed_release_evidence.sh \
+  --rc-package /absolute/path/to/verified-unsigned-rc \
+  --output-root /absolute/path/outside/repository/release-evidence \
+  --confirm-external-alpha-gates-closed
+```
+
+The output contains the signed APK, `SHA256SUMS.txt`, `apksigner` verification/certificate output, and a manifest binding the signed artifact to one verified unsigned Candidate and source commit. It remains local evidence until the owner reviews it, creates the annotated tag, and approves the GitHub Release. Do not upload the evidence directory itself or any keystore/password file.
 
 ## Required release-note content
 

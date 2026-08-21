@@ -133,7 +133,7 @@ The repository must not turn `app-debug.apk` into a downloadable Alpha binary. O
 
 | Check | Evidence to retain | Pass condition | Initial state |
 |---|---|---|---|
-| Release signing | Owner-controlled signing configuration and build provenance | Signed APK is generated without committing, printing, or uploading signing material. | Pending |
+| Release signing | Owner-controlled signing configuration and build provenance | Signed APK is generated without committing, printing, or uploading signing material. Use the local-only procedure in [Alpha Release Checklist](ALPHA_RELEASE.md#owner-controlled-signed-evidence) only after every external gate is truly closed. | Pending |
 | Artifact integrity | SHA-256 file generated from signed APK | Checksum matches the downloadable artifact exactly. | Pending |
 | Source provenance | Annotated immutable tag | Tag points to the approved candidate commit after all gates pass. | Pending |
 | Release notes | Reviewed notes | State version, commit, compatible Android range, validation summary, privacy/security boundaries, limitations, install verification, upgrade/rollback guidance, and non-sensitive reporting path. | Pending |
