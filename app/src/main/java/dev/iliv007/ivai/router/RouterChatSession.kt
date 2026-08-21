@@ -15,6 +15,8 @@ import dev.iliv007.ivai.provider.ProviderErrorKind
 import dev.iliv007.ivai.provider.ProviderMessage
 import dev.iliv007.ivai.provider.ProviderMessageRole
 import dev.iliv007.ivai.provider.ProviderStreamEvent
+import dev.iliv007.ivai.provider.ProviderStreamTerminalSignal
+import dev.iliv007.ivai.provider.isTerminal
 import dev.iliv007.ivai.provider.ProviderKind
 import dev.iliv007.ivai.ui.model.ChatMessage
 import dev.iliv007.ivai.ui.model.MessageSender
@@ -151,7 +153,10 @@ class RouterChatSession(
                         ProviderStreamEvent.Cancelled -> throw CancellationException("Provider stream cancelled")
                         is ProviderStreamEvent.Usage -> emit(event)
                     }
+                    if (event.isTerminal()) throw ProviderStreamTerminalSignal()
                 }
+            } catch (_: ProviderStreamTerminalSignal) {
+                // A terminal event is authoritative; stop an adapter that emits anything after it.
             } catch (cancelled: CancellationException) {
                 withContext(NonCancellable) {
                     finishEntry(candidateAttemptId, candidate, RouterAttemptOutcome.CANCELLED, candidateStartedAt, null)

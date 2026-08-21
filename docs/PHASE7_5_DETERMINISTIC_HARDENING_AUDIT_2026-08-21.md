@@ -9,7 +9,7 @@ The audit was run against `main` commit `a0f4436ec517ab2da0fe573f3fd43d10505c55d
 | Gate | Deterministic result | Scope boundary |
 |---|---|---|
 | Source worktree and protected CI | Clean main baseline; CI succeeded. | Does not prove install, upgrade, restart, rotation, or offline behavior on a physical device. |
-| Debug/release build and quality suite | Current quality evidence reports 158 unit tests with zero failures, errors, and skipped tests; lint is clean. | Does not replace accessibility or usability evidence. |
+| Debug/release build and quality suite | Current quality evidence reports 160 unit tests with zero failures, errors, and skipped tests; lint is clean. | Does not replace accessibility or usability evidence. |
 | Secret and credential signatures | No hardcoded credential signature was found by the focused source scan. | This is not a substitute for owner-controlled signing-key handling. |
 | Transport and trust | No cleartext, trust-all, hostname-verifier, or implicit-provider signature was found in the focused source scan. | HTTPS loopback/private-LAN cancellation and timeout still require real-device evidence. |
 | Local-first execution boundary | No shell/process, accessibility-service, scheduler, or background-work signature was found in the focused source scan. | Does not replace runtime behavior observation. |

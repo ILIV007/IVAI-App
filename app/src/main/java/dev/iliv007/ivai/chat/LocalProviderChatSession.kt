@@ -9,6 +9,8 @@ import dev.iliv007.ivai.provider.ProviderChatRequest
 import dev.iliv007.ivai.provider.ProviderMessage
 import dev.iliv007.ivai.provider.ProviderMessageRole
 import dev.iliv007.ivai.provider.ProviderStreamEvent
+import dev.iliv007.ivai.provider.ProviderStreamTerminalSignal
+import dev.iliv007.ivai.provider.isTerminal
 import dev.iliv007.ivai.ui.model.ChatMessage
 import dev.iliv007.ivai.ui.model.MessageSender
 import kotlinx.coroutines.flow.Flow
@@ -51,37 +53,42 @@ class LocalProviderChatSession(
         }
         val response = StringBuilder()
         var terminalEventReceived = false
-        provider.streamChat(
-            ProviderChatRequest(
-                credentialReference = credentialReference,
-                modelId = modelId,
-                messages = providerMessages,
-                requiredCapabilities = setOf(ProviderCapability.TEXT, ProviderCapability.STREAMING),
-                attemptId = attemptId
-            )
-        ).collect { event ->
-            when (event) {
-                is ProviderStreamEvent.Delta -> response.append(event.text)
-                is ProviderStreamEvent.Completed -> {
-                    if (response.isNotBlank()) {
-                        workspace.appendMessage(
-                            ChatMessage(
-                                id = "msg-$attemptId-assistant",
-                                sender = MessageSender.ASSISTANT,
-                                text = response.toString(),
-                                timestamp = "Now",
-                                modelBadge = modelId,
-                                latencyMs = nowEpochMs() - createdAt
-                            ).toEntity(threadId, nowEpochMs())
-                        )
+        try {
+            provider.streamChat(
+                ProviderChatRequest(
+                    credentialReference = credentialReference,
+                    modelId = modelId,
+                    messages = providerMessages,
+                    requiredCapabilities = setOf(ProviderCapability.TEXT, ProviderCapability.STREAMING),
+                    attemptId = attemptId
+                )
+            ).collect { event ->
+                when (event) {
+                    is ProviderStreamEvent.Delta -> response.append(event.text)
+                    is ProviderStreamEvent.Completed -> {
+                        if (response.isNotBlank()) {
+                            workspace.appendMessage(
+                                ChatMessage(
+                                    id = "msg-$attemptId-assistant",
+                                    sender = MessageSender.ASSISTANT,
+                                    text = response.toString(),
+                                    timestamp = "Now",
+                                    modelBadge = modelId,
+                                    latencyMs = nowEpochMs() - createdAt
+                                ).toEntity(threadId, nowEpochMs())
+                            )
+                        }
+                        terminalEventReceived = true
                     }
-                    terminalEventReceived = true
+                    is ProviderStreamEvent.Failed,
+                    ProviderStreamEvent.Cancelled -> terminalEventReceived = true
+                    else -> Unit
                 }
-                is ProviderStreamEvent.Failed,
-                ProviderStreamEvent.Cancelled -> terminalEventReceived = true
-                else -> Unit
+                emit(event)
+                if (event.isTerminal()) throw ProviderStreamTerminalSignal()
             }
-            emit(event)
+        } catch (_: ProviderStreamTerminalSignal) {
+            // Terminal events are forwarded once, then a malformed adapter subscription is stopped.
         }
         check(terminalEventReceived) { "Provider stream ended without a terminal event" }
     }

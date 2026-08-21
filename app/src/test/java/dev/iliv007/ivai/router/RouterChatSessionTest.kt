@@ -182,6 +182,57 @@ class RouterChatSessionTest {
     }
 
     @Test
+    fun `terminal router failure stops a malformed stream before later delta`() = runBlocking {
+        repository.saveThread(ChatThreadEntity("thread-terminal", "Local router", "", 1L, "User model", null))
+        repository.saveProviderConnection(ProviderConnectionEntity("gemini", "GEMINI", "User provider", null, true, 1L, 1L))
+        repository.saveProviderAccount(ProviderAccountEntity("gemini-account", "gemini", "BYOK", "credential.gemini", true, 1L, 1L))
+        repository.saveProviderModel(ProviderModelEntity("gemini-model", "gemini", "user-first-model", "First model", "TEXT,STREAMING", true, true, 1L))
+        val catalog = RouterCatalog(
+            connections = repository.currentProviderRegistry().connections,
+            accounts = repository.currentProviderRegistry().accounts,
+            models = repository.currentProviderRegistry().models,
+            credentialPresent = setOf("credential.gemini")
+        )
+        val error = NormalizedProviderError(
+            ProviderErrorKind.NETWORK_UNAVAILABLE,
+            "Network interrupted",
+            retryable = true
+        )
+        var emittedAfterTerminal = false
+        val malformedProvider = FakeProvider(ProviderId("fake-terminal")) { request ->
+            emit(ProviderStreamEvent.Started(request.attemptId))
+            emit(ProviderStreamEvent.Failed(error))
+            emittedAfterTerminal = true
+            emit(ProviderStreamEvent.Delta("must not reach router session"))
+        }
+        val session = RouterChatSession(
+            workspace = repository,
+            router = SequentialRouter(),
+            providerResolver = { _, _, _ -> malformedProvider },
+            nowEpochMs = { 100L }
+        )
+
+        val events = session.send(
+            threadId = "thread-terminal",
+            target = ExecutionTarget.DirectModel("gemini", "gemini-account", "gemini-model"),
+            comboEntries = emptyList(),
+            catalog = catalog,
+            history = emptyList(),
+            prompt = "hello",
+            attemptId = "router-terminal"
+        ).toList()
+
+        assertEquals(
+            listOf(ProviderStreamEvent.Started("router-terminal"), ProviderStreamEvent.Failed(error)),
+            events
+        )
+        assertFalse(emittedAfterTerminal)
+        val messages = repository.observeMessages("thread-terminal").first()
+        assertEquals(listOf("hello"), messages.map { it.text })
+        assertEquals(RouterAttemptOutcome.FAILED.name, repository.observeRouterAttempts("thread-terminal").first().single().outcome)
+    }
+
+    @Test
     fun `retryable first candidate failure falls back once and records ordered safe trace`() = runBlocking {
         repository.saveThread(ChatThreadEntity("thread", "Local router", "", 1L, "User Combo", null))
         repository.saveProviderConnection(ProviderConnectionEntity("gemini", "GEMINI", "First user provider", null, true, 1L, 1L))

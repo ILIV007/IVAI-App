@@ -16,6 +16,7 @@ import dev.iliv007.ivai.provider.ProviderModelDescriptor
 import dev.iliv007.ivai.provider.ProviderStreamEvent
 import dev.iliv007.ivai.ui.model.MessageSender
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.runBlocking
@@ -81,6 +82,44 @@ class LocalProviderChatSessionTest {
         assertFalse(persisted.any { it.sender == MessageSender.ASSISTANT.name })
     }
 
+    @Test
+    fun `terminal provider failure stops a malformed stream before later delta`() = runBlocking {
+        repository.saveThread(
+            ChatThreadEntity(
+                id = "thread-terminal",
+                title = "Local chat",
+                snippet = "",
+                updatedAtEpochMs = 1L,
+                modelOrCombo = "User-selected provider",
+                projectId = null
+            )
+        )
+        val error = NormalizedProviderError(
+            kind = ProviderErrorKind.NETWORK_UNAVAILABLE,
+            safeMessage = "Network interrupted",
+            retryable = true
+        )
+        val provider = TerminalThenDeltaProvider(error)
+
+        val events = LocalProviderChatSession(repository, nowEpochMs = { 10L }).send(
+            provider = provider,
+            threadId = "thread-terminal",
+            credentialReference = CredentialReference("provider-account"),
+            modelId = "user-model",
+            history = emptyList(),
+            prompt = "Explain the local workspace.",
+            attemptId = "attempt-terminal"
+        ).toList()
+
+        assertEquals(
+            listOf(ProviderStreamEvent.Started("attempt-terminal"), ProviderStreamEvent.Failed(error)),
+            events
+        )
+        assertFalse(provider.emittedAfterTerminal)
+        val persisted = database.messageDao().listForThread("thread-terminal")
+        assertEquals(listOf(MessageSender.USER.name), persisted.map { it.sender })
+    }
+
     private class FailureProvider(
         private val error: NormalizedProviderError
     ) : ChatProvider {
@@ -95,5 +134,25 @@ class LocalProviderChatSessionTest {
             ProviderStreamEvent.Started(request.attemptId),
             ProviderStreamEvent.Failed(error)
         )
+    }
+
+    private class TerminalThenDeltaProvider(
+        private val error: NormalizedProviderError
+    ) : ChatProvider {
+        override val providerId = ProviderId("test-terminal-provider")
+        var emittedAfterTerminal = false
+            private set
+
+        override suspend fun validateConnection(credentialReference: CredentialReference) =
+            ProviderConnectionValidation(providerId, isUsable = true)
+
+        override suspend fun discoverModels(credentialReference: CredentialReference): List<ProviderModelDescriptor> = emptyList()
+
+        override fun streamChat(request: ProviderChatRequest): Flow<ProviderStreamEvent> = flow {
+            emit(ProviderStreamEvent.Started(request.attemptId))
+            emit(ProviderStreamEvent.Failed(error))
+            emittedAfterTerminal = true
+            emit(ProviderStreamEvent.Delta("must not reach chat session"))
+        }
     }
 }

@@ -47,7 +47,7 @@ require_manifest_line() {
 require_manifest_line "Format: ivai-local-release-candidate/v1"
 require_manifest_line "Build type: minified unsigned release candidate"
 require_manifest_line "Release status: local preparation only; not signed, tagged, uploaded, public, or stable-approved"
-require_manifest_line "Unit tests: 158 total, 0 failures, 0 errors, 0 skipped"
+require_manifest_line "Unit tests: 160 total, 0 failures, 0 errors, 0 skipped"
 
 commit="$(sed -n 's/^Commit: //p' "$manifest")"
 short_commit="$(sed -n 's/^Short commit: //p' "$manifest")"

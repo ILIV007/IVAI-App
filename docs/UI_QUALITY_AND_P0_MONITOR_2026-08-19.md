@@ -29,7 +29,7 @@ IVAI همچنان یک **Agent Harness محلی، Backendless، BYOK و Provider
 | P0/gate | evidence موجود | وضعیت واقعی |
 |---|---|---|
 | CI محافظت‌شده | Android quality و Secret scan baseline نهایی پاس شده‌اند.[1] | **Pass برای baseline**؛ برای هر candidate جدید باید تکرار شود. |
-| Build quality | debug/release minified، R8، Room/KSP، 158 test، lint صفر و guardهای Provider-neutral/RTL/contrast/Phase 8/R8/launcher پاس شده‌اند. | **Pass deterministic.** |
+| Build quality | debug/release minified، R8، Room/KSP، 160 test، lint صفر و guardهای Provider-neutral/RTL/contrast/Phase 8/R8/launcher پاس شده‌اند. | **Pass deterministic.** |
 | Launcher policy | resource table debug APK، `mipmap-anydpi` adaptive XML، monochrome layer، safe-zone checksum و نبود bitmap fallback را تأیید می‌کند. | **Pass static.** این جایگزین مشاهدهٔ launcher روی دستگاه واقعی نیست. |
 | Release-candidate deterministic package | آخرین package کنترل‌شده برای source launcher-policy با R8 release، mapping، checksum، manifest و 155 test توسط verifier پاس شد؛ APK unsigned بود. | **Ready / not a release pass.** برای Alpha باید دقیقاً از commit candidate نهایی بازتولید شود. |
 | Phase 7.5 research package | protocol و checksum-verifier آماده‌اند؛ worksheet موجود عمداً blank است و package باید برای commit candidate نهایی بازتولید شود. | **Ready / no participant or device result.** |
