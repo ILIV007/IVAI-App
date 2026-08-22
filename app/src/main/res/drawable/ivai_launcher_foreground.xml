@@ -1,5 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Launcher-only alpha mask. The system supplies themed-icon tint. -->
+<!--
+  Launcher foreground only. The VA mark is kept within the central safe zone by
+  scaling the 108dp viewport artwork to 70% around its centre. Background, glow,
+  decorative sparkle, and any square composition deliberately belong to the
+  independent adaptive-icon background layer and must never be added here.
+-->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
     android:width="108dp"
     android:height="108dp"
@@ -12,7 +17,7 @@
         android:scaleY="0.70"
         android:translateX="-5.5">
         <path
-            android:fillColor="#FF000000"
+            android:fillColor="#FFF7F8FC"
             android:pathData="M17,27L31,27L52,68L46,81L17,27ZM35,27L49,27L59,46L52,59L35,27ZM58,17L68,17L68,48L58,63L58,17ZM68,59L84,27L98,27L68,78L68,91L58,91L58,78L68,59ZM82,42L102,85L88,85L80,69L73,82L86,82L90,91L59,91L82,42" />
     </group>
 </vector>

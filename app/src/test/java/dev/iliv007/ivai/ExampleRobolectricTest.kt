@@ -96,35 +96,71 @@ class ExampleRobolectricTest {
     }
 
     @Test
-    fun `adaptive launcher icons expose a dedicated monochrome vector`() {
+    fun `adaptive launcher icons expose symbol-only foreground and matching monochrome masks`() {
         val context = ApplicationProvider.getApplicationContext<Context>()
         val androidNamespace = "http://schemas.android.com/apk/res/android"
         val launcherResources = listOf(R.mipmap.ic_launcher, R.mipmap.ic_launcher_round)
 
         launcherResources.forEach { launcherResource ->
             val parser = context.resources.getXml(launcherResource)
+            var foregroundDrawable = 0
             var monochromeDrawable = 0
             while (parser.eventType != XmlPullParser.END_DOCUMENT) {
-                if (parser.eventType == XmlPullParser.START_TAG && parser.name == "monochrome") {
-                    monochromeDrawable = parser.getAttributeResourceValue(androidNamespace, "drawable", 0)
+                if (parser.eventType == XmlPullParser.START_TAG) {
+                    when (parser.name) {
+                        "foreground" -> foregroundDrawable = parser.getAttributeResourceValue(
+                            androidNamespace,
+                            "drawable",
+                            0,
+                        )
+                        "monochrome" -> monochromeDrawable = parser.getAttributeResourceValue(
+                            androidNamespace,
+                            "drawable",
+                            0,
+                        )
+                    }
                 }
                 parser.next()
             }
+            assertEquals(R.drawable.ivai_launcher_foreground, foregroundDrawable)
             assertEquals(R.drawable.ivai_launcher_monochrome, monochromeDrawable)
         }
 
-        val vectorParser = context.resources.getXml(R.drawable.ivai_launcher_monochrome)
+        assertLauncherSymbolVector(context.resources.getXml(R.drawable.ivai_launcher_foreground))
+        assertLauncherSymbolVector(context.resources.getXml(R.drawable.ivai_launcher_monochrome))
+    }
+
+    private fun assertLauncherSymbolVector(parser: XmlPullParser) {
+        val androidNamespace = "http://schemas.android.com/apk/res/android"
         var vectorFound = false
         var pathCount = 0
-        while (vectorParser.eventType != XmlPullParser.END_DOCUMENT) {
-            if (vectorParser.eventType == XmlPullParser.START_TAG) {
-                if (vectorParser.name == "vector") vectorFound = true
-                if (vectorParser.name == "path") pathCount += 1
+        var bitmapFound = false
+        var safeZoneScaleFound = false
+
+        while (parser.eventType != XmlPullParser.END_DOCUMENT) {
+            if (parser.eventType == XmlPullParser.START_TAG) {
+                when (parser.name) {
+                    "vector" -> vectorFound = true
+                    "path" -> pathCount += 1
+                    "bitmap" -> bitmapFound = true
+                    "group" -> {
+                        val scaleX = parser.getAttributeValue(androidNamespace, "scaleX")?.toFloatOrNull() ?: 0f
+                        val scaleY = parser.getAttributeValue(androidNamespace, "scaleY")?.toFloatOrNull() ?: 0f
+                        val pivotX = parser.getAttributeValue(androidNamespace, "pivotX")?.toFloatOrNull() ?: 0f
+                        val pivotY = parser.getAttributeValue(androidNamespace, "pivotY")?.toFloatOrNull() ?: 0f
+                        val translateX = parser.getAttributeValue(androidNamespace, "translateX")?.toFloatOrNull() ?: 0f
+                        safeZoneScaleFound = scaleX == 0.70f && scaleY == 0.70f &&
+                            pivotX == 59.5f && pivotY == 54f && translateX == -5.5f
+                    }
+                }
             }
-            vectorParser.next()
+            parser.next()
         }
+
         assertTrue(vectorFound)
         assertTrue(pathCount > 0)
+        assertTrue(!bitmapFound)
+        assertTrue(safeZoneScaleFound)
     }
 
     @Test
