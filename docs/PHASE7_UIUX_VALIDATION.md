@@ -67,6 +67,10 @@ Two reviewers record findings independently before reconciliation. Do not collap
 |---|---|---|---|---|---|---|
 | No results recorded | — | — | — | — | — | — |
 
+## UX-8 Execution Handoff
+
+Use the [UX-8 Physical Validation Handoff](PHASE7_UX8_PHYSICAL_VALIDATION_HANDOFF.md) for the exact icon, sidebar, Chat/IME, light/dark, font-scale, BiDi, TalkBack, lifecycle and offline/HTTPS procedures. That handoff is preparation only: enter a result in this record only after the operator observes it on a controlled physical device.
+
 ## Physical-Device and Accessibility Sweep
 
 | Device class / OS | Build manifest and checksum status | Configuration | Task-critical result | Non-sensitive screenshot/reference | Finding ID(s) |
