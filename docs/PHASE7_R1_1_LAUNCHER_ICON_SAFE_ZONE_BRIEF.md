@@ -1,6 +1,8 @@
 # Phase 7 R1.1 — Launcher Icon Safe-Zone Remediation
 
-**Status:** Implemented on a focused branch; physical-launcher validation remains pending.
+**Status:** Historical decision record. Superseded by [Phase 7 UX-1 — Adaptive Launcher Icon Rebuild](PHASE7_UX1_ADAPTIVE_ICON_REBUILD.md); physical-launcher validation remains pending.
+
+> **Supersession note — 22 August 2026:** The padded composite PNG and its generator described below were retired after installed-launcher feedback confirmed that a full composition cannot serve safely as an adaptive foreground. The active contract uses a symbol-only vector foreground, independent background, and matching monochrome vector. This document is retained solely as an audit record of the earlier decision.
 
 ## Goal
 
@@ -13,7 +15,7 @@ Preserve the entire approved VA launcher composition when Android applies adapti
 | Adaptive foreground | The approved 800×800 source composition is centered unchanged in a 1200×1200 bitmap with a 200px inset on every edge. |
 | Adaptive wiring | Both existing adaptive launcher entries continue to reference the same foreground drawable, which now uses the padded safe-zone bitmap. |
 | Legacy fallbacks | Square and round WebP fallbacks are regenerated for all Android density buckets from the padded composition. The round fallback applies a distinct circular alpha mask. |
-| Reproducibility | `scripts/render_launcher_assets.py` regenerates the padded foreground and every legacy fallback from the approved reference bitmap. |
+| Reproducibility | Historical only: `scripts/render_launcher_assets.py` was retired by UX-1 because it regenerated the composite foreground now known to be unsafe. |
 | Regression protection | `scripts/test_launcher_icon_assets.sh` verifies foreground wiring, the safe 1200×1200 canvas, exact preservation of the centered approved 800×800 image, expected density dimensions, and distinct square/round fallbacks. The validator runs in CI before Android builds. |
 
 ## Deliberately unchanged

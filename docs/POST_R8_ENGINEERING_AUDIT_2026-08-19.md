@@ -16,14 +16,14 @@ This audit reviewed the current protected `main` baseline after R6 Settings Safe
 | Data integrity | Room is schema v6, migration chain v1→v6 has recovery coverage, and no destructive-migration fallback was found | Verified. |
 | Destructive reset | Settings now confirms before invoking the existing local reset callback; resetter behavior remains unchanged | Verified by focused R6 regression. |
 | Provider/Model test | R8 readiness contract and CI guard are present; runtime test symbols remain absent | Verified. |
-| Launcher assets | Safe foreground generator and checksum validator pass; square/round fallback variants remain distinct | Verified. |
+| Launcher assets | Historical result: safe foreground generator and checksum validator passed at audit time. **Superseded by Phase 7 UX-1 on 22 August 2026:** composite foreground generation was retired in favour of a symbol-only vector adaptive layer. | Historical verification; see [UX-1](PHASE7_UX1_ADAPTIVE_ICON_REBUILD.md) for active contract. |
 
 ## Confirmed Findings and Remediation
 
 | ID | Finding | Risk | Remediation in this audit |
 |---|---|---|---|
 | AU-01 | The current GitHub Actions run emitted Node 20 and `setup-java@v4` deprecation warnings. | CI maintenance and future workflow compatibility. | Updated checkout to `actions/checkout@v5`, setup-java to `actions/setup-java@v5`, and Gitleaks to `gitleaks/gitleaks-action@v3`. The selected upstream action metadata uses Node 24. |
-| AU-02 | The approved launcher source composition lived inside `res/drawable-nodpi`, so Android packaged an unused generator input and lint reported it as unused. | APK hygiene and recurring lint noise. | Moved the source composition to `scripts/assets/` and updated `render_launcher_assets.py`. Generated launcher outputs, their dimensions, and reviewed checksums remain unchanged. |
+| AU-02 | The approved launcher source composition lived inside `res/drawable-nodpi`, so Android packaged an unused generator input and lint reported it as unused. | APK hygiene and recurring lint noise. | Historical remediation: moved the source composition to `scripts/assets/` and updated `render_launcher_assets.py`. **Superseded by UX-1:** the generator and composite output were retired after installed-launcher feedback; the active adaptive foreground is a symbol-only vector. |
 
 ## Validation After Remediation
 
