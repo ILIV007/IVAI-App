@@ -1,6 +1,6 @@
 # Phase 7 UX-3 — Single Sidebar Shell and Navigation Contract
 
-**Status:** In progress on a focused branch.
+**Status:** Deterministic implementation and CI validation are complete in [PR #128](https://github.com/ILIV007/IVAI-App/pull/128), squash-merged to `main` as `665751927989aef16688ba66a217baba8644d540` on 22 August 2026. Physical validation remains pending.
 
 ## Goal
 
@@ -23,13 +23,17 @@ UX-3 does not change destination routes, thread/project/provider/agent selection
 
 ## Acceptance gate
 
-| Evidence | Pass definition |
-|---|---|
-| Width contract | compact is modal; medium/expanded are persistent; no `NavigationRail` or bottom navigation is mounted. |
-| State preservation | width is presentation-only: current destination/thread/project state is owned by the existing ViewModel and not rewritten. |
-| Semantic navigation | every primary destination has a visible label, selected state and stable test tag. |
-| Context separation | `ChatSessionDrawerSection` is visible only in Chat context and is not counted as a primary route. |
-| Quality gate | secret scan, debug/release build, unit suite and lint succeed in protected CI. |
+| Evidence | Pass definition | Status |
+|---|---|---|
+| Width contract | compact is modal; medium/expanded are persistent; no `NavigationRail` or bottom navigation is mounted. | **Passed in PR #128 CI** |
+| State preservation | width is presentation-only: current destination/thread/project state is owned by the existing ViewModel and not rewritten. | **Passed in PR #128 CI review** |
+| Semantic navigation | every primary destination has a visible label, selected state and stable test tag. | **Passed in PR #128 CI** |
+| Context separation | `ChatSessionDrawerSection` is visible only in Chat context and is not counted as a primary route. | **Passed in PR #128 CI** |
+| Quality gate | secret scan, debug/release build, unit suite and lint succeed in protected CI. | **Passed in PR #128 CI** |
+
+## Validation record
+
+PR #128 initially exposed a test-host visibility assumption for a LazyColumn row and a non-existent Compose test assertion import. Both issues were limited to the new regression test and resolved in follow-up commits before the final successful CI run. The required `Secret scan` and `Build, unit test, and lint` checks completed successfully before merge. The sandbox did not contain an Android SDK, so local Gradle completion is not claimed.
 
 ## Deferred validation
 
