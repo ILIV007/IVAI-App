@@ -6,7 +6,6 @@ import androidx.compose.material3.Text
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.test.assertCountEquals
-import androidx.compose.ui.test.assertExists
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithTag
@@ -92,7 +91,7 @@ class IvaiAdaptiveNavigationScreenshotTest {
             composeTestRule.onNodeWithTag(destination.testTag).assertIsDisplayed()
         }
         composeTestRule.onNodeWithTag("chat_session_drawer").assertIsDisplayed()
-        composeTestRule.onNodeWithTag("chat_session_item_sidebar-thread").assertExists()
+        composeTestRule.onAllNodesWithTag("chat_session_item_sidebar-thread").assertCountEquals(1)
         composeTestRule.onRoot().captureRoboImage(filePath = "build/roborazzi/ux3_product_sidebar_dark.png")
     }
 
