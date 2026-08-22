@@ -1,6 +1,6 @@
 # Phase 7 UX-2 — Design Foundation and Component Primitives
 
-**Status:** In progress on a focused branch.
+**Status:** Deterministic implementation and CI validation are complete in [PR #126](https://github.com/ILIV007/IVAI-App/pull/126), squash-merged to `main` as `f404a4bdc2a46c39094729c29bc14175ea32352b` on 22 August 2026. Physical validation remains pending.
 
 ## Goal
 
@@ -22,13 +22,17 @@ UX-2 does not change primary navigation, responsive shell, Chat history/IME beha
 
 ## Acceptance gate
 
-| Evidence | Pass definition |
-|---|---|
-| Foundation token test | both light and dark semantic foreground/container pairs meet 4.5:1 normal-text contrast; typography remains BiDi-safe. |
-| Primitive semantics | heading, target availability and polite execution announcement contracts remain covered. |
-| Visual regression | light/dark foundation screenshots render using the new semantic surfaces. |
-| Quality gate | secret scan, debug/release build, unit suite and lint succeed in protected CI. |
-| Scope audit | no source changes in navigation, screen flows, provider/runtime/data layers. |
+| Evidence | Pass definition | Status |
+|---|---|---|
+| Foundation token test | both light and dark semantic foreground/container pairs meet 4.5:1 normal-text contrast; typography remains BiDi-safe. | **Passed locally and in PR #126 CI** |
+| Primitive semantics | heading, target availability and polite execution announcement contracts remain covered. | **Passed in PR #126 CI** |
+| Visual regression | light/dark foundation screenshots render using the new semantic surfaces. | **Passed in PR #126 CI** |
+| Quality gate | secret scan, debug/release build, unit suite and lint succeed in protected CI. | **Passed in PR #126 CI** |
+| Scope audit | no source changes in navigation, screen flows, provider/runtime/data layers. | **Passed in PR #126 CI review** |
+
+## Validation record
+
+The required `Secret scan` and `Build, unit test, and lint` checks completed successfully before merge. The sandbox did not contain an Android SDK, so local Gradle completion is not claimed; local evidence is limited to the focused contrast, launcher, architecture scans and whitespace checks. Deterministic screenshots and semantics do **not** replace physical accessibility or device validation.
 
 ## Deferred validation
 
