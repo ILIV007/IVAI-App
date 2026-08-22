@@ -141,7 +141,9 @@ fun ProjectsScreen(
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.SemiBold,
                         color = semanticColors.textPrimary,
-                        modifier = Modifier.semantics { this[SemanticsProperties.Heading] = Unit }
+                        modifier = Modifier
+                            .testTag("workspace_project_library_header")
+                            .semantics { this[SemanticsProperties.Heading] = Unit }
                     )
                 }
 
@@ -380,7 +382,8 @@ private fun WorkspaceContinuationRoutes(
     Surface(
         modifier = Modifier
             .fillMaxWidth()
-            .testTag("workspace_activity_routes"),
+            .testTag("workspace_activity_routes")
+            .semantics { stateDescription = "Explicit continuation routes" },
         shape = RoundedCornerShape(IvaiShapeTokens.Card),
         color = semanticColors.surfaceRaised,
         border = BorderStroke(IvaiStrokeTokens.Default, semanticColors.borderSubtle),

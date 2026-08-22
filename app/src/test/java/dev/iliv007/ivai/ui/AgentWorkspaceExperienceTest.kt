@@ -105,6 +105,23 @@ class AgentWorkspaceExperienceTest {
     }
 
     @Test
+    fun agents_page_separates_page_context_from_selected_local_run() {
+        val run = run(status = AgentRunStatus.RUNNING)
+        render(
+            state = AgentManagementState(
+                availableTargets = listOf(target()),
+                profiles = listOf(profile()),
+                activeRuns = listOf(run),
+                selectedRunId = run.runId
+            )
+        )
+
+        composeTestRule.onNodeWithTag("agents_page_header").assertIsDisplayed()
+        composeTestRule.onNodeWithTag("agent_selected_run_section").performScrollTo().assertIsDisplayed()
+        composeTestRule.onNodeWithTag("agent_run_workspace_${run.runId}").assertIsDisplayed()
+    }
+
+    @Test
     fun terminal_workspace_hides_cancel_and_shows_completed_state() {
         val run = run(status = AgentRunStatus.COMPLETED)
         render(

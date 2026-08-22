@@ -84,7 +84,8 @@ fun SettingsScreen(
             item {
                 SettingsSection(
                     title = "Appearance",
-                    description = "Choose the display mode used on this device."
+                    description = "Choose the display mode used on this device.",
+                    testTag = "settings_appearance_section"
                 ) {
                     AppearanceSettingsCard(
                         isDarkTheme = isDarkTheme,
@@ -96,7 +97,8 @@ fun SettingsScreen(
             item {
                 SettingsSection(
                     title = "Connections",
-                    description = "Providers, credentials, models, and Combos remain under your control."
+                    description = "Providers, credentials, models, and Combos remain under your control.",
+                    testTag = "settings_connections_section"
                 ) {
                     ConnectionsSettingsCard(onOpenConnections = onOpenConnections)
                 }
@@ -105,7 +107,8 @@ fun SettingsScreen(
             item {
                 SettingsSection(
                     title = "Privacy",
-                    description = "IVAI keeps its operating commitments visible and specific."
+                    description = "IVAI keeps its operating commitments visible and specific.",
+                    testTag = "settings_privacy_section"
                 ) {
                     PrivacySettingsContent()
                 }
@@ -114,7 +117,8 @@ fun SettingsScreen(
             item {
                 SettingsSection(
                     title = "Local data",
-                    description = "Review the consequence before removing data from this device."
+                    description = "Review the consequence before removing data from this device.",
+                    testTag = "settings_local_data_section"
                 ) {
                     LocalDataSettingsCard(onRequestDelete = { deleteConfirmationOpen = true })
                 }
@@ -137,10 +141,14 @@ fun SettingsScreen(
 private fun SettingsSection(
     title: String,
     description: String,
+    testTag: String,
     content: @Composable () -> Unit
 ) {
     val semanticColors = rememberIvaiSemanticColors()
-    Column(verticalArrangement = Arrangement.spacedBy(IvaiSpacing.XSmall)) {
+    Column(
+        modifier = Modifier.testTag(testTag),
+        verticalArrangement = Arrangement.spacedBy(IvaiSpacing.XSmall)
+    ) {
         Text(
             text = title,
             style = MaterialTheme.typography.titleMedium,

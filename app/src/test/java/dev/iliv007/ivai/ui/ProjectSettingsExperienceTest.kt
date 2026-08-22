@@ -182,6 +182,36 @@ class ProjectSettingsExperienceTest {
     }
 
     @Test
+    fun workspace_exposes_selected_context_library_and_explicit_continuation_sections() {
+        composeTestRule.setContent {
+            IvaiTheme {
+                ProjectsScreen(
+                    projects = sampleProjects,
+                    selectedProjectId = "project-1"
+                )
+            }
+        }
+
+        composeTestRule.onNodeWithTag("workspace_selected_project_detail").assertIsDisplayed()
+        composeTestRule.onNodeWithTag("workspace_project_library_header").assertIsDisplayed()
+        composeTestRule.onNodeWithTag("workspace_activity_routes").performScrollTo().assertIsDisplayed()
+    }
+
+    @Test
+    fun settings_exposes_aligned_appearance_connection_privacy_and_local_data_sections() {
+        composeTestRule.setContent {
+            IvaiTheme {
+                SettingsScreen()
+            }
+        }
+
+        composeTestRule.onNodeWithTag("settings_appearance_section").assertIsDisplayed()
+        composeTestRule.onNodeWithTag("settings_connections_section").assertIsDisplayed()
+        composeTestRule.onNodeWithTag("settings_privacy_section").performScrollTo().assertIsDisplayed()
+        composeTestRule.onNodeWithTag("settings_local_data_section").performScrollTo().assertIsDisplayed()
+    }
+
+    @Test
     fun settings_exposes_only_explicit_theme_connections_and_confirmed_local_data_deletion() {
         var themeToggled = false
         var connectionsOpened = false
