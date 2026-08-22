@@ -1,6 +1,6 @@
 # Phase 7 UX-4 — Connection, Account, Model and Combo Lifecycle Surface
 
-**Status:** In progress on a focused branch.
+**Status:** Deterministic implementation and CI validation are complete in [PR #130](https://github.com/ILIV007/IVAI-App/pull/130), squash-merged to `main` as `bba74053432ba36cb3f860be418f19fa4dead79c` on 22 August 2026. Physical validation remains pending.
 
 ## Goal
 
@@ -23,13 +23,17 @@ UX-4 does not add providers, models, presets, endpoint discovery, network reques
 
 ## Acceptance gate
 
-| Evidence | Pass definition |
-|---|---|
-| Lifecycle clarity | setup view exposes the four ordered stages and its next-action text refers only to the first incomplete stage. |
-| Ownership | account/model actions are connection-scoped and existing tests prove they do not create a second provider. |
-| BYOK boundary | setup copy and UI retain explicit local vault/HTTPS/no-discovery/no-auto-selection constraints; no secret is rendered after save. |
-| Combo ordering | candidate selection and final review preserve the user’s explicit sequence; no implicit candidate appears. |
-| Quality gate | secret scan, debug/release build, unit suite and lint succeed in protected CI. |
+| Evidence | Pass definition | Status |
+|---|---|---|
+| Lifecycle clarity | setup view exposes the four ordered stages and its next-action text refers only to the first incomplete stage. | **Passed in PR #130 CI** |
+| Ownership | account/model actions are connection-scoped and existing tests prove they do not create a second provider. | **Passed in PR #130 CI** |
+| BYOK boundary | setup copy and UI retain explicit local vault/HTTPS/no-discovery/no-auto-selection constraints; no secret is rendered after save. | **Passed in PR #130 CI review** |
+| Combo ordering | candidate selection and final review preserve the user’s explicit sequence; no implicit candidate appears. | **Passed in PR #130 CI** |
+| Quality gate | secret scan, debug/release build, unit suite and lint succeed in protected CI. | **Passed in PR #130 CI** |
+
+## Validation record
+
+PR #130 initially exposed pre-existing test-host viewport assumptions after the lifecycle card made the Connections hub appropriately taller. The regression tests were updated to use actual parent-list swipe interaction, and the required Compose gesture import was added. These were test-only fixes; provider, vault, endpoint and runtime behavior did not change. The required `Secret scan` and `Build, unit test, and lint` checks completed successfully before merge. The sandbox did not contain an Android SDK, so local Gradle completion is not claimed.
 
 ## Deferred validation
 
