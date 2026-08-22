@@ -7,22 +7,18 @@ import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.material3.DrawerValue
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.ModalNavigationDrawer
-import androidx.compose.material3.rememberDrawerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
-import dev.iliv007.ivai.ui.components.IvaiProductSidebar
 import dev.iliv007.ivai.ui.components.IvaiAdaptiveDestinationScaffold
+import dev.iliv007.ivai.ui.components.IvaiPersistentProductSidebar
+import dev.iliv007.ivai.ui.components.IvaiProductSidebar
 import dev.iliv007.ivai.ui.components.IvaiTopBar
 import dev.iliv007.ivai.ui.navigation.NavDestination
 import dev.iliv007.ivai.ui.screens.AgentsScreen
@@ -33,7 +29,6 @@ import dev.iliv007.ivai.ui.screens.SettingsScreen
 import dev.iliv007.ivai.ui.theme.IvaiTheme
 import dev.iliv007.ivai.ui.viewmodel.WorkspaceViewModel
 import dev.iliv007.ivai.ui.viewmodel.WorkspaceViewModelFactory
-import kotlinx.coroutines.launch
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -55,9 +50,9 @@ class MainActivity : ComponentActivity() {
 }
 
 /**
- * Adaptive Phase 7 shell. The destination model, local workspace state and all runtime callbacks
- * remain owned by [WorkspaceViewModel]. The drawer is deliberately Chat-only: history, search and
- * project filtering are no longer global navigation concerns.
+ * UX-3 product shell. Width changes only replace the sidebar presentation; destination, thread
+ * and project state remain owned by [WorkspaceViewModel]. Chat history is a Chat context section,
+ * not a second navigation drawer or a sixth route.
  */
 @Composable
 fun IvaiMainApp(
@@ -74,19 +69,13 @@ fun IvaiMainApp(
     val providerManagementState by resolvedViewModel.providerManagementState.collectAsStateWithLifecycle()
     val routerManagementState by resolvedViewModel.routerManagementState.collectAsStateWithLifecycle()
     val agentManagementState by resolvedViewModel.agentManagementState.collectAsStateWithLifecycle()
-    val sidebarState = rememberDrawerState(initialValue = DrawerValue.Closed)
-    val scope = rememberCoroutineScope()
-
-    fun closeSidebar() {
-        scope.launch { sidebarState.close() }
-    }
 
     @Composable
     fun DestinationContent(contentModifier: Modifier) {
         Box(
             modifier = contentModifier
                 .fillMaxSize()
-                .background(MaterialTheme.colorScheme.background)
+                .background(androidx.compose.material3.MaterialTheme.colorScheme.background)
         ) {
             when (uiState.destination) {
                 NavDestination.CHATS -> ChatsScreen(
@@ -153,36 +142,20 @@ fun IvaiMainApp(
         }
     }
 
-    @Composable
-    fun AppShell() {
-        IvaiAdaptiveDestinationScaffold(
-            currentDestination = uiState.destination,
-            onDestinationSelected = resolvedViewModel::selectDestination,
-            topBar = {
-                IvaiTopBar(
-                    title = "IVAI",
-                    subtitle = uiState.destination.title,
-                    onOpenSidebar = {
-                        scope.launch {
-                            if (sidebarState.isClosed) sidebarState.open() else sidebarState.close()
-                        }
-                    }
-                )
-            }
-        ) { contentModifier, _ ->
-            DestinationContent(contentModifier)
-        }
-    }
-
-    ModalNavigationDrawer(
-        drawerState = sidebarState,
-        gesturesEnabled = true,
-        drawerContent = {
+    IvaiAdaptiveDestinationScaffold(
+        topBar = { onOpenCompactSidebar ->
+            IvaiTopBar(
+                title = uiState.destination.title,
+                onOpenSidebar = onOpenCompactSidebar,
+                onOpenSettings = { resolvedViewModel.selectDestination(NavDestination.SETTINGS) }
+            )
+        },
+        compactSidebar = { dismissSidebar ->
             IvaiProductSidebar(
                 currentDestination = uiState.destination,
                 onDestinationSelected = { destination ->
                     resolvedViewModel.selectDestination(destination)
-                    closeSidebar()
+                    dismissSidebar()
                 },
                 threads = uiState.threads,
                 selectedThreadId = uiState.selectedThreadId,
@@ -190,17 +163,32 @@ fun IvaiMainApp(
                 selectedProjectId = uiState.selectedProjectId,
                 onSelectThread = { threadId ->
                     resolvedViewModel.selectThread(threadId)
-                    closeSidebar()
+                    dismissSidebar()
                 },
                 onSelectProject = resolvedViewModel::selectProject,
                 onNewChat = {
                     resolvedViewModel.createNewChat()
-                    closeSidebar()
+                    dismissSidebar()
                 },
                 onDeleteThread = resolvedViewModel::deleteThread
             )
+        },
+        persistentSidebar = { mode ->
+            IvaiPersistentProductSidebar(
+                mode = mode,
+                currentDestination = uiState.destination,
+                onDestinationSelected = resolvedViewModel::selectDestination,
+                threads = uiState.threads,
+                selectedThreadId = uiState.selectedThreadId,
+                projects = uiState.projects,
+                selectedProjectId = uiState.selectedProjectId,
+                onSelectThread = resolvedViewModel::selectThread,
+                onSelectProject = resolvedViewModel::selectProject,
+                onNewChat = resolvedViewModel::createNewChat,
+                onDeleteThread = resolvedViewModel::deleteThread
+            )
         }
-    ) {
-        AppShell()
+    ) { contentModifier, _ ->
+        DestinationContent(contentModifier)
     }
 }

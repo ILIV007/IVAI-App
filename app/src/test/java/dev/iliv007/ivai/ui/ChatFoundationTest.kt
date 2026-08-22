@@ -37,11 +37,11 @@ class ChatFoundationTest {
     @get:Rule val composeTestRule = createComposeRule()
 
     @Test
-    fun navigation_mode_breakpoints_keep_compact_medium_and_expanded_rules() {
-        assertEquals(IvaiNavigationMode.COMPACT_SIDEBAR, ivaiNavigationModeFor(599.dp))
-        assertEquals(IvaiNavigationMode.MEDIUM_RAIL, ivaiNavigationModeFor(600.dp))
-        assertEquals(IvaiNavigationMode.MEDIUM_RAIL, ivaiNavigationModeFor(839.dp))
-        assertEquals(IvaiNavigationMode.EXPANDED_RAIL, ivaiNavigationModeFor(840.dp))
+    fun navigation_mode_breakpoints_keep_modal_and_persistent_sidebar_rules() {
+        assertEquals(IvaiNavigationMode.COMPACT_MODAL, ivaiNavigationModeFor(599.dp))
+        assertEquals(IvaiNavigationMode.MEDIUM_PERSISTENT, ivaiNavigationModeFor(600.dp))
+        assertEquals(IvaiNavigationMode.MEDIUM_PERSISTENT, ivaiNavigationModeFor(839.dp))
+        assertEquals(IvaiNavigationMode.EXPANDED_PERSISTENT, ivaiNavigationModeFor(840.dp))
     }
 
     @Test
