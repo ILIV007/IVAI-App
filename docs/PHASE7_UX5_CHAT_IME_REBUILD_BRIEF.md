@@ -1,6 +1,6 @@
 # Phase 7 UX-5 — Chat Workspace, Context History and IME Rebuild
 
-**Status:** In progress on a focused branch.
+**Status:** Deterministically complete in [PR #132](https://github.com/ILIV007/IVAI-App/pull/132), squash-merged as `60c594b2e5c584ed054d44ab55722114ff4b5449` on 22 August 2026.
 
 ## Goal
 
@@ -30,6 +30,10 @@ UX-5 does not add a provider default, target auto-selection, model discovery, tr
 | Send/stop semantics | Empty draft stays disabled, drafted target-ready message exposes Send, and streaming exposes Stop with stable accessibility labels. |
 | Recovery states | Empty/no-target/streaming/incomplete/error/offline presentations retain their existing state ownership and local recovery copy. |
 | Quality gate | Secret scan, debug/release build, unit suite and lint succeed in protected CI. |
+
+## Validation outcome
+
+The focused implementation was validated in protected GitHub CI by the **Secret scan** and **Build, unit test, and lint** checks for [PR #132](https://github.com/ILIV007/IVAI-App/pull/132). The CI job completed the repository guards, debug and minified-release builds, unit suite and Android lint successfully. A first CI attempt surfaced two deterministic test failures caused by chained Compose `testTag` modifiers; the correction retained the established `chat_composer` tag and exposes the IME-safe contract through `stateDescription`, which the focused tests assert. The corrected commit passed the complete protected workflow. No local Android build is claimed because this sandbox does not contain the Android SDK.
 
 ## Deferred validation
 
