@@ -1,6 +1,8 @@
 package dev.iliv007.ivai.ui.theme
 
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.style.TextDirection
+import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import kotlin.math.pow
@@ -8,17 +10,43 @@ import kotlin.math.pow
 class IvaiThemeContrastTest {
 
     @Test
+    fun light_semantic_foregrounds_meet_normal_text_aa() {
+        assertNormalTextAa("onPrimary on primary", LightOnActionPrimary, LightActionPrimary)
+        assertNormalTextAa("onPrimaryContainer on primaryContainer", LightOnActionPrimaryContainer, LightActionPrimaryContainer)
+        assertNormalTextAa("onSecondary on secondary", LightOnActionPrimary, LightActionSecondary)
+        assertNormalTextAa("onSecondaryContainer on secondaryContainer", LightOnActionSecondaryContainer, LightActionSecondaryContainer)
+        assertNormalTextAa("onTertiary on tertiary", LightOnActionPrimary, LightActionTertiary)
+        assertNormalTextAa("onTertiaryContainer on tertiaryContainer", LightOnActionTertiaryContainer, LightActionTertiaryContainer)
+        assertNormalTextAa("primary text on canvas", LightTextPrimary, LightBackground)
+        assertNormalTextAa("secondary text on surface", LightTextSecondary, LightSurface)
+        assertNormalTextAa("muted text on surface", LightTextMuted, LightSurface)
+        assertNormalTextAa("error text on canvas", IvaiErrorLight, LightBackground)
+        assertNormalTextAa("warning text on canvas", IvaiWarningLight, LightBackground)
+        assertNormalTextAa("success text on canvas", IvaiSuccessLight, LightBackground)
+    }
+
+    @Test
     fun dark_semantic_foregrounds_meet_normal_text_aa() {
-        assertNormalTextAa(
-            label = "onSecondaryContainer on secondaryContainer",
-            foreground = TextPrimary,
-            background = PurpleDark
-        )
-        assertNormalTextAa(
-            label = "onError on error",
-            foreground = IvaiBackground,
-            background = IvaiError
-        )
+        assertNormalTextAa("onPrimary on primary", DarkOnActionPrimary, DarkActionPrimary)
+        assertNormalTextAa("onPrimaryContainer on primaryContainer", DarkOnActionPrimaryContainer, DarkActionPrimaryContainer)
+        assertNormalTextAa("onSecondary on secondary", DarkOnActionPrimary, DarkActionSecondary)
+        assertNormalTextAa("onSecondaryContainer on secondaryContainer", DarkOnActionSecondaryContainer, DarkActionSecondaryContainer)
+        assertNormalTextAa("onTertiary on tertiary", DarkOnActionPrimary, DarkActionTertiary)
+        assertNormalTextAa("onTertiaryContainer on tertiaryContainer", DarkOnActionTertiaryContainer, DarkActionTertiaryContainer)
+        assertNormalTextAa("primary text on canvas", TextPrimary, IvaiBackground)
+        assertNormalTextAa("secondary text on surface", TextSecondary, IvaiSurface)
+        assertNormalTextAa("muted text on surface", TextMuted, IvaiSurface)
+        assertNormalTextAa("error text on canvas", IvaiError, IvaiBackground)
+        assertNormalTextAa("warning text on canvas", IvaiWarning, IvaiBackground)
+        assertNormalTextAa("success text on canvas", IvaiSuccess, IvaiBackground)
+    }
+
+    @Test
+    fun ordinary_body_typography_is_not_forced_ltr() {
+        assertNotEquals(TextDirection.Ltr, IvaiTypography.bodyLarge.textDirection)
+        assertNotEquals(TextDirection.Ltr, IvaiTypography.bodyMedium.textDirection)
+        assertNotEquals(TextDirection.Ltr, IvaiTypography.bodySmall.textDirection)
+        assertTrue(IvaiTypography.labelSmall.textDirection == TextDirection.Ltr)
     }
 
     private fun assertNormalTextAa(label: String, foreground: Color, background: Color) {

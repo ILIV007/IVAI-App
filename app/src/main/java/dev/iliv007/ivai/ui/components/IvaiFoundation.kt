@@ -5,14 +5,14 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -31,16 +31,15 @@ import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.font.FontWeight
 import dev.iliv007.ivai.ui.theme.IvaiElevationTokens
 import dev.iliv007.ivai.ui.theme.IvaiIconSizeTokens
+import dev.iliv007.ivai.ui.theme.IvaiLayoutTokens
 import dev.iliv007.ivai.ui.theme.IvaiShapeTokens
 import dev.iliv007.ivai.ui.theme.IvaiSpacing
 import dev.iliv007.ivai.ui.theme.IvaiStrokeTokens
 import dev.iliv007.ivai.ui.theme.rememberIvaiSemanticColors
 
 /**
- * Shared root surface for redesigned Phase 7 screens.
- *
- * It does not supply navigation or mutate layout direction. Screens retain their existing runtime
- * behavior while adopting a consistent canvas and rhythm.
+ * Shared root surface for redesigned Phase 7 screens. It supplies only canvas and content color;
+ * navigation, layout direction and runtime state remain owned by the calling screen.
  */
 @Composable
 fun IvaiScreenScaffold(
@@ -59,6 +58,7 @@ fun IvaiScreenScaffold(
     }
 }
 
+/** Screen-level title hierarchy. Destination actions stay in the trailing slot. */
 @Composable
 fun IvaiPageHeader(
     title: String,
@@ -72,15 +72,18 @@ fun IvaiPageHeader(
     Row(
         modifier = taggedModifier
             .fillMaxWidth()
-            .padding(horizontal = IvaiSpacing.Small, vertical = IvaiSpacing.XSmall),
+            .padding(horizontal = IvaiSpacing.ScreenCompact, vertical = IvaiSpacing.Small),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(IvaiSpacing.XSmall)
     ) {
-        Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(IvaiSpacing.XxxSmall)) {
+        Column(
+            modifier = Modifier.weight(1f),
+            verticalArrangement = Arrangement.spacedBy(IvaiSpacing.XxxSmall)
+        ) {
             Text(
                 text = title,
                 style = MaterialTheme.typography.titleLarge,
-                fontWeight = FontWeight.Bold,
+                fontWeight = FontWeight.SemiBold,
                 color = semanticColors.textPrimary,
                 modifier = Modifier.semantics { this[SemanticsProperties.Heading] = Unit }
             )
@@ -93,6 +96,42 @@ fun IvaiPageHeader(
             }
         }
         actions()
+    }
+}
+
+/** One clear filled primary action per screen or sheet. */
+@Composable
+fun IvaiPrimaryAction(
+    label: String,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    enabled: Boolean = true,
+    testTag: String? = null,
+    leadingIcon: ImageVector? = null
+) {
+    val semanticColors = rememberIvaiSemanticColors()
+    val taggedModifier = if (testTag == null) modifier else modifier.testTag(testTag)
+    Button(
+        onClick = onClick,
+        enabled = enabled,
+        modifier = taggedModifier.heightIn(min = IvaiLayoutTokens.MinimumTouchTarget),
+        shape = RoundedCornerShape(IvaiShapeTokens.Control),
+        colors = ButtonDefaults.buttonColors(
+            containerColor = semanticColors.actionPrimary,
+            contentColor = semanticColors.actionOnPrimary
+        )
+    ) {
+        leadingIcon?.let {
+            Icon(
+                imageVector = it,
+                contentDescription = null,
+                modifier = Modifier.size(IvaiIconSizeTokens.Inline)
+            )
+        }
+        if (leadingIcon != null) {
+            androidx.compose.foundation.layout.Spacer(modifier = Modifier.size(IvaiSpacing.XxSmall))
+        }
+        Text(text = label, style = MaterialTheme.typography.labelLarge)
     }
 }
 
@@ -122,8 +161,8 @@ private fun IvaiStateTone.description() = when (this) {
 }
 
 /**
- * Reusable card for empty, offline, error, progress and success explanations.
- * The title, message and action are the source of meaning; the icon is deliberately decorative.
+ * Reusable explanatory notice for empty, offline, error, progress and success states. The copy
+ * and optional action are the source of meaning; icons remain decorative.
  */
 @Composable
 fun IvaiStateCard(
@@ -137,17 +176,14 @@ fun IvaiStateCard(
 ) {
     val semanticColors = rememberIvaiSemanticColors()
     val stateColor = tone.color()
-    val accessibleStateDescription = tone.description()
     val taggedModifier = if (testTag == null) modifier else modifier.testTag(testTag)
     Surface(
         modifier = taggedModifier
             .fillMaxWidth()
-            .semantics {
-                stateDescription = accessibleStateDescription
-            },
+            .semantics { stateDescription = tone.description() },
         shape = RoundedCornerShape(IvaiShapeTokens.Card),
-        color = semanticColors.surfaceRaised,
-        border = BorderStroke(IvaiStrokeTokens.Default, stateColor.copy(alpha = 0.38f)),
+        color = semanticColors.surface,
+        border = BorderStroke(IvaiStrokeTokens.Default, stateColor.copy(alpha = 0.34f)),
         tonalElevation = IvaiElevationTokens.Raised
     ) {
         Column(
@@ -200,7 +236,7 @@ fun IvaiTargetChip(
         onClick = onClick,
         enabled = enabled,
         modifier = taggedModifier
-            .heightIn(min = IvaiSpacing.XLarge)
+            .heightIn(min = IvaiLayoutTokens.MinimumTouchTarget)
             .semantics {
                 role = Role.Button
                 stateDescription = availabilityLabel
@@ -227,7 +263,7 @@ fun IvaiTargetChip(
                 Text(text = label, style = MaterialTheme.typography.labelLarge)
                 Text(
                     text = availabilityLabel,
-                    style = MaterialTheme.typography.labelSmall,
+                    style = MaterialTheme.typography.bodySmall,
                     color = semanticColors.textSecondary
                 )
             }
@@ -254,10 +290,7 @@ private fun IvaiExecutionState.tone() = when (this) {
     IvaiExecutionState.STOPPED, IvaiExecutionState.FAILED -> IvaiStateTone.ERROR
 }
 
-/**
- * Announces target-bound execution state. Terminal or approval transitions may request a polite
- * live-region announcement without attaching network/runtime behavior to the component.
- */
+/** Announces target-bound execution state without attaching network or runtime behavior. */
 @Composable
 fun IvaiExecutionStatusBanner(
     state: IvaiExecutionState,
@@ -276,13 +309,11 @@ fun IvaiExecutionStatusBanner(
             .fillMaxWidth()
             .semantics {
                 stateDescription = "${state.stateLabel}: $targetLabel. $detail"
-                if (announceChange) {
-                    liveRegion = androidx.compose.ui.semantics.LiveRegionMode.Polite
-                }
+                if (announceChange) liveRegion = androidx.compose.ui.semantics.LiveRegionMode.Polite
             },
-        shape = RoundedCornerShape(IvaiShapeTokens.Card),
-        color = semanticColors.surfaceInteractive,
-        border = BorderStroke(IvaiStrokeTokens.Default, stateColor.copy(alpha = 0.45f)),
+        shape = RoundedCornerShape(IvaiShapeTokens.Group),
+        color = semanticColors.surfaceRaised,
+        border = BorderStroke(IvaiStrokeTokens.Default, stateColor.copy(alpha = 0.34f)),
         tonalElevation = IvaiElevationTokens.Flat
     ) {
         Row(
@@ -291,12 +322,15 @@ fun IvaiExecutionStatusBanner(
             horizontalArrangement = Arrangement.spacedBy(IvaiSpacing.XSmall)
         ) {
             Surface(
-                modifier = Modifier.size(IvaiSpacing.XSmall),
+                modifier = Modifier.size(IvaiSpacing.XxSmall),
                 shape = RoundedCornerShape(IvaiShapeTokens.Small),
                 color = stateColor,
                 content = {}
             )
-            Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(IvaiSpacing.XxxSmall)) {
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(IvaiSpacing.XxxSmall)
+            ) {
                 Text(
                     text = state.stateLabel,
                     style = MaterialTheme.typography.labelLarge,
