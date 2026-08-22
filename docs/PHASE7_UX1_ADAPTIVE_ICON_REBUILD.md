@@ -1,6 +1,6 @@
 # Phase 7 UX-1 — Adaptive Launcher Icon Rebuild
 
-**Status:** Implemented locally; CI and physical-launcher validation are pending.
+**Status:** Deterministic implementation and CI validation are complete in [PR #124](https://github.com/ILIV007/IVAI-App/pull/124), squash-merged to `main` as `82807ab4cd4bbe040abeed9820dcb486cb0de931` on 22 August 2026. Physical-launcher validation remains pending.
 
 ## Goal
 
@@ -28,11 +28,15 @@ This increment does **not** alter Compose screens, product wordmark, UI palette,
 
 | Evidence | Required outcome | Status |
 |---|---|---|
-| Launcher resource guard | symbol-only vector, independent background, matching monochrome layer, no composite fallback | Pending local/CI run |
-| Unit suite | all existing tests plus new adaptive-layer assertions pass | Pending CI |
-| Build + lint | debug/release build and lint have no regression | Pending CI |
-| Physical compact/medium launcher | no crop/zoom on installed icon | Pending owner/device evidence |
-| OEM/themed launcher | readable monochrome silhouette and no composite artefact | Pending owner/device evidence |
+| Launcher resource guard | symbol-only vector, independent background, matching monochrome layer, no composite fallback | **Passed locally and in PR #124 CI** |
+| Unit suite | all existing tests plus new adaptive-layer assertions pass | **Passed in PR #124 CI** |
+| Build + lint | debug/release build and lint have no regression | **Passed in PR #124 CI** |
+| Physical compact/medium launcher | no crop/zoom on installed icon | **Pending owner/device evidence** |
+| OEM/themed launcher | readable monochrome silhouette and no composite artefact | **Pending owner/device evidence** |
+
+## Validation record
+
+The PR’s required `Secret scan` and `Build, unit test, and lint` checks both completed successfully before merge. The sandbox did not contain an Android SDK, so no local Gradle result is claimed; local evidence is limited to the focused launcher guard and whitespace/reference audits. This deterministic success does **not** validate installed launcher rendering, OEM masks, themed icon rendering or Android-version behavior.
 
 ## References
 
