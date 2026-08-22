@@ -11,12 +11,16 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.relocation.BringIntoViewRequester
+import androidx.compose.foundation.relocation.bringIntoViewRequester
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
@@ -55,12 +59,14 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.focus.onFocusEvent
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardCapitalization
@@ -78,7 +84,6 @@ import dev.iliv007.ivai.ui.model.ChatThread
 import dev.iliv007.ivai.ui.model.MessageSender
 import dev.iliv007.ivai.ui.model.UiPreviewState
 import dev.iliv007.ivai.ui.model.WorkspaceProject
-import dev.iliv007.ivai.ui.theme.IvaiElevationTokens
 import dev.iliv007.ivai.ui.theme.IvaiIconSizeTokens
 import dev.iliv007.ivai.ui.theme.IvaiLayoutTokens
 import dev.iliv007.ivai.ui.theme.IvaiShapeTokens
@@ -376,12 +381,22 @@ private fun ChatContextBar(
     onTargetClick: () -> Unit,
     onProjectClick: () -> Unit
 ) {
-    Surface(color = MaterialTheme.colorScheme.surface, modifier = Modifier.fillMaxWidth()) {
-        Row(
+    Surface(
+        color = MaterialTheme.colorScheme.surface,
+        modifier = Modifier
+            .fillMaxWidth()
+            .testTag("chat_context_strip")
+    ) {
+        Column(
             modifier = Modifier.padding(horizontal = IvaiSpacing.Small, vertical = IvaiSpacing.XSmall),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(IvaiSpacing.XSmall)
+            verticalArrangement = Arrangement.spacedBy(IvaiSpacing.XxSmall)
         ) {
+            Text(
+                text = "Chat context",
+                style = MaterialTheme.typography.labelLarge,
+                fontWeight = FontWeight.SemiBold,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
             IvaiTargetChip(
                 label = if (targetAvailable) targetLabel else "Choose execution target",
                 availabilityLabel = when {
@@ -391,21 +406,33 @@ private fun ChatContextBar(
                 },
                 onClick = onTargetClick,
                 leadingIcon = Icons.AutoMirrored.Filled.AltRoute,
-                modifier = Modifier.weight(1f),
+                modifier = Modifier.fillMaxWidth(),
                 testTag = "button_select_combo"
             )
-            IconButton(
-                onClick = onProjectClick,
-                modifier = Modifier
-                    .size(IvaiLayoutTokens.MinimumTouchTarget)
-                    .semantics { contentDescription = "Assign chat to project" }
-                    .testTag("button_assign_project")
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(IvaiSpacing.XxSmall)
             ) {
                 Icon(
                     imageVector = if (projectName == null) Icons.Default.FolderOpen else Icons.Default.Folder,
                     contentDescription = null,
-                    tint = if (projectName == null) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.secondary
+                    tint = if (projectName == null) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.secondary,
+                    modifier = Modifier.size(IvaiIconSizeTokens.Inline)
                 )
+                Text(
+                    text = projectName ?: "No project assigned",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.weight(1f)
+                )
+                TextButton(
+                    onClick = onProjectClick,
+                    modifier = Modifier
+                        .heightIn(min = IvaiLayoutTokens.MinimumTouchTarget)
+                        .semantics { contentDescription = "Assign chat to project" }
+                        .testTag("button_assign_project")
+                ) { Text("Project") }
             }
         }
     }
@@ -478,13 +505,18 @@ private fun ChatComposer(
     val hasDraft = value.isNotBlank()
     val canSend = hasDraft && canSendToTarget && !isStreaming
     val canAct = isStreaming || hasDraft
+    val composerScope = rememberCoroutineScope()
+    val bringIntoViewRequester = remember { BringIntoViewRequester() }
     Surface(
         shape = RoundedCornerShape(IvaiShapeTokens.Card),
         color = MaterialTheme.colorScheme.surfaceContainerHigh,
         border = androidx.compose.foundation.BorderStroke(IvaiStrokeTokens.Default, MaterialTheme.colorScheme.outlineVariant),
         modifier = Modifier
             .fillMaxWidth()
+            .navigationBarsPadding()
+            .imePadding()
             .padding(horizontal = IvaiSpacing.XSmall, vertical = IvaiSpacing.XxSmall)
+            .semantics { stateDescription = "IME-safe composer" }
             .testTag("chat_composer")
     ) {
         Row(
@@ -512,6 +544,12 @@ private fun ChatComposer(
                     maxLines = 4,
                     modifier = Modifier
                         .fillMaxWidth()
+                        .bringIntoViewRequester(bringIntoViewRequester)
+                        .onFocusEvent { focusState ->
+                            if (focusState.isFocused) {
+                                composerScope.launch { bringIntoViewRequester.bringIntoView() }
+                            }
+                        }
                         .testTag("input_message_text"),
                     decorationBox = { input ->
                         if (value.isBlank()) {
