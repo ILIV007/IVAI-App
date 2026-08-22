@@ -9,6 +9,8 @@ import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performTextInput
+import androidx.compose.ui.test.performTouchInput
+import androidx.compose.ui.test.swipeUp
 import com.github.takahirom.roborazzi.RobolectricDeviceQualifiers
 import com.github.takahirom.roborazzi.captureRoboImage
 import dev.iliv007.ivai.provider.ProviderAccountAuthMode
@@ -59,6 +61,7 @@ class ProviderComboSetupTest {
 
         composeTestRule.onNodeWithTag("connections_hub").assertIsDisplayed()
         composeTestRule.onNodeWithTag("connections_empty_state").assertIsDisplayed()
+        composeTestRule.onNodeWithTag("connections_hub").performTouchInput { swipeUp() }
         composeTestRule.onNodeWithTag("connections_combo_empty_state").assertIsDisplayed()
         composeTestRule.onRoot().captureRoboImage(filePath = "build/roborazzi/phase72_connections_empty_dark.png")
     }
@@ -110,6 +113,35 @@ class ProviderComboSetupTest {
         assertEquals(1, saveCalls)
         assertEquals(ProviderKind.GEMINI, savedKind)
         assertEquals("", savedModel)
+    }
+
+    @Test
+    fun lifecycle_surface_exposes_connection_account_model_combo_order_without_auto_selection() {
+        composeTestRule.setContent {
+            IvaiTheme(darkTheme = false) {
+                RouterScreen(
+                    state = RouterManagementState(),
+                    providers = providerStateWithConnectionWithoutModels(),
+                    onAddProvider = { _, _, _, _, _, _, _, _, _, _ -> },
+                    onDeleteProvider = {},
+                    onAddAccountToConnection = { _, _, _, _ -> },
+                    onAddModelToConnection = { _, _, _ -> },
+                    onSetProviderEnabled = { _, _ -> },
+                    onDismissProviderError = {},
+                    onCreateCombo = { _, _, _ -> },
+                    onDismissError = {}
+                )
+            }
+        }
+
+        composeTestRule.onNodeWithTag("connections_progression").assertIsDisplayed()
+        (1..4).forEach { index ->
+            composeTestRule.onNodeWithTag("connection_lifecycle_stage_$index").assertIsDisplayed()
+        }
+        composeTestRule.onNodeWithText("Next: declare a Model under a saved Connection.").assertIsDisplayed()
+        composeTestRule.onNodeWithTag("connection_accounts_connection-1").assertIsDisplayed()
+        composeTestRule.onNodeWithTag("connection_models_connection-1").assertIsDisplayed()
+        composeTestRule.onNodeWithTag("connection_test_readiness_connection-1").assertIsDisplayed()
     }
 
     @Test
@@ -283,6 +315,8 @@ class ProviderComboSetupTest {
             }
         }
 
+        composeTestRule.onNodeWithTag("connections_hub").performTouchInput { swipeUp() }
+        composeTestRule.onNodeWithTag("connections_hub").performTouchInput { swipeUp() }
         composeTestRule.onNodeWithTag("button_create_combo").performClick()
         composeTestRule.onNodeWithTag("combo_builder_sheet").assertIsDisplayed()
         composeTestRule.onNodeWithTag("input_combo_name").performTextInput("Research fallback")

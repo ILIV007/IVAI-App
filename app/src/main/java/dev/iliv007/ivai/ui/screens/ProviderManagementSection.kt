@@ -25,7 +25,6 @@ import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.VerifiedUser
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExposedDropdownMenuBox
 import androidx.compose.material3.ExposedDropdownMenuDefaults
@@ -61,7 +60,6 @@ import dev.iliv007.ivai.provider.ProviderCapability
 import dev.iliv007.ivai.provider.ProviderEndpointTrustMode
 import dev.iliv007.ivai.provider.ProviderKind
 import dev.iliv007.ivai.provider.ProviderPresetCatalog
-import dev.iliv007.ivai.ui.components.IvaiPageHeader
 import dev.iliv007.ivai.ui.components.IvaiStateCard
 import dev.iliv007.ivai.ui.components.IvaiStateTone
 import dev.iliv007.ivai.ui.theme.IvaiIconSizeTokens
@@ -111,10 +109,11 @@ fun ProviderManagementSection(
         modifier = modifier,
         verticalArrangement = Arrangement.spacedBy(IvaiSpacing.Small)
     ) {
-        IvaiPageHeader(
-            title = "Connections",
-            subtitle = "Your providers, accounts and declared models stay under local control.",
-            testTag = "connections_provider_header"
+        Text(
+            text = "Your local setup",
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.SemiBold,
+            modifier = Modifier.testTag("connections_provider_header")
         )
         ProviderProgressionCard(state = state)
 
@@ -236,6 +235,12 @@ fun ProviderManagementSection(
 private fun ProviderProgressionCard(state: ProviderManagementState) {
     val accountCount = state.connections.sumOf { it.accounts.size }
     val modelCount = state.connections.sumOf { it.manualModels.count { model -> model.selectable } }
+    val nextAction = when {
+        state.connections.isEmpty() -> "Next: create a Connection."
+        accountCount == 0 -> "Next: add an Account under a saved Connection."
+        modelCount == 0 -> "Next: declare a Model under a saved Connection."
+        else -> "Next: intentionally select eligible candidates for an ordered Combo."
+    }
     Surface(
         shape = RoundedCornerShape(IvaiShapeTokens.Card),
         color = MaterialTheme.colorScheme.surface,
@@ -246,28 +251,75 @@ private fun ProviderProgressionCard(state: ProviderManagementState) {
     ) {
         Column(
             modifier = Modifier.padding(IvaiSpacing.Small),
-            verticalArrangement = Arrangement.spacedBy(IvaiSpacing.XxSmall)
+            verticalArrangement = Arrangement.spacedBy(IvaiSpacing.XSmall)
         ) {
             Text(
-                text = "Connection readiness",
-                style = MaterialTheme.typography.labelLarge,
-                fontWeight = FontWeight.Bold
+                text = "Build your target in order",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.SemiBold
+            )
+            ConnectionLifecycleStage(
+                index = 1,
+                title = "Connection",
+                detail = "${state.connections.size} saved",
+                complete = state.connections.isNotEmpty()
+            )
+            ConnectionLifecycleStage(
+                index = 2,
+                title = "Account",
+                detail = "$accountCount saved under Connections",
+                complete = accountCount > 0
+            )
+            ConnectionLifecycleStage(
+                index = 3,
+                title = "Model",
+                detail = "$modelCount declared and selectable",
+                complete = modelCount > 0
+            )
+            ConnectionLifecycleStage(
+                index = 4,
+                title = "Combo",
+                detail = "Select only the candidates and fallback order you want",
+                complete = false
             )
             Text(
-                text = "${state.connections.size} connection${if (state.connections.size == 1) "" else "s"} · $accountCount account${if (accountCount == 1) "" else "s"} · $modelCount selectable model${if (modelCount == 1) "" else "s"}",
+                text = nextAction,
                 style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-            Text(
-                text = if (modelCount == 0) {
-                    "Next: add a model beneath a saved connection, then intentionally add it to a Combo."
-                } else {
-                    "Declared models are ready to be intentionally added to an ordered Combo."
-                },
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.primary
+                color = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.testTag("connections_next_action")
             )
         }
+    }
+}
+
+@Composable
+private fun ConnectionLifecycleStage(index: Int, title: String, detail: String, complete: Boolean) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .testTag("connection_lifecycle_stage_$index"),
+        horizontalArrangement = Arrangement.spacedBy(IvaiSpacing.XSmall),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Surface(
+            modifier = Modifier.size(IvaiIconSizeTokens.Inline),
+            shape = RoundedCornerShape(IvaiShapeTokens.Small),
+            color = if (complete) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant,
+            contentColor = if (complete) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant
+        ) {
+            Box(contentAlignment = Alignment.Center) {
+                Text(index.toString(), style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold)
+            }
+        }
+        Column(modifier = Modifier.weight(1f)) {
+            Text(title, style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.SemiBold)
+            Text(detail, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
+        Text(
+            text = if (complete) "Saved" else "Pending",
+            style = MaterialTheme.typography.labelSmall,
+            color = if (complete) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
+        )
     }
 }
 
@@ -279,9 +331,17 @@ private fun ProviderConnectionCardItem(
     onAddModel: () -> Unit,
     onSetProviderEnabled: (String, Boolean) -> Unit
 ) {
-    val selectableModels = connection.manualModels.filter { it.selectable }
-    val credentialReady = connection.accounts.count { account ->
-        account.enabled && (account.authMode == ProviderAccountAuthMode.NONE || account.credentialStored)
+    val accountDetails = connection.accounts.map { account ->
+        val status = when {
+            account.authMode == ProviderAccountAuthMode.NONE -> "No-auth confirmed"
+            account.credentialStored -> "Credential stored locally"
+            else -> "Credential required"
+        }
+        "${account.displayName} · $status"
+    }
+    val modelDetails = connection.manualModels.map { model ->
+        val status = if (model.selectable) "Selectable" else "Unavailable"
+        "${model.displayName} · $status${model.capabilities.takeIf { it.isNotEmpty() }?.let { " · ${it.joinToString()}" }.orEmpty()}"
     }
     Surface(
         color = MaterialTheme.colorScheme.surface,
@@ -293,7 +353,7 @@ private fun ProviderConnectionCardItem(
     ) {
         Column(
             modifier = Modifier.padding(IvaiSpacing.Small),
-            verticalArrangement = Arrangement.spacedBy(IvaiSpacing.XSmall)
+            verticalArrangement = Arrangement.spacedBy(IvaiSpacing.Small)
         ) {
             Row(
                 verticalAlignment = Alignment.CenterVertically,
@@ -314,10 +374,11 @@ private fun ProviderConnectionCardItem(
                     )
                 }
                 Column(modifier = Modifier.weight(1f)) {
+                    Text("Connection", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     Text(
                         text = connection.displayName,
-                        style = MaterialTheme.typography.titleSmall,
-                        fontWeight = FontWeight.Bold
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.SemiBold
                     )
                     Text(
                         text = "${connection.kind.displayLabel()} · ${connection.endpointTrustMode.displayLabel()}",
@@ -353,27 +414,17 @@ private fun ProviderConnectionCardItem(
                     )
                 }
             }
-            ConnectionReadinessRow(
-                label = "Trust",
-                value = connection.endpointTrustMode.displayLabel() + if (connection.endpointTrustMode != ProviderEndpointTrustMode.REMOTE_HTTPS) {
-                    if (connection.localTrustConfirmed) " · confirmed" else " · confirmation missing"
-                } else ""
+            Text(
+                text = "Trust: ${connection.endpointTrustMode.displayLabel()}${if (connection.endpointTrustMode != ProviderEndpointTrustMode.REMOTE_HTTPS) if (connection.localTrustConfirmed) " · confirmed" else " · confirmation missing" else ""}",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.testTag("connection_trust_${connection.connectionId}")
             )
-            ConnectionReadinessRow(
-                label = "Credential",
-                value = if (credentialReady == connection.accounts.size && connection.accounts.isNotEmpty()) {
-                    "$credentialReady account${if (credentialReady == 1) "" else "s"} ready"
-                } else {
-                    "$credentialReady of ${connection.accounts.size} account${if (connection.accounts.size == 1) "" else "s"} ready"
-                }
-            )
-            ConnectionReadinessRow(
-                label = "Accounts",
-                value = connection.accounts.joinToString { it.displayName }.ifBlank { "No saved account" }
-            )
-            ConnectionReadinessRow(
-                label = "Declared models",
-                value = if (selectableModels.isEmpty()) "No selectable model" else selectableModels.joinToString { it.displayName }
+            ConnectionChildSection(
+                title = "Accounts",
+                details = accountDetails,
+                emptyLabel = "No Account yet. Add one beneath this Connection.",
+                testTag = "connection_accounts_${connection.connectionId}"
             )
             OutlinedButton(
                 onClick = onAddAccount,
@@ -384,8 +435,14 @@ private fun ProviderConnectionCardItem(
             ) {
                 Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(IvaiIconSizeTokens.Inline))
                 Spacer(Modifier.width(IvaiSpacing.XxSmall))
-                Text("Add account")
+                Text(if (accountDetails.isEmpty()) "Add first account" else "Add another account")
             }
+            ConnectionChildSection(
+                title = "Models",
+                details = modelDetails,
+                emptyLabel = "No Model declared yet. Add one beneath this Connection.",
+                testTag = "connection_models_${connection.connectionId}"
+            )
             OutlinedButton(
                 onClick = onAddModel,
                 modifier = Modifier
@@ -395,17 +452,45 @@ private fun ProviderConnectionCardItem(
             ) {
                 Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(IvaiIconSizeTokens.Inline))
                 Spacer(Modifier.width(IvaiSpacing.XxSmall))
-                Text("Add model")
+                Text(if (modelDetails.isEmpty()) "Declare first model" else "Declare another model")
             }
+            Text(
+                text = "Provider and Model testing is not available in this build. A future one-shot test requires explicit user action and never runs automatically.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.testTag("connection_test_readiness_${connection.connectionId}")
+            )
         }
     }
 }
 
 @Composable
-private fun ConnectionReadinessRow(label: String, value: String) {
-    Row(horizontalArrangement = Arrangement.spacedBy(IvaiSpacing.XxSmall)) {
-        Text("$label:", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold)
-        Text(value, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+private fun ConnectionChildSection(title: String, details: List<String>, emptyLabel: String, testTag: String) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .testTag(testTag),
+        verticalArrangement = Arrangement.spacedBy(IvaiSpacing.XxxSmall)
+    ) {
+        Text(title, style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.SemiBold)
+        if (details.isEmpty()) {
+            Text(emptyLabel, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        } else {
+            details.forEach { detail ->
+                Surface(
+                    color = MaterialTheme.colorScheme.surfaceVariant,
+                    shape = RoundedCornerShape(IvaiShapeTokens.Control),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text(
+                        text = detail,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(horizontal = IvaiSpacing.XSmall, vertical = IvaiSpacing.XxSmall)
+                    )
+                }
+            }
+        }
     }
 }
 
