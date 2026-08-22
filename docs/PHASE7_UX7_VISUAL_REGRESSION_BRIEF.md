@@ -1,6 +1,6 @@
 # Phase 7 UX-7 — Visual Regression, Semantics and Validation Runbook
 
-**Status:** In progress on a focused branch.
+**Status:** Deterministically complete in [PR #136](https://github.com/ILIV007/IVAI-App/pull/136), squash-merged as `f5f72acb8cdee89c0a77d4762179e2abe7170bb6` on 22 August 2026.
 
 ## Goal
 
@@ -28,6 +28,10 @@ UX-7 does not alter destination routing, sidebar responsive implementation, Chat
 | Visual evidence | New light and dark navigation screenshots are recorded from deterministic Compose tests without fabricated device claims. |
 | Architecture | BYOK/provider-default/prohibited-execution/cleartext/global-RTL guards remain clean; no runtime or data change is introduced. |
 | Quality gate | Secret scan, debug/release build, unit suite and lint succeed in protected CI. |
+
+## Validation outcome
+
+The focused implementation passed the protected GitHub CI **Secret scan** and **Build, unit test, and lint** checks for [PR #136](https://github.com/ILIV007/IVAI-App/pull/136). The successful workflow completed repository architecture guards, debug and minified-release builds, unit suite and Android lint. The first CI attempt identified a missing unit-test import for `onNodeWithText`; the correction was compile-only and the full corrected workflow passed. No local Android build is claimed because this sandbox does not contain the Android SDK.
 
 ## Physical UX-8 handoff
 
