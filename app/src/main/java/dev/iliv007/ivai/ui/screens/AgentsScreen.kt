@@ -96,6 +96,13 @@ fun AgentsScreen(
             modifier = Modifier.padding(IvaiSpacing.Small),
             verticalArrangement = Arrangement.spacedBy(IvaiSpacing.Medium)
         ) {
+            item {
+                IvaiPageHeader(
+                    title = "Agents",
+                    subtitle = "Local profiles, bounded runs, and one-time write reviews stay under your control.",
+                    testTag = "agents_page_header"
+                )
+            }
             item { AgentSafetyNotice() }
             if (state.pendingApprovals.isNotEmpty()) {
                 item {
@@ -124,11 +131,13 @@ fun AgentsScreen(
             }
             selectedRun?.let { run ->
                 item {
-                    AgentRunWorkspace(
-                        run = run,
-                        trace = state.selectedRunTrace,
-                        onCancel = { onCancelRun(run.runId) }
-                    )
+                    Column(modifier = Modifier.testTag("agent_selected_run_section")) {
+                        AgentRunWorkspace(
+                            run = run,
+                            trace = state.selectedRunTrace,
+                            onCancel = { onCancelRun(run.runId) }
+                        )
+                    }
                 }
             }
             item {
