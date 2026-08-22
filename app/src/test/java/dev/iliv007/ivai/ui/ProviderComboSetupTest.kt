@@ -9,6 +9,7 @@ import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performTextInput
+import androidx.compose.ui.test.performTouchInput
 import com.github.takahirom.roborazzi.RobolectricDeviceQualifiers
 import com.github.takahirom.roborazzi.captureRoboImage
 import dev.iliv007.ivai.provider.ProviderAccountAuthMode
@@ -59,7 +60,8 @@ class ProviderComboSetupTest {
 
         composeTestRule.onNodeWithTag("connections_hub").assertIsDisplayed()
         composeTestRule.onNodeWithTag("connections_empty_state").assertIsDisplayed()
-        composeTestRule.onNodeWithTag("connections_combo_empty_state").performScrollTo().assertIsDisplayed()
+        composeTestRule.onNodeWithTag("connections_hub").performTouchInput { swipeUp() }
+        composeTestRule.onNodeWithTag("connections_combo_empty_state").assertIsDisplayed()
         composeTestRule.onRoot().captureRoboImage(filePath = "build/roborazzi/phase72_connections_empty_dark.png")
     }
 
@@ -312,7 +314,9 @@ class ProviderComboSetupTest {
             }
         }
 
-        composeTestRule.onNodeWithTag("button_create_combo").performScrollTo().performClick()
+        composeTestRule.onNodeWithTag("connections_hub").performTouchInput { swipeUp() }
+        composeTestRule.onNodeWithTag("connections_hub").performTouchInput { swipeUp() }
+        composeTestRule.onNodeWithTag("button_create_combo").performClick()
         composeTestRule.onNodeWithTag("combo_builder_sheet").assertIsDisplayed()
         composeTestRule.onNodeWithTag("input_combo_name").performTextInput("Research fallback")
         composeTestRule.onNodeWithTag("combo_candidate_connection-1_account-1_model-a").performClick()
