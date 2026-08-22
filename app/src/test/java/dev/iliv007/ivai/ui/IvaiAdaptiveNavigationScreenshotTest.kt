@@ -5,11 +5,15 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.Text
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.SemanticsProperties
+import androidx.compose.ui.test.SemanticsMatcher
+import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.onRoot
 import com.github.takahirom.roborazzi.RobolectricDeviceQualifiers
 import com.github.takahirom.roborazzi.captureRoboImage
@@ -93,6 +97,61 @@ class IvaiAdaptiveNavigationScreenshotTest {
         composeTestRule.onNodeWithTag("chat_session_drawer").assertIsDisplayed()
         composeTestRule.onAllNodesWithTag("chat_session_item_sidebar-thread").assertCountEquals(1)
         composeTestRule.onRoot().captureRoboImage(filePath = "build/roborazzi/ux3_product_sidebar_dark.png")
+    }
+
+    @Test
+    fun selected_agent_destination_is_labeled_and_semantically_selected_in_light_sidebar() {
+        composeTestRule.setContent {
+            IvaiTheme(darkTheme = false) {
+                IvaiProductSidebar(
+                    currentDestination = NavDestination.AGENTS,
+                    onDestinationSelected = {},
+                    threads = emptyList(),
+                    selectedThreadId = "",
+                    projects = emptyList(),
+                    selectedProjectId = null,
+                    onSelectThread = {},
+                    onSelectProject = {},
+                    onNewChat = {},
+                    onDeleteThread = {}
+                )
+            }
+        }
+
+        composeTestRule.onNodeWithText("Agents").assertIsDisplayed()
+        composeTestRule.onNodeWithTag(NavDestination.AGENTS.testTag)
+            .assert(SemanticsMatcher.expectValue(SemanticsProperties.Selected, true))
+        composeTestRule.onNodeWithTag(NavDestination.CHATS.testTag)
+            .assert(SemanticsMatcher.expectValue(SemanticsProperties.Selected, false))
+        composeTestRule.onRoot().captureRoboImage(filePath = "build/roborazzi/ux7_product_sidebar_agents_light.png")
+    }
+
+    @Test
+    fun selected_settings_destination_is_labeled_and_semantically_selected_in_dark_sidebar() {
+        composeTestRule.setContent {
+            IvaiTheme(darkTheme = true) {
+                IvaiPersistentProductSidebar(
+                    mode = IvaiNavigationMode.MEDIUM_PERSISTENT,
+                    currentDestination = NavDestination.SETTINGS,
+                    onDestinationSelected = {},
+                    threads = emptyList(),
+                    selectedThreadId = "",
+                    projects = emptyList(),
+                    selectedProjectId = null,
+                    onSelectThread = {},
+                    onSelectProject = {},
+                    onNewChat = {},
+                    onDeleteThread = {}
+                )
+            }
+        }
+
+        composeTestRule.onNodeWithText("Settings").assertIsDisplayed()
+        composeTestRule.onNodeWithTag(NavDestination.SETTINGS.testTag)
+            .assert(SemanticsMatcher.expectValue(SemanticsProperties.Selected, true))
+        composeTestRule.onAllNodesWithTag("chat_session_drawer")
+            .assertCountEquals(0)
+        composeTestRule.onRoot().captureRoboImage(filePath = "build/roborazzi/ux7_persistent_sidebar_settings_dark.png")
     }
 
     @Test
