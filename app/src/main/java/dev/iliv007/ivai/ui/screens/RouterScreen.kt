@@ -108,7 +108,7 @@ fun RouterScreen(
         item {
             IvaiPageHeader(
                 title = "Connections",
-                subtitle = "Set up providers and decide the exact ordered fallback candidates for each Combo.",
+                subtitle = "Create a Connection, add its Accounts and Models, then choose an ordered Combo yourself.",
                 testTag = "connections_hub_header"
             )
         }
@@ -134,7 +134,7 @@ fun RouterScreen(
             item {
                 IvaiStateCard(
                     title = "Build an ordered Combo when ready",
-                    message = "First save a user-managed connection with an account, then add one or more declared models under it. Finally choose the candidates and their exact fallback order. IVAI never adds an implicit provider.",
+                    message = "Complete the sequence: Connection → Account → Model → Combo. Only saved, eligible Account + Model candidates can be selected, and IVAI never inserts a provider or changes the order for you.",
                     tone = IvaiStateTone.NEUTRAL,
                     icon = Icons.Default.Layers,
                     action = {
@@ -226,9 +226,9 @@ private fun ComboSectionHeader(comboCount: Int, onCreateCombo: () -> Unit) {
                 modifier = Modifier.size(IvaiIconSizeTokens.Feature)
             )
             Column(modifier = Modifier.weight(1f)) {
-                Text("Ordered Combos", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                Text("4. Ordered Combos", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
                 Text(
-                    text = "$comboCount saved · fallback follows only the candidate order you choose",
+                    text = "$comboCount saved · only eligible Account + Model candidates appear, in the fallback order you choose",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -241,7 +241,7 @@ private fun ComboSectionHeader(comboCount: Int, onCreateCombo: () -> Unit) {
             ) {
                 Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(IvaiIconSizeTokens.Inline))
                 Spacer(Modifier.width(IvaiSpacing.XxxSmall))
-                Text("Combo")
+                Text("Create Combo")
             }
         }
     }

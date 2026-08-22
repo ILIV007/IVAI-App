@@ -113,6 +113,35 @@ class ProviderComboSetupTest {
     }
 
     @Test
+    fun lifecycle_surface_exposes_connection_account_model_combo_order_without_auto_selection() {
+        composeTestRule.setContent {
+            IvaiTheme(darkTheme = false) {
+                RouterScreen(
+                    state = RouterManagementState(),
+                    providers = providerStateWithConnectionWithoutModels(),
+                    onAddProvider = { _, _, _, _, _, _, _, _, _, _ -> },
+                    onDeleteProvider = {},
+                    onAddAccountToConnection = { _, _, _, _ -> },
+                    onAddModelToConnection = { _, _, _ -> },
+                    onSetProviderEnabled = { _, _ -> },
+                    onDismissProviderError = {},
+                    onCreateCombo = { _, _, _ -> },
+                    onDismissError = {}
+                )
+            }
+        }
+
+        composeTestRule.onNodeWithTag("connections_progression").assertIsDisplayed()
+        (1..4).forEach { index ->
+            composeTestRule.onNodeWithTag("connection_lifecycle_stage_$index").assertIsDisplayed()
+        }
+        composeTestRule.onNodeWithText("Next: declare a Model under a saved Connection.").assertIsDisplayed()
+        composeTestRule.onNodeWithTag("connection_accounts_connection-1").assertIsDisplayed()
+        composeTestRule.onNodeWithTag("connection_models_connection-1").assertIsDisplayed()
+        composeTestRule.onNodeWithTag("connection_test_readiness_connection-1").assertIsDisplayed()
+    }
+
+    @Test
     fun account_is_added_to_existing_connection_without_creating_another_provider() {
         var providerSaveCalls = 0
         var savedConnectionId = ""
