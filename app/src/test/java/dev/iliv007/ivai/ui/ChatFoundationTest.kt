@@ -1,5 +1,8 @@
 package dev.iliv007.ivai.ui
 
+import androidx.compose.ui.semantics.SemanticsProperties
+import androidx.compose.ui.test.SemanticsMatcher
+import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
@@ -108,7 +111,9 @@ class ChatFoundationTest {
             }
         }
 
+        composeTestRule.onNodeWithTag("chat_context_strip").assertIsDisplayed()
         composeTestRule.onNodeWithTag("chat_execution_status").assertIsDisplayed()
+        assertImeSafeComposer()
         composeTestRule.onNodeWithTag("input_message_text").assertIsDisplayed()
         composeTestRule.onNodeWithText("Stop").assertIsDisplayed()
         composeTestRule.onNodeWithContentDescription("Stop streaming").assertIsDisplayed()
@@ -176,10 +181,32 @@ class ChatFoundationTest {
             }
         }
 
+        composeTestRule.onNodeWithTag("chat_context_strip").assertIsDisplayed()
         composeTestRule.onNodeWithText("Do anything…").assertIsDisplayed()
+        assertImeSafeComposer()
         composeTestRule.onNodeWithTag("input_message_text").assertIsDisplayed()
         composeTestRule.onNodeWithContentDescription("Send message").assertIsDisplayed()
         composeTestRule.onRoot().captureRoboImage(filePath = "build/roborazzi/r3_chat_composer_light.png")
+    }
+
+    @Test
+    fun chat_context_keeps_project_metadata_separate_from_explicit_target() {
+        composeTestRule.setContent {
+            IvaiTheme(darkTheme = false) {
+                ChatsScreen(
+                    previewState = UiPreviewState.NORMAL,
+                    onResetState = {},
+                    threads = listOf(chatThread(modelOrCombo = "Research Combo").copy(projectName = "Local research")),
+                    selectedThreadId = "thread-1",
+                    routerManagementState = configuredResearchComboState()
+                )
+            }
+        }
+
+        composeTestRule.onNodeWithTag("chat_context_strip").assertIsDisplayed()
+        composeTestRule.onNodeWithText("Research Combo").assertIsDisplayed()
+        composeTestRule.onNodeWithText("Local research").assertIsDisplayed()
+        composeTestRule.onNodeWithTag("button_assign_project").assertIsDisplayed()
     }
 
     @Test
@@ -275,6 +302,12 @@ class ChatFoundationTest {
         composeTestRule.onNodeWithTag("chat_preview_state").assertIsDisplayed()
         composeTestRule.onNodeWithText("Provider stream interrupted").assertIsDisplayed()
         composeTestRule.onRoot().captureRoboImage(filePath = "build/roborazzi/phase71_chat_error_dark.png")
+    }
+
+    private fun assertImeSafeComposer() {
+        composeTestRule.onNodeWithTag("chat_composer").assert(
+            SemanticsMatcher.expectValue(SemanticsProperties.StateDescription, "IME-safe composer")
+        )
     }
 
     private fun configuredResearchComboState() = RouterManagementState(
