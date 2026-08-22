@@ -11,8 +11,9 @@ import androidx.compose.ui.unit.dp
 /**
  * Shared visual decisions for the in-app IVAI experience.
  *
- * The Android launcher artwork remains launcher-only. These tokens define an independent UI
- * system that can harmonize with the app icon's atmosphere without reusing its mark or artwork.
+ * The launcher artwork remains launcher-only. Tokens express hierarchy, not decoration: screens
+ * must consume these semantic roles or MaterialTheme roles rather than raw colors, dimensions or
+ * gradients.
  */
 object IvaiSpacing {
     val XxxSmall: Dp = 4.dp
@@ -22,20 +23,26 @@ object IvaiSpacing {
     val Medium: Dp = 24.dp
     val Large: Dp = 32.dp
     val XLarge: Dp = 48.dp
+
+    val ScreenCompact: Dp = 20.dp
+    val ScreenMedium: Dp = 24.dp
+    val ScreenExpanded: Dp = 32.dp
+    val Section: Dp = 24.dp
 }
 
 object IvaiShapeTokens {
     val Small: Dp = 8.dp
-    val Control: Dp = 12.dp
-    val Card: Dp = 16.dp
-    val Sheet: Dp = 20.dp
+    val Control: Dp = 8.dp
+    val Group: Dp = 10.dp
+    val Card: Dp = 12.dp
+    val Sheet: Dp = 16.dp
 }
 
 object IvaiElevationTokens {
     val Flat: Dp = 0.dp
-    val Raised: Dp = 1.dp
-    val Active: Dp = 3.dp
-    val Overlay: Dp = 6.dp
+    val Raised: Dp = 0.dp
+    val Active: Dp = 1.dp
+    val Overlay: Dp = 3.dp
 }
 
 object IvaiStrokeTokens {
@@ -45,19 +52,20 @@ object IvaiStrokeTokens {
 
 object IvaiIconSizeTokens {
     val Meta: Dp = 16.dp
-    val Inline: Dp = 18.dp
+    val Inline: Dp = 20.dp
     val Navigation: Dp = 24.dp
     val Feature: Dp = 32.dp
 }
 
 object IvaiMotionTokens {
-    const val StateChangeMillis: Int = 100
+    const val StateChangeMillis: Int = 150
     const val SelectionMillis: Int = 180
-    const val SheetMillis: Int = 240
+    const val SheetMillis: Int = 220
 }
 
 object IvaiLayoutTokens {
     val MinimumTouchTarget: Dp = 48.dp
+    val ListRowMinimumHeight: Dp = 56.dp
     val MediumBreakpoint: Dp = 600.dp
     val ExpandedBreakpoint: Dp = 840.dp
     val MediumRailWidth: Dp = 80.dp
@@ -68,6 +76,7 @@ object IvaiLayoutTokens {
 @Immutable
 data class IvaiSemanticColors(
     val canvas: Color,
+    val surface: Color,
     val surfaceRaised: Color,
     val surfaceInteractive: Color,
     val border: Color,
@@ -93,16 +102,14 @@ data class IvaiTerminalControlColors(
     val maximize: Color
 )
 
-/**
- * Maps the approved light/dark palette to roles used by future IVAI UI primitives.
- * Product screens must consume these roles or [MaterialTheme.colorScheme], not raw hex values.
- */
+/** Product screens consume these roles or MaterialTheme.colorScheme, never raw palette values. */
 @Composable
 fun rememberIvaiSemanticColors(): IvaiSemanticColors {
     val colors = MaterialTheme.colorScheme
     val darkTheme = LocalDarkTheme.current
     return IvaiSemanticColors(
         canvas = colors.background,
+        surface = colors.surface,
         surfaceRaised = colors.surfaceContainer,
         surfaceInteractive = colors.surfaceVariant,
         border = colors.outline,
@@ -117,7 +124,7 @@ fun rememberIvaiSemanticColors(): IvaiSemanticColors {
         stateSuccess = if (darkTheme) IvaiSuccess else IvaiSuccessLight,
         stateWarning = if (darkTheme) IvaiWarning else IvaiWarningLight,
         stateError = colors.error,
-        stateInfo = colors.tertiary
+        stateInfo = colors.primary
     )
 }
 
@@ -132,16 +139,13 @@ fun rememberIvaiTerminalControlColors(): IvaiTerminalControlColors {
     )
 }
 
-/** Decorative-only UI gradients. Never place body text or state meaning on them. */
+/** Decorative-only compatibility helpers. Never place body text or state meaning on gradients. */
 object IvaiDecorativeGradients {
     @Composable
     fun headerGlow(): Brush {
         val colors = MaterialTheme.colorScheme
         return Brush.linearGradient(
-            listOf(
-                colors.primary.copy(alpha = 0.16f),
-                colors.secondary.copy(alpha = 0.14f)
-            )
+            listOf(colors.primary.copy(alpha = 0.10f), colors.secondary.copy(alpha = 0.08f))
         )
     }
 

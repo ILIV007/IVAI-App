@@ -1,6 +1,5 @@
 package dev.iliv007.ivai.ui.theme
 
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
@@ -12,16 +11,18 @@ val LocalDarkTheme = compositionLocalOf { false }
 val LocalToggleTheme = compositionLocalOf<() -> Unit> { {} }
 
 private val IvaiLightColorScheme = lightColorScheme(
-    primary = JadePrimaryLight,
-    onPrimary = LightSurface,
-    primaryContainer = JadeContainerLight,
-    onPrimaryContainer = JadeOnContainerLight,
-    secondary = IndigoSecondaryLight,
-    onSecondary = LightSurface,
-    secondaryContainer = IndigoContainerLight,
-    onSecondaryContainer = IndigoOnContainerLight,
-    tertiary = CyanPrimaryLight,
-    onTertiary = LightSurface,
+    primary = LightActionPrimary,
+    onPrimary = LightOnActionPrimary,
+    primaryContainer = LightActionPrimaryContainer,
+    onPrimaryContainer = LightOnActionPrimaryContainer,
+    secondary = LightActionSecondary,
+    onSecondary = LightOnActionPrimary,
+    secondaryContainer = LightActionSecondaryContainer,
+    onSecondaryContainer = LightOnActionSecondaryContainer,
+    tertiary = LightActionTertiary,
+    onTertiary = LightOnActionPrimary,
+    tertiaryContainer = LightActionTertiaryContainer,
+    onTertiaryContainer = LightOnActionTertiaryContainer,
     background = LightBackground,
     onBackground = LightTextPrimary,
     surface = LightSurface,
@@ -33,20 +34,22 @@ private val IvaiLightColorScheme = lightColorScheme(
     outline = LightBorder,
     outlineVariant = LightBorderSubtle,
     error = IvaiErrorLight,
-    onError = LightSurface
+    onError = LightOnActionPrimary
 )
 
 private val IvaiDarkColorScheme = darkColorScheme(
-    primary = JadePrimary,
-    onPrimary = IvaiBackground,
-    primaryContainer = JadeDark,
-    onPrimaryContainer = JadeBright,
-    secondary = NeonViolet,
-    onSecondary = IvaiBackground,
-    secondaryContainer = PurpleDark,
-    onSecondaryContainer = TextPrimary,
-    tertiary = CyanPrimary,
-    onTertiary = IvaiBackground,
+    primary = DarkActionPrimary,
+    onPrimary = DarkOnActionPrimary,
+    primaryContainer = DarkActionPrimaryContainer,
+    onPrimaryContainer = DarkOnActionPrimaryContainer,
+    secondary = DarkActionSecondary,
+    onSecondary = DarkOnActionPrimary,
+    secondaryContainer = DarkActionSecondaryContainer,
+    onSecondaryContainer = DarkOnActionSecondaryContainer,
+    tertiary = DarkActionTertiary,
+    onTertiary = DarkOnActionPrimary,
+    tertiaryContainer = DarkActionTertiaryContainer,
+    onTertiaryContainer = DarkOnActionTertiaryContainer,
     background = IvaiBackground,
     onBackground = TextPrimary,
     surface = IvaiSurface,
@@ -58,12 +61,12 @@ private val IvaiDarkColorScheme = darkColorScheme(
     outline = IvaiBorder,
     outlineVariant = IvaiBorderSubtle,
     error = IvaiError,
-    onError = IvaiBackground
+    onError = DarkOnActionPrimary
 )
 
 @Composable
 fun IvaiTheme(
-    darkTheme: Boolean = false, // Default is LIGHT theme as requested
+    darkTheme: Boolean = false,
     onToggleTheme: () -> Unit = {},
     content: @Composable () -> Unit
 ) {

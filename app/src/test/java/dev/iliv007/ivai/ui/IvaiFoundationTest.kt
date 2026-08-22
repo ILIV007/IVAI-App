@@ -29,6 +29,7 @@ import com.github.takahirom.roborazzi.captureRoboImage
 import dev.iliv007.ivai.ui.components.IvaiExecutionState
 import dev.iliv007.ivai.ui.components.IvaiExecutionStatusBanner
 import dev.iliv007.ivai.ui.components.IvaiPageHeader
+import dev.iliv007.ivai.ui.components.IvaiPrimaryAction
 import dev.iliv007.ivai.ui.components.IvaiScreenScaffold
 import dev.iliv007.ivai.ui.components.IvaiStateCard
 import dev.iliv007.ivai.ui.components.IvaiStateTone
@@ -68,6 +69,8 @@ class IvaiFoundationTest {
             )
         composeTestRule.onNodeWithTag("phase7_target").performClick()
         composeTestRule.onNodeWithText("Target changed").assertIsDisplayed()
+        composeTestRule.onNodeWithTag("phase7_primary_action").performClick()
+        composeTestRule.onNodeWithText("Primary action triggered").assertIsDisplayed()
     }
 
     @Test
@@ -88,6 +91,7 @@ private fun FoundationPreview(darkTheme: Boolean) {
     IvaiTheme(darkTheme = darkTheme) {
         IvaiScreenScaffold(testTag = "phase7_foundation_screen") {
             var targetChanged by remember { mutableStateOf(false) }
+            var primaryActionTriggered by remember { mutableStateOf(false) }
             Column(
                 modifier = Modifier
                     .fillMaxSize()
@@ -102,6 +106,14 @@ private fun FoundationPreview(darkTheme: Boolean) {
                         TextButton(onClick = {}) { Text("Action") }
                     }
                 )
+                IvaiPrimaryAction(
+                    label = "Primary action",
+                    onClick = { primaryActionTriggered = true },
+                    testTag = "phase7_primary_action"
+                )
+                if (primaryActionTriggered) {
+                    Text("Primary action triggered")
+                }
                 IvaiTargetChip(
                     label = "Local Combo · Research",
                     availabilityLabel = "Available",
